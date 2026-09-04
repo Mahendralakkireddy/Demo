@@ -3,11 +3,16 @@ import pandas as pd
 from datetime import datetime
 import snowflake.connector
 from snowflake.snowpark import Session
-import io
-import PyPDF2
+
+from cortex_file_qa import (
+    ingest_uploaded_file,
+    answer_structured_question,
+    answer_document_question,
+    generate_and_run_warehouse_sql,
+)
 
 # Configuration
-HOST = "XYUHKAV-XRB12650.snowflakecomputing.com" 
+HOST = "XYUHKAV-XRB12650.snowflakecomputing.com"
 ACCOUNT = "XYUHKAV-XRB12650"
 DATABASE = "INVENTORY_DW"
 SCHEMA = "GOLD"
@@ -41,6 +46,54 @@ st.markdown("""
 
 
 # ===================================================================
+# SCHEMA DESCRIPTION — this is what replaces the hardcoded if/elif
+# matcher. Cortex reads this once per question and writes SQL against
+# your REAL tables for ANY question, not just a fixed list.
+# Edit this if your GOLD schema changes.
+# ===================================================================
+WAREHOUSE_SCHEMA_DESCRIPTION = """
+Table: INVENTORY_DW.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT (one row per product per warehouse per day)
+  - SNAPSHOT_DATE_KEY (join key to DIM_DATE.DATE_KEY)
+  - WAREHOUSE_KEY (join key to DIM_WAREHOUSE.WAREHOUSE_KEY)
+  - PRODUCT_KEY (join key to DIM_PRODUCT.PRODUCT_KEY)
+  - ON_HAND_QTY (number, physical quantity on hand)
+  - INVENTORY_VALUE_AMT (number, dollar value of inventory)
+  - EXCESS_STOCK_VALUE_AMT (number, dollar value of stock above safety buffer)
+  - IS_STOCKOUT_FLAG (boolean, true if product is out of stock)
+  - IS_REORDER_NEEDED_FLAG (boolean, true if below reorder threshold)
+
+Table: INVENTORY_DW.GOLD.DIM_WAREHOUSE
+  - WAREHOUSE_KEY
+  - WAREHOUSE_NAME
+
+Table: INVENTORY_DW.GOLD.DIM_PRODUCT
+  - PRODUCT_KEY
+  - PRODUCT_SKU
+  - PRODUCT_NAME
+  - CATEGORY_NAME
+  - SUBCATEGORY_NAME
+  - BRAND_NAME
+  - ABC_CLASSIFICATION
+
+Table: INVENTORY_DW.GOLD.DIM_DATE
+  - DATE_KEY
+  - FULL_DATE (actual calendar date)
+"""
+
+# Cheap guardrail so obviously off-topic chat doesn't burn a Cortex call.
+# This does NOT limit which questions can be asked about inventory — it only
+# filters things with zero domain relevance at all.
+DOMAIN_KEYWORDS = [
+    "inventory", "warehouse", "product", "stock", "stockout", "excess", "quarantine",
+    "reorder", "category", "subcategory", "brand", "abc", "hazardous", "perishable",
+    "cold-chain", "sku", "supply", "quantity", "value", "profit", "sales", "on hand",
+]
+
+GREETING_PATTERNS = ["how are you", "how's it going", "what's up", "whats up", "hi", "hello", "hey",
+                      "good morning", "good evening", "help", "what can you do", "what can i ask"]
+
+
+# ===================================================================
 # 1. STREAMLIT CLOUD LOGIN SCREEN
 # ===================================================================
 if "authenticated" not in st.session_state:
@@ -52,10 +105,8 @@ if "authenticated" not in st.session_state:
 if not st.session_state.authenticated:
     st.title("Welcome to Dilytics Inventory AI")
     st.markdown("Please login to connect to your Snowflake Data Warehouse.")
-    
     st.session_state.username = st.text_input("Enter Snowflake Username:", value=st.session_state.username)
     st.session_state.password = st.text_input("Enter Password:", type="password")
-    
     if st.button("Login"):
         try:
             with st.spinner("Connecting to Snowflake..."):
@@ -70,22 +121,17 @@ if not st.session_state.authenticated:
                     database=DATABASE,
                     schema=SCHEMA
                 )
-                # Create the Snowpark session
                 st.session_state.snowpark_session = Session.builder.configs({"connection": conn}).create()
                 st.session_state.authenticated = True
                 st.rerun()
         except Exception as e:
             st.error(f"Authentication failed: {e}")
-            
-    # Stop execution here until the user logs in
     st.stop()
 
 
 # ===================================================================
 # 2. MAIN APP LOGIC (Runs only after login)
 # ===================================================================
-
-# Get the authenticated session
 session = st.session_state.snowpark_session
 
 # Session State Management for Multi-Chat History
@@ -94,17 +140,22 @@ if "chat_sessions" not in st.session_state:
 if "current_session_id" not in st.session_state:
     init_id = datetime.now().strftime("%Y%m%d_%H%M%S")
     st.session_state.current_session_id = init_id
-    st.session_state.chat_sessions[init_id] = {
-        "title": "New Conversation",
-        "messages": []
-    }
+    st.session_state.chat_sessions[init_id] = {"title": "New Conversation", "messages": []}
 
 current_id = st.session_state.current_session_id
 messages = st.session_state.chat_sessions[current_id]["messages"]
 
-# Helper: Interactive Chart Renderer
+# Per-chat-session Q&A history (used for follow-up resolution), keyed off current_id
+if "qa_histories" not in st.session_state:
+    st.session_state.qa_histories = {}
+qa_history = st.session_state.qa_histories.setdefault(current_id, [])
+
+
+# ---------------------------------------------------------------
+# Helper: Interactive Chart Renderer (unchanged from your original)
+# ---------------------------------------------------------------
 def display_chart_tab(df: pd.DataFrame, key_prefix: str = ""):
-    if len(df.columns) < 2:
+    if df is None or len(df.columns) < 2:
         st.info("Need at least 2 columns to render a chart.")
         return
 
@@ -131,93 +182,69 @@ def display_chart_tab(df: pd.DataFrame, key_prefix: str = ""):
     elif chart_type == "Scatter Plot":
         st.scatter_chart(chart_df, x=x_col, y=y_col)
 
-# YAML Verified Query Matcher & Rule-Based SQL Engine
-def generate_sql_from_prompt(prompt: str):
-    p = prompt.lower().strip()
-    
-    if any(greet in p for greet in ["how are you", "how's it going", "what's up"]):
-        return "I'm doing well, thank you! I am ready to help you analyze inventory levels, stockouts, warehouses, and product categories. What metric would you like to explore?", None
 
-    elif any(help_word in p for help_word in ["what can i ask", "what questions", "what can you do", "examples", "help"]):
-        return ("You can ask me questions about your inventory data! Here are some exact questions you can try:\n\n**Inventory Value:**\n- What is the total available inventory value?\n- What is the inventory value by warehouse?\n- What is the inventory value by product category?\n\n**Stock & Reordering:**\n- How many products are out of stock?\n- What is the total excess inventory value by warehouse?\n- How many products need to be reordered?\n\n*(You can also open the Lightbulb drop-down menu above for the full list!)*"), None
+# ---------------------------------------------------------------
+# REPLACES your old hardcoded generate_sql_from_prompt().
+# Handles ANY question — routes to an uploaded file if one is active,
+# otherwise runs schema-grounded Cortex SQL generation against your
+# real GOLD warehouse tables.
+# ---------------------------------------------------------------
+def answer_any_question(user_prompt: str):
+    p = user_prompt.lower().strip()
 
-    elif p in ["hi", "hello", "hey", "good morning", "good evening"]:
-        return "Hello! I am your Inventory Intelligence Assistant powered by your semantic data model. Ask any question about stock, warehouses, products, or supply!", None
+    # Lightweight greeting/help handling (kept cheap — no Cortex call needed)
+    if any(greet == p or greet in p for greet in GREETING_PATTERNS[:4]):
+        return ("I'm doing well, thank you! I can analyze inventory levels, stockouts, "
+                "warehouses, product categories — or answer questions about anything you upload. "
+                "What would you like to explore?"), None, None
+    if p in ["hi", "hello", "hey", "good morning", "good evening"]:
+        return ("Hello! I'm your Inventory Intelligence Assistant. Ask me anything about stock, "
+                "warehouses, products, supply — or upload a file and ask about that instead."), None, None
+    if any(h in p for h in ["what can i ask", "what questions", "what can you do", "examples"]):
+        return ("Ask me anything about your inventory data in plain English — I'm not limited to a fixed "
+                "list of questions anymore. For example: \"what's the total inventory value in the "
+                "electronics category\", \"which warehouse has the most stockouts\", \"how much excess "
+                "stock do we have in the west region\". You can also upload a CSV, Excel, PDF, or Word "
+                "file in the sidebar and ask questions about that specific document instead."), None, None
 
-    if "total available inventory" in p or ("inventory value" in p and "warehouse" not in p and "category" not in p and "brand" not in p):
-        sql = "SELECT SUM(INVENTORY_VALUE_AMT) AS TOTAL_INVENTORY_VALUE FROM INVENTORY_DW.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT WHERE SNAPSHOT_DATE_KEY = (SELECT MAX(SNAPSHOT_DATE_KEY) FROM INVENTORY_DW.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT)"
-        return "Calculating total inventory value across all warehouses as of the latest snapshot.", sql
+    active_file = st.session_state.get("active_file")
 
-    elif "quantity" in p and "on hand" in p and "product" not in p:
-        sql = "SELECT SUM(ON_HAND_QTY) AS TOTAL_ON_HAND_QTY FROM INVENTORY_DW.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT WHERE SNAPSHOT_DATE_KEY = (SELECT MAX(SNAPSHOT_DATE_KEY) FROM INVENTORY_DW.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT)"
-        return "Calculating the total physical quantity of inventory currently on hand.", sql
-
-    elif "inventory value by warehouse" in p:
-        sql = "SELECT w.WAREHOUSE_NAME, SUM(f.INVENTORY_VALUE_AMT) AS INVENTORY_VALUE FROM INVENTORY_DW.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT f JOIN INVENTORY_DW.GOLD.DIM_WAREHOUSE w ON f.WAREHOUSE_KEY = w.WAREHOUSE_KEY WHERE f.SNAPSHOT_DATE_KEY = (SELECT MAX(SNAPSHOT_DATE_KEY) FROM INVENTORY_DW.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT) GROUP BY w.WAREHOUSE_NAME ORDER BY INVENTORY_VALUE DESC"
-        return "Aggregating total inventory value grouped by warehouse location.", sql
-
-    elif "inventory value by product category" in p or "by category" in p:
-        sql = "SELECT p.CATEGORY_NAME, SUM(f.INVENTORY_VALUE_AMT) AS TOTAL_INVENTORY_VALUE FROM INVENTORY_DW.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT f JOIN INVENTORY_DW.GOLD.DIM_PRODUCT p ON f.PRODUCT_KEY = p.PRODUCT_KEY WHERE f.SNAPSHOT_DATE_KEY = (SELECT MAX(SNAPSHOT_DATE_KEY) FROM INVENTORY_DW.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT) GROUP BY p.CATEGORY_NAME ORDER BY TOTAL_INVENTORY_VALUE DESC"
-        return "Aggregating inventory value by product category.", sql
-
-    elif "subcategory" in p:
-        sql = "SELECT p.SUBCATEGORY_NAME, SUM(f.INVENTORY_VALUE_AMT) AS TOTAL_INVENTORY_VALUE FROM INVENTORY_DW.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT f JOIN INVENTORY_DW.GOLD.DIM_PRODUCT p ON f.PRODUCT_KEY = p.PRODUCT_KEY WHERE f.SNAPSHOT_DATE_KEY = (SELECT MAX(SNAPSHOT_DATE_KEY) FROM INVENTORY_DW.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT) GROUP BY p.SUBCATEGORY_NAME ORDER BY TOTAL_INVENTORY_VALUE DESC"
-        return "Aggregating inventory value by product subcategory.", sql
-
-    elif "brand" in p:
-        sql = "SELECT p.BRAND_NAME, SUM(f.INVENTORY_VALUE_AMT) AS TOTAL_INVENTORY_VALUE FROM INVENTORY_DW.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT f JOIN INVENTORY_DW.GOLD.DIM_PRODUCT p ON f.PRODUCT_KEY = p.PRODUCT_KEY WHERE f.SNAPSHOT_DATE_KEY = (SELECT MAX(SNAPSHOT_DATE_KEY) FROM INVENTORY_DW.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT) GROUP BY p.BRAND_NAME ORDER BY TOTAL_INVENTORY_VALUE DESC"
-        return "Aggregating inventory value by product brand.", sql
-
-    elif "stockout" in p or "out of stock" in p:
-        if "warehouse" in p:
-            sql = "SELECT w.WAREHOUSE_NAME, COUNT_IF(f.IS_STOCKOUT_FLAG) AS STOCKOUT_COUNT FROM INVENTORY_DW.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT f JOIN INVENTORY_DW.GOLD.DIM_WAREHOUSE w ON f.WAREHOUSE_KEY = w.WAREHOUSE_KEY WHERE f.SNAPSHOT_DATE_KEY = (SELECT MAX(SNAPSHOT_DATE_KEY) FROM INVENTORY_DW.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT) GROUP BY w.WAREHOUSE_NAME ORDER BY STOCKOUT_COUNT DESC"
-            return "Calculating the number of stockouts organized by warehouse.", sql
+    # --- Route 1: an uploaded file is active -> answer from that file ---
+    if active_file:
+        if active_file["kind"] == "structured":
+            result = answer_structured_question(user_prompt, active_file, session, history=qa_history)
         else:
-            sql = "SELECT COUNT(*) AS STOCKOUT_COUNT FROM INVENTORY_DW.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT WHERE SNAPSHOT_DATE_KEY = (SELECT MAX(SNAPSHOT_DATE_KEY) FROM INVENTORY_DW.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT) AND IS_STOCKOUT_FLAG = TRUE"
-            return "Counting how many products are completely out of stock.", sql
+            result = answer_document_question(user_prompt, active_file, session, history=qa_history)
+        qa_history.append({"question": user_prompt, "answer": result["answer"]})
+        return result["answer"], result["sql"], result["result"]
 
-    elif "excess" in p and "warehouse" in p:
-        sql = "SELECT w.WAREHOUSE_NAME, SUM(f.EXCESS_STOCK_VALUE_AMT) AS TOTAL_EXCESS_VALUE FROM INVENTORY_DW.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT f JOIN INVENTORY_DW.GOLD.DIM_WAREHOUSE w ON f.WAREHOUSE_KEY = w.WAREHOUSE_KEY WHERE f.SNAPSHOT_DATE_KEY = (SELECT MAX(SNAPSHOT_DATE_KEY) FROM INVENTORY_DW.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT) GROUP BY w.WAREHOUSE_NAME ORDER BY TOTAL_EXCESS_VALUE DESC"
-        return "Aggregating the financial value of excess stock held above safety buffers by warehouse.", sql
+    # --- Route 2: no file -> query the real warehouse schema via Cortex ---
+    if not any(word in p for word in DOMAIN_KEYWORDS):
+        return ("I'm specialized in inventory data. I don't have general web knowledge — "
+                "ask me about stock, warehouses, products, or supply, or upload a document "
+                "in the sidebar to ask about that instead."), None, None
 
-    elif "top 10" in p and "inventory value" in p:
-        sql = "SELECT p.PRODUCT_SKU, p.PRODUCT_NAME, SUM(f.INVENTORY_VALUE_AMT) AS INVENTORY_VALUE FROM INVENTORY_DW.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT f JOIN INVENTORY_DW.GOLD.DIM_PRODUCT p ON f.PRODUCT_KEY = p.PRODUCT_KEY WHERE f.SNAPSHOT_DATE_KEY = (SELECT MAX(SNAPSHOT_DATE_KEY) FROM INVENTORY_DW.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT) GROUP BY p.PRODUCT_SKU, p.PRODUCT_NAME ORDER BY INVENTORY_VALUE DESC LIMIT 10"
-        return "Ranking the top 10 products carrying the highest inventory value.", sql
+    result = generate_and_run_warehouse_sql(
+        user_prompt, session, WAREHOUSE_SCHEMA_DESCRIPTION, history=qa_history
+    )
+    qa_history.append({"question": user_prompt, "answer": result["answer"]})
+    return result["answer"], result["sql"], result["result"]
 
-    elif "reorder" in p:
-        sql = "SELECT COUNT(*) AS REORDER_NEEDED_COUNT FROM INVENTORY_DW.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT WHERE SNAPSHOT_DATE_KEY = (SELECT MAX(SNAPSHOT_DATE_KEY) FROM INVENTORY_DW.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT) AND IS_REORDER_NEEDED_FLAG = TRUE"
-        return "Counting products that have fallen below their reorder threshold.", sql
-
-    elif "abc" in p:
-        sql = "SELECT p.ABC_CLASSIFICATION, SUM(f.INVENTORY_VALUE_AMT) AS TOTAL_INVENTORY_VALUE FROM INVENTORY_DW.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT f JOIN INVENTORY_DW.GOLD.DIM_PRODUCT p ON f.PRODUCT_KEY = p.PRODUCT_KEY WHERE f.SNAPSHOT_DATE_KEY = (SELECT MAX(SNAPSHOT_DATE_KEY) FROM INVENTORY_DW.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT) GROUP BY p.ABC_CLASSIFICATION ORDER BY p.ABC_CLASSIFICATION"
-        return "Evaluating inventory value across ABC classification tiers.", sql
-
-    domain_keywords = ["inventory", "warehouse", "product", "stock", "stockout", "excess", "quarantine", "reorder", "category", "subcategory", "brand", "abc", "hazardous", "perishable", "cold-chain", "sku", "supply", "quantity"]
-    if not any(word in p for word in domain_keywords):
-        return "I am specialized strictly as an **Inventory Domain Intelligence**.\n\nI don't have external web data to answer general knowledge or non-inventory queries. Please ask a question related to stock, warehouses, products, or supply!", None
-
-    else:
-        sql = "SELECT d.FULL_DATE, p.PRODUCT_NAME, w.WAREHOUSE_NAME, f.ON_HAND_QTY, f.INVENTORY_VALUE_AMT, f.IS_STOCKOUT_FLAG FROM INVENTORY_DW.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT f JOIN INVENTORY_DW.GOLD.DIM_DATE d ON f.SNAPSHOT_DATE_KEY = d.DATE_KEY JOIN INVENTORY_DW.GOLD.DIM_PRODUCT p ON f.PRODUCT_KEY = p.PRODUCT_KEY JOIN INVENTORY_DW.GOLD.DIM_WAREHOUSE w ON f.WAREHOUSE_KEY = w.WAREHOUSE_KEY WHERE f.SNAPSHOT_DATE_KEY = (SELECT MAX(SNAPSHOT_DATE_KEY) FROM INVENTORY_DW.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT) ORDER BY f.INVENTORY_VALUE_AMT DESC LIMIT 20"
-        return "Displaying a recent snapshot overview of inventory by product and warehouse:", sql
 
 # ----------------- LEFT NATIVE SIDEBAR PANEL -----------------
 with st.sidebar:
     st.markdown("### ⚡Dilytics AI")
     st.markdown('<span class="status-pill">● Semantic Mart Live</span>', unsafe_allow_html=True)
     st.write("")
-    
+
     if st.button("➕ New Chat", use_container_width=True, type="primary"):
         new_id = datetime.now().strftime("%Y%m%d_%H%M%S")
         st.session_state.current_session_id = new_id
-        st.session_state.chat_sessions[new_id] = {
-            "title": f"Chat {len(st.session_state.chat_sessions) + 1}",
-            "messages": []
-        }
+        st.session_state.chat_sessions[new_id] = {"title": f"Chat {len(st.session_state.chat_sessions) + 1}", "messages": []}
         st.rerun()
 
     st.markdown("---")
     st.markdown("##### 🕒 Recent Conversations")
-    
     for s_id, s_data in reversed(list(st.session_state.chat_sessions.items())):
         is_active = (s_id == st.session_state.current_session_id)
         session_label = s_data["title"]
@@ -230,214 +257,143 @@ with st.sidebar:
     st.markdown("---")
     if st.button("🗑️ Clear All Sessions", use_container_width=True):
         st.session_state.chat_sessions = {}
+        st.session_state.qa_histories = {}
         init_id = datetime.now().strftime("%Y%m%d_%H%M%S")
         st.session_state.current_session_id = init_id
-        st.session_state.chat_sessions[init_id] = {
-            "title": "New Conversation",
-            "messages": []
-        }
+        st.session_state.chat_sessions[init_id] = {"title": "New Conversation", "messages": []}
         st.rerun()
 
-# ----------------- MAIN UI TABS -----------------
-tab_inventory, tab_doc_ai = st.tabs(["📦 Inventory SQL Assistant", "📄 Document Intelligence AI"])
+    # -------------------- NEW: Document Analysis upload --------------------
+    st.markdown("---")
+    st.markdown("##### 📂 Document Analysis")
+    st.caption("Upload a document or report to ask questions about it instead of the warehouse.")
+    uploaded_file = st.file_uploader(
+        "Upload",
+        type=["csv", "xlsx", "xls", "pdf", "docx"],
+        label_visibility="collapsed",
+        help="200MB per file • CSV, XLSX, XLS, PDF, DOCX",
+    )
 
-# ===================================================================
-# TAB 1: EXISTING INVENTORY AI (Rule-Based SQL)
-# ===================================================================
-with tab_inventory:
-    head_col1, head_col2 = st.columns([4.5, 1.2])
-    with head_col1:
-        st.title("💬 Dilytics Inventory AI")
-        st.caption("Ask questions in natural language to explore stock levels, warehouse capacity, and product segments.")
-    with head_col2:
-        st.write("")
-        if st.button("🔄 Reset Thread", use_container_width=True, help="Clear message history in this specific thread"):
-            st.session_state.chat_sessions[current_id]["messages"] = []
-            st.session_state.chat_sessions[current_id]["title"] = "New Conversation"
-            st.rerun()
-
-    with st.expander("💡 What exact questions can I ask this assistant?", expanded=False):
-        st.markdown("This assistant is currently programmed to perfectly answer the following specific questions:")
-        col_a, col_b = st.columns(2)
-        with col_a:
-            st.markdown("**💰 Inventory Value & Quantity**\n* What is the total available inventory value?\n* What is the total quantity of inventory currently on hand?\n* What is the inventory value by warehouse?\n\n**📦 Products & Categories**\n* What is the inventory value by product category?\n* What is the inventory value by product subcategory?\n* What is the inventory value by brand?\n* What are the top 10 products by inventory value?\n* What is the inventory value by ABC classification?")
-        with col_b:
-            st.markdown("**⚠️ Stockouts & Exceptions**\n* How many products are out of stock?\n* What is the stockout count by warehouse?\n* What is the total excess inventory value by warehouse?\n* How many products need to be reordered?")
-        st.info("💡 **Pro-Tip:** You can copy and paste any of these exact questions directly into the chat bar below!")
-
-    st.markdown("##### 💡 Verified Onboarding Questions:")
-    q_col1, q_col2, q_col3, q_col4, q_col5 = st.columns(5)
-    quick_prompt = None
-    if q_col1.button("💰 Total Inv. Value", use_container_width=True): quick_prompt = "What is the total available inventory?"
-    if q_col2.button("🏭 Value by Warehouse", use_container_width=True): quick_prompt = "What is the inventory value by warehouse?"
-    if q_col3.button("📦 Value by Category", use_container_width=True): quick_prompt = "What is the inventory value by product category?"
-    if q_col4.button("📉 Stockout Count", use_container_width=True): quick_prompt = "How many products are out of stock?"
-    if q_col5.button("⚠️ Excess Stock", use_container_width=True): quick_prompt = "What is the total excess inventory value by warehouse?"
-
-    for idx, msg in enumerate(messages):
-        with st.chat_message(msg["role"]):
-            st.markdown(msg["content"])
-            if "sql" in msg and msg["sql"]:
-                with st.expander("Generated SQL", expanded=False):
-                    st.code(msg["sql"], language="sql")
-            if "data" in msg and msg["data"] is not None:
-                tab_data, tab_chart = st.tabs(["Data 📄", "Chart 📈"])
-                with tab_data:
-                    st.dataframe(msg["data"])
-                with tab_chart:
-                    display_chart_tab(msg["data"], key_prefix=f"hist_{current_id}_{idx}")
-
-    user_prompt = st.chat_input("Ask a question about inventory, warehouses, products, or stockouts...") or quick_prompt
-
-    if user_prompt:
-        if len(messages) == 0:
-            st.session_state.chat_sessions[current_id]["title"] = user_prompt[:25] + ("..." if len(user_prompt) > 25 else "")
-
-        messages.append({"role": "user", "content": user_prompt})
-        with st.chat_message("user"):
-            st.markdown(user_prompt)
-
-        with st.chat_message("assistant"):
-            explanation, sql_query = generate_sql_from_prompt(user_prompt)
-            st.markdown(explanation)
-            df = None
-            if sql_query:
-                with st.expander("Generated SQL", expanded=False):
-                    st.code(sql_query, language="sql")
-                try:
-                    df = session.sql(sql_query).to_pandas()
-                    tab_data, tab_chart = st.tabs(["Data 📄", "Chart 📈"])
-                    with tab_data:
-                        st.dataframe(df)
-                    with tab_chart:
-                        display_chart_tab(df, key_prefix=f"live_{current_id}")
-                except Exception as e:
-                    st.error(f"SQL Execution Error: {str(e)}")
-
-            messages.append({"role": "assistant", "content": explanation, "sql": sql_query, "data": df})
-            st.rerun()
-
-
-# ===================================================================
-# TAB 2: DOCUMENT & DATA ANALYSIS (Powered by Snowflake Cortex)
-# ===================================================================
-with tab_doc_ai:
-    st.header("📄 Document & Data Analysis Assistant")
-    st.markdown("Upload any Excel, CSV, PDF, or Text file (up to 100MB) to analyze it and ask questions using Snowflake Cortex LLM.")
-    
-    uploaded_file = st.file_uploader("Upload Document", type=["csv", "xlsx", "xls", "pdf", "txt"], help="Max size 100MB")
-    
     if uploaded_file is not None:
-        if st.button("Analyze Data", type="primary"):
-            with st.spinner("Analyzing document..."):
-                file_name = uploaded_file.name
-                st.session_state.doc_type = file_name.split('.')[-1].lower()
-                st.session_state.doc_name = file_name
-                
+        if st.session_state.get("active_file_name") != uploaded_file.name:
+            with st.spinner(f"Reading {uploaded_file.name}..."):
                 try:
-                    if st.session_state.doc_type in ['csv']:
-                        df = pd.read_csv(uploaded_file)
-                        # Clean columns for Snowflake standard
-                        df.columns = [str(c).upper().replace(" ", "_").replace("-", "_").replace("(", "").replace(")", "").replace("\n", "") for c in df.columns]
-                        st.session_state.uploaded_df = df
-                        # Upload to Snowflake temp table
-                        session.write_pandas(df, "TEMP_UPLOADED_DOC", auto_create_table=True, table_type="temp", overwrite=True)
-                        st.session_state.doc_ready = True
-                        st.success(f"Successfully analyzed CSV with {len(df)} rows.")
-                        
-                    elif st.session_state.doc_type in ['xlsx', 'xls']:
-                        xls = pd.ExcelFile(uploaded_file)
-                        sheet_names = xls.sheet_names
-                        df = pd.read_excel(uploaded_file, sheet_name=sheet_names[0])
-                        # Clean columns for Snowflake standard
-                        df.columns = [str(c).upper().replace(" ", "_").replace("-", "_").replace("(", "").replace(")", "").replace("\n", "") for c in df.columns]
-                        st.session_state.uploaded_df = df
-                        session.write_pandas(df, "TEMP_UPLOADED_DOC", auto_create_table=True, table_type="temp", overwrite=True)
-                        st.session_state.doc_ready = True
-                        st.success(f"Successfully analyzed Excel file (Sheet: {sheet_names[0]}) with {len(df)} rows.")
-                        
-                    elif st.session_state.doc_type == 'pdf':
-                        pdf_reader = PyPDF2.PdfReader(uploaded_file)
-                        text = ""
-                        for page in pdf_reader.pages:
-                            text += page.extract_text() + "\n"
-                        st.session_state.uploaded_text = text
-                        st.session_state.doc_ready = True
-                        st.success(f"Successfully analyzed PDF ({len(pdf_reader.pages)} pages).")
-                        
-                    elif st.session_state.doc_type == 'txt':
-                        text = uploaded_file.getvalue().decode("utf-8")
-                        st.session_state.uploaded_text = text
-                        st.session_state.doc_ready = True
-                        st.success("Successfully analyzed Text file.")
-                        
+                    file_meta = ingest_uploaded_file(uploaded_file, session)
+                    st.session_state["active_file"] = file_meta
+                    st.session_state["active_file_name"] = uploaded_file.name
+                    st.session_state.qa_histories[current_id] = []  # reset follow-up context for new file
+                    st.success(f"Loaded {uploaded_file.name}")
                 except Exception as e:
-                    st.error(f"Error processing file: {str(e)}")
-                    st.session_state.doc_ready = False
-                    
-    # Document Chat Interface
-    if st.session_state.get("doc_ready", False):
-        st.markdown("---")
-        st.subheader(f"Ask questions about: {st.session_state.doc_name}")
-        
-        # Preview Section
-        with st.expander("Preview Uploaded Content"):
-            if st.session_state.doc_type in ['csv', 'xlsx', 'xls']:
-                st.dataframe(st.session_state.uploaded_df.head(10))
-            else:
-                preview_text = st.session_state.uploaded_text[:1000]
-                st.text(preview_text + ("..." if len(st.session_state.uploaded_text) > 1000 else ""))
-                
-        doc_prompt = st.chat_input("Ask a question about the uploaded document...", key="doc_prompt_input")
-        
-        if doc_prompt:
-            st.chat_message("user").markdown(doc_prompt)
-            
-            with st.chat_message("assistant"):
-                with st.spinner("Analyzing document with Cortex AI..."):
-                    try:
-                        if st.session_state.doc_type in ['csv', 'xlsx', 'xls']:
-                            # Structured Data -> Text-to-SQL generation using Cortex
-                            columns = list(st.session_state.uploaded_df.columns)
-                            cortex_prompt = f"""
-                            You are a data analyst. I have a Snowflake table named TEMP_UPLOADED_DOC.
-                            The columns are: {', '.join(columns)}.
-                            Based on the user's question, write a Snowflake SQL query to answer it.
-                            User Question: {doc_prompt}
-                            IMPORTANT: Return ONLY the raw SQL query. Do not include markdown formatting like ```sql. Do not include any explanations.
-                            """
-                            
-                            cortex_sql = f"SELECT SNOWFLAKE.CORTEX.COMPLETE('llama3-70b', $${cortex_prompt}$$)"
-                            generated_sql = session.sql(cortex_sql).collect()[0][0].strip()
-                            
-                            # Clean up markdown if LLM includes it by accident
-                            generated_sql = generated_sql.replace("```sql", "").replace("```", "").strip()
-                            
-                            st.markdown("Here is the data based on your question:")
-                            with st.expander("View Generated Cortex SQL", expanded=False):
-                                st.code(generated_sql, language="sql")
-                            
-                            # Execute the AI generated query
-                            result_df = session.sql(generated_sql).to_pandas()
-                            st.dataframe(result_df)
-                            
-                        else:
-                            # Unstructured Data -> Question Answering using Cortex
-                            # Limit text length to avoid token limits on Llama3 (safe limit ~25k chars)
-                            safe_text = st.session_state.uploaded_text[:25000]
-                            cortex_prompt = f"""
-                            Based strictly on the following document content, answer the user's question.
-                            If the answer is not in the document, say "I cannot find the answer in the document."
-                            
-                            DOCUMENT CONTENT:
-                            {safe_text}
-                            
-                            USER QUESTION: {doc_prompt}
-                            """
-                            
-                            cortex_sql = f"SELECT SNOWFLAKE.CORTEX.COMPLETE('llama3-70b', $${cortex_prompt}$$)"
-                            answer = session.sql(cortex_sql).collect()[0][0].strip()
-                            st.markdown(answer)
-                            
-                    except Exception as e:
-                        st.error(f"Cortex AI failed to generate an answer: {str(e)}")
+                    st.error(f"Couldn't read that file: {e}")
+
+    active_file = st.session_state.get("active_file")
+    if active_file:
+        st.info(f"📄 Active file: **{active_file['name']}**\n\nQuestions will be answered from this file.")
+        if active_file["kind"] == "structured":
+            st.caption(f"{active_file['row_count']} rows • columns: {', '.join(active_file['columns'][:6])}"
+                       + ("..." if len(active_file["columns"]) > 6 else ""))
+        if st.button("✖ Clear uploaded file", use_container_width=True):
+            st.session_state.pop("active_file", None)
+            st.session_state.pop("active_file_name", None)
+            st.rerun()
+
+
+# ----------------- MAIN CHAT & ANALYTICS AREA -----------------
+head_col1, head_col2 = st.columns([4.5, 1.2])
+with head_col1:
+    st.title("💬 Dilytics Inventory AI")
+    st.caption("Ask questions in natural language to explore stock levels, warehouse capacity, and product segments — or upload a file to ask about that instead.")
+with head_col2:
+    st.write("")
+    if st.button("🔄 Reset Thread", use_container_width=True, help="Clear message history in this specific thread"):
+        st.session_state.chat_sessions[current_id]["messages"] = []
+        st.session_state.chat_sessions[current_id]["title"] = "New Conversation"
+        st.session_state.qa_histories[current_id] = []
+        st.rerun()
+
+
+with st.expander("💡 What can I ask this assistant?", expanded=False):
+    st.markdown(
+        "This assistant now answers **any** question about your inventory data in plain English — "
+        "it's not limited to a fixed list. A few examples to get you started:"
+    )
+    col_a, col_b = st.columns(2)
+    with col_a:
+        st.markdown("""
+        **💰 Inventory Value & Quantity**
+        * "What is the total available inventory value?"
+        * "What is the inventory value by warehouse?"
+        * "Which product category holds the most value?"
+        **📦 Products & Categories**
+        * "Top 10 products by inventory value"
+        * "Inventory value by brand for the East warehouse"
+        """)
+    with col_b:
+        st.markdown("""
+        **⚠️ Stockouts & Exceptions**
+        * "How many products are out of stock?"
+        * "Which warehouse has the highest excess stock value?"
+        * "How many products need reordering in the Electronics category?"
+        **📄 Or upload a file** (sidebar) and ask about that document specifically.
+        """)
+
+
+# Onboarding / Verified Questions Selector (kept as quick-start shortcuts, not the only options)
+st.markdown("##### 💡 Quick Questions:")
+q_col1, q_col2, q_col3, q_col4, q_col5 = st.columns(5)
+quick_prompt = None
+if q_col1.button("💰 Total Inv. Value", use_container_width=True):
+    quick_prompt = "What is the total available inventory value?"
+if q_col2.button("🏭 Value by Warehouse", use_container_width=True):
+    quick_prompt = "What is the inventory value by warehouse?"
+if q_col3.button("📦 Value by Category", use_container_width=True):
+    quick_prompt = "What is the inventory value by product category?"
+if q_col4.button("📉 Stockout Count", use_container_width=True):
+    quick_prompt = "How many products are out of stock?"
+if q_col5.button("⚠️ Excess Stock", use_container_width=True):
+    quick_prompt = "What is the total excess inventory value by warehouse?"
+
+# Display Current Thread's History
+for idx, msg in enumerate(messages):
+    with st.chat_message(msg["role"]):
+        st.markdown(msg["content"])
+        if msg.get("sql"):
+            with st.expander("Generated SQL", expanded=False):
+                st.code(msg["sql"], language="sql")
+        if msg.get("data") is not None:
+            tab_data, tab_chart = st.tabs(["Data 📄", "Chart 📈"])
+            with tab_data:
+                st.dataframe(msg["data"])
+            with tab_chart:
+                display_chart_tab(msg["data"], key_prefix=f"hist_{current_id}_{idx}")
+
+# Handle Inputs
+placeholder = "Ask a question about your uploaded document..." if st.session_state.get("active_file") \
+    else "Ask a question about inventory, warehouses, products, or stockouts..."
+user_prompt = st.chat_input(placeholder) or quick_prompt
+
+if user_prompt:
+    if len(messages) == 0:
+        st.session_state.chat_sessions[current_id]["title"] = user_prompt[:25] + ("..." if len(user_prompt) > 25 else "")
+
+    messages.append({"role": "user", "content": user_prompt})
+    with st.chat_message("user"):
+        st.markdown(user_prompt)
+
+    with st.chat_message("assistant"):
+        with st.spinner("Thinking..."):
+            explanation, sql_query, df = answer_any_question(user_prompt)
+
+        st.markdown(explanation)
+        if sql_query:
+            with st.expander("Generated SQL", expanded=False):
+                st.code(sql_query, language="sql")
+        if df is not None:
+            tab_data, tab_chart = st.tabs(["Data 📄", "Chart 📈"])
+            with tab_data:
+                st.dataframe(df)
+            with tab_chart:
+                display_chart_tab(df, key_prefix=f"live_{current_id}")
+
+        messages.append({"role": "assistant", "content": explanation, "sql": sql_query, "data": df})
+        st.rerun()
