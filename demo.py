@@ -16,7 +16,7 @@ WAREHOUSE = "COMPUTE_WH"
 
 # Semantic Model Stage Paths (Two Databases for Two YML)
 INVENTORY_YAML_STAGE_PATH = '@"INVENTORY_DW_DEMO"."INVENTORY_SCHEMA"."YAML"/INVENTORY_ANALYST.yaml'
-SALES_YAML_STAGE_PATH = '@"CORTEX_DEMO"."CORTEX_SCHEMA"."YAML"/Sales Intelligence Model.yaml'
+SALES_YAML_STAGE_PATH = '@"CORTEX_DEMO"."CORTEX_SCHEMA"."YAML"/sales_intelligence_model_80_queries.yaml'
  
 # Page Configuration
 st.set_page_config(page_title="Dilytics Enterprise AI", page_icon="📦", layout="wide")
