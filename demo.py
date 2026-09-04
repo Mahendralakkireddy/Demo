@@ -14,10 +14,9 @@ DATABASE = "INVENTORY_DW_DEMO"
 SCHEMA = "GOLD"
 WAREHOUSE = "COMPUTE_WH"
 
-# Semantic Model Stage Paths
+# Semantic Model Stage Paths (Two Databases for Two YML)
 INVENTORY_YAML_STAGE_PATH = '@"INVENTORY_DW_DEMO"."INVENTORY_SCHEMA"."YAML"/INVENTORY_ANALYST.yaml'
 SALES_YAML_STAGE_PATH = '@"CORTEX_DEMO"."CORTEX_SCHEMA"."YAML"/Sales Intelligence Model.yaml'
-                       
  
 # Page Configuration
 st.set_page_config(page_title="Dilytics Enterprise AI", page_icon="📦", layout="wide")
@@ -82,51 +81,50 @@ if not st.session_state.authenticated:
     st.stop()
  
 # ===================================================================
-# 2. YAML STAGE LOADER & SALES ENGINE
+# 2. DYNAMIC DUAL YAML STAGE LOADER
 # ===================================================================
 session = st.session_state.snowpark_session
 
-@st.cache_data(show_spinner=False)
-def load_sales_queries_from_stage(_session):
-    """Dynamically reads the Sales YAML file from the Snowflake Internal Stage"""
+def load_yaml_queries(stage_path):
+    """Dynamically reads a YAML file from a Snowflake Internal Stage"""
     try:
-        stream = _session.file.get_stream(SALES_YAML_STAGE_PATH)
+        stream = session.file.get_stream(stage_path)
         data = yaml.safe_load(stream)
-        return data.get("verified_queries", [])
+        if isinstance(data, dict):
+            return data.get("verified_queries", [])
+        return []
     except Exception as e:
-        st.warning(f"Could not load Sales YAML from stage. Ensure the path is correct. Error: {e}")
+        st.error(f"🚨 **Syntax Error in your YAML File!**\n\nCould not load `{stage_path}`. Please fix the formatting/indentation in Snowflake!\n\nError details: `{e}`")
         return []
 
-sales_queries_list = load_sales_queries_from_stage(session)
+# We use session_state instead of st.cache to ensure it doesn't get permanently stuck on errors!
+if "sales_queries" not in st.session_state:
+    st.session_state.sales_queries = load_yaml_queries(SALES_YAML_STAGE_PATH)
+    
+if "inventory_queries" not in st.session_state:
+    st.session_state.inventory_queries = load_yaml_queries(INVENTORY_YAML_STAGE_PATH)
 
-def generate_sales_sql_from_prompt(prompt: str):
-    """Parses the dynamically loaded Sales YAML to find a match"""
-    if not sales_queries_list:
+def find_sql_for_prompt(prompt: str, queries_list: list, schema_prefix: str):
+    """Parses a loaded YAML list to find a matching question"""
+    if not queries_list:
         return None, None
         
     p = prompt.lower().strip().replace('?', '')
     
-    for q in sales_queries_list:
+    for q in queries_list:
         yaml_q = q.get('question', '').lower().replace('?', '').strip()
         
         if p == yaml_q or p in yaml_q or yaml_q in p:
             sql = q.get('sql', '')
-            # Pointing Sales Queries to CORTEX_DEMO.MART
-            sql = sql.replace('__fact_sales_item', 'CORTEX_DEMO.MART.FACT_SALES_ITEM')
-            sql = sql.replace('__fact_sales', 'CORTEX_DEMO.MART.FACT_SALES')
-            sql = sql.replace('__dim_customer', 'CORTEX_DEMO.MART.DIM_CUSTOMER')
-            sql = sql.replace('__dim_product', 'CORTEX_DEMO.MART.DIM_PRODUCT')
-            sql = sql.replace('__dim_date', 'CORTEX_DEMO.MART.DIM_DATE')
-            sql = sql.replace('__dim_sales_rep', 'CORTEX_DEMO.MART.DIM_SALES_REP')
-            
-            explanation = f"**Sales AI:** Querying data based on the Sales Semantic Model rule: '{q.get('question')}'"
-            return explanation, sql
+            # Convert Semantic table references (__) to actual database schema
+            sql = sql.replace('__', schema_prefix)
+            return q.get('question', 'Query Found'), sql
             
     return None, None
 
 
 # ===================================================================
-# 3. ORIGINAL APP LOGIC & INVENTORY ENGINE
+# 3. ORIGINAL HARDCODED INVENTORY ENGINE (Safety Net Fallback)
 # ===================================================================
 if "chat_sessions" not in st.session_state:
     st.session_state.chat_sessions = {}
@@ -169,29 +167,18 @@ def display_chart_tab(df: pd.DataFrame, key_prefix: str = ""):
     elif chart_type == "Scatter Plot":
         st.scatter_chart(chart_df, x=x_col, y=y_col)
  
-def generate_sql_from_prompt(prompt: str):
+def generate_hardcoded_inventory_sql(prompt: str):
     p = prompt.lower().strip()
     if any(greet in p for greet in ["how are you", "how's it going", "what's up", "whats up"]):
         explanation = "I'm doing well, thank you! I am ready to help you analyze inventory levels, stockouts, warehouses, and product categories. What metric would you like to explore?"
         return explanation, None
  
     elif any(help_word in p for help_word in ["what can i ask", "what questions", "what can you do", "examples", "help"]):
-        explanation = (
-            "You can ask me questions about your inventory data! Here are some exact questions you can try:\n\n"
-            "**Inventory Value:**\n"
-            "- What is the total available inventory value?\n"
-            "- What is the inventory value by warehouse?\n"
-            "- What is the inventory value by product category?\n\n"
-            "**Stock & Reordering:**\n"
-            "- How many products are out of stock?\n"
-            "- What is the total excess inventory value by warehouse?\n"
-            "- How many products need to be reordered?\n\n"
-            "*(You can also open the Lightbulb drop-down menu above for the full list!)*"
-        )
+        explanation = "You can ask me questions about your inventory data or sales data! Look at the tabs above for examples."
         return explanation, None
  
     elif p in ["hi", "hello", "hey", "good morning", "good evening"]:
-        explanation = "Hello! I am your Inventory Intelligence Assistant powered by your semantic data model. Ask any question about stock, warehouses, products, or supply!"
+        explanation = "Hello! I am your Intelligence Assistant powered by your semantic data model. Ask any question about stock, warehouses, products, or sales!"
         return explanation, None
 
     if "total available inventory" in p or ("inventory value" in p and "warehouse" not in p and "category" not in p and "brand" not in p):
@@ -324,11 +311,7 @@ def generate_sql_from_prompt(prompt: str):
         "category", "subcategory", "brand", "abc", "hazardous", "perishable", "cold-chain", "sku", "supply", "quantity"
     ]
     if not any(word in p for word in domain_keywords):
-        explanation = (
-            "I am specialized strictly as an **Inventory Domain Intelligence**.\n\n"
-            "I don't have external web data to answer general knowledge or non-inventory queries. "
-            "Please ask a question related to stock, warehouses, products, or supply!"
-        )
+        explanation = "I don't have a semantic mapping for that specific query yet. Please try asking exactly as listed in the Verified Questions!"
         return explanation, None
  
     else:
@@ -404,12 +387,10 @@ tab_inv, tab_sales = st.tabs(["📦 Inventory Intelligence", "💰 Sales Intelli
 with tab_inv:
     with st.expander("💡 What exact questions can I ask about Inventory?", expanded=False):
         st.markdown("""
-        **💰 Inventory Value & Quantity**
+        *(Powered by your `INVENTORY_ANALYST.yaml` and semantic rules)*
         * "What is the total available inventory value?"
         * "What is the total quantity of inventory currently on hand?"
         * "What is the inventory value by warehouse?"
-        
-        **📦 Products & Exceptions**
         * "What is the inventory value by product category?"
         * "How many products are out of stock?"
         * "What is the total excess inventory value by warehouse?"
@@ -445,7 +426,7 @@ with tab_sales:
 st.markdown("---")
 
 # ===================================================================
-# 5. UNIFIED CHAT EXECUTION
+# 5. UNIFIED TRIPLE-LAYER CHAT EXECUTION
 # ===================================================================
 for idx, msg in enumerate(messages):
     with st.chat_message(msg["role"]):
@@ -472,12 +453,23 @@ if user_prompt:
  
     with st.chat_message("assistant"):
         
-        # 1. SMART ROUTING: Check if it's a Sales question first
-        explanation, sql_query = generate_sales_sql_from_prompt(user_prompt)
-        
-        # 2. If it's NOT a Sales question, fallback perfectly to the original Inventory logic
+        explanation = None
+        sql_query = None
+
+        # LAYER 1: Check Sales YAML Model
+        matched_q, sql_query = find_sql_for_prompt(user_prompt, st.session_state.sales_queries, "CORTEX_DEMO.MART.")
+        if sql_query:
+            explanation = f"**Sales Domain:** Querying data based on Semantic Rule: '{matched_q}'"
+            
+        # LAYER 2: Check Inventory YAML Model
         if not sql_query:
-            explanation, sql_query = generate_sql_from_prompt(user_prompt)
+            matched_q, sql_query = find_sql_for_prompt(user_prompt, st.session_state.inventory_queries, "INVENTORY_DW_DEMO.GOLD.")
+            if sql_query:
+                explanation = f"**Inventory Domain:** Querying data based on Semantic Rule: '{matched_q}'"
+                
+        # LAYER 3: Fallback to original hardcoded rules
+        if not sql_query:
+            explanation, sql_query = generate_hardcoded_inventory_sql(user_prompt)
             
         st.markdown(explanation)
         
