@@ -5,7 +5,9 @@ import snowflake.connector
 from snowflake.snowpark import Session
 import yaml
  
+# ===================================================================
 # Configuration
+# ===================================================================
 HOST = "WDSDGTL-XCC29288.snowflakecomputing.com" 
 ACCOUNT = "WDSDGTL-XCC29288"
 DATABASE = "INVENTORY_DW_DEMO"
@@ -44,7 +46,7 @@ st.markdown("""
  
  
 # ===================================================================
-# 1. STREAMLIT CLOUD LOGIN SCREEN (Original)
+# 1. STREAMLIT CLOUD LOGIN SCREEN
 # ===================================================================
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
@@ -79,7 +81,7 @@ if not st.session_state.authenticated:
     st.stop()
  
 # ===================================================================
-# 2. YAML STAGE LOADER & SALES ENGINE (NEW)
+# 2. YAML STAGE LOADER & SALES ENGINE
 # ===================================================================
 session = st.session_state.snowpark_session
 
@@ -87,7 +89,6 @@ session = st.session_state.snowpark_session
 def load_sales_queries_from_stage(_session):
     """Dynamically reads the Sales YAML file from the Snowflake Internal Stage"""
     try:
-        # get_stream safely reads the file from the Snowflake stage without downloading it locally
         stream = _session.file.get_stream(SALES_YAML_STAGE_PATH)
         data = yaml.safe_load(stream)
         return data.get("verified_queries", [])
@@ -107,16 +108,15 @@ def generate_sales_sql_from_prompt(prompt: str):
     for q in sales_queries_list:
         yaml_q = q.get('question', '').lower().replace('?', '').strip()
         
-        # If the user's prompt matches a YAML verified question
         if p == yaml_q or p in yaml_q or yaml_q in p:
             sql = q.get('sql', '')
-            # Dynamically replace Semantic table prefixes (__) with your actual database schema
-            sql = sql.replace('__fact_sales_item', 'CORTEX_DEMO.CORTEX_SCHEMA.FACT_SALES_ITEM')
-            sql = sql.replace('__fact_sales', 'CORTEX_DEMO.CORTEX_SCHEMA.FACT_SALES')
-            sql = sql.replace('__dim_customer', 'CORTEX_DEMO.CORTEX_SCHEMA.DIM_CUSTOMER')
-            sql = sql.replace('__dim_product', 'CORTEX_DEMO.CORTEX_SCHEMA.DIM_PRODUCT')
-            sql = sql.replace('__dim_date', 'CORTEX_DEMO.CORTEX_SCHEMA.DIM_DATE')
-            sql = sql.replace('__dim_sales_rep', 'CORTEX_DEMO.CORTEX_SCHEMA.DIM_SALES_REP')
+            # Pointing Sales Queries to CORTEX_DEMO.MART
+            sql = sql.replace('__fact_sales_item', 'CORTEX_DEMO.MART.FACT_SALES_ITEM')
+            sql = sql.replace('__fact_sales', 'CORTEX_DEMO.MART.FACT_SALES')
+            sql = sql.replace('__dim_customer', 'CORTEX_DEMO.MART.DIM_CUSTOMER')
+            sql = sql.replace('__dim_product', 'CORTEX_DEMO.MART.DIM_PRODUCT')
+            sql = sql.replace('__dim_date', 'CORTEX_DEMO.MART.DIM_DATE')
+            sql = sql.replace('__dim_sales_rep', 'CORTEX_DEMO.MART.DIM_SALES_REP')
             
             explanation = f"**Sales AI:** Querying data based on the Sales Semantic Model rule: '{q.get('question')}'"
             return explanation, sql
@@ -125,7 +125,7 @@ def generate_sales_sql_from_prompt(prompt: str):
 
 
 # ===================================================================
-# 3. ORIGINAL APP LOGIC & INVENTORY ENGINE (Untouched)
+# 3. ORIGINAL APP LOGIC & INVENTORY ENGINE
 # ===================================================================
 if "chat_sessions" not in st.session_state:
     st.session_state.chat_sessions = {}
@@ -150,7 +150,6 @@ def display_chart_tab(df: pd.DataFrame, key_prefix: str = ""):
     x_key = f"{key_prefix}_x" if key_prefix else "x_axis"
     y_key = f"{key_prefix}_y" if key_prefix else "y_axis"
     t_key = f"{key_prefix}_type" if key_prefix else "chart_type"
- 
     x_col = col1.selectbox("Dimension (X-axis)", all_cols, index=0, key=x_key)
     remaining_cols = [c for c in all_cols if c != x_col]
     y_col = col2.selectbox("Metric (Y-axis)", remaining_cols, index=0 if remaining_cols else 0, key=y_key)
@@ -198,8 +197,8 @@ def generate_sql_from_prompt(prompt: str):
         explanation = "Calculating total inventory value across all warehouses as of the latest snapshot."
         sql = """
         SELECT SUM(INVENTORY_VALUE_AMT) AS TOTAL_INVENTORY_VALUE
-        FROM INVENTORY_DW.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT
-        WHERE SNAPSHOT_DATE_KEY = (SELECT MAX(SNAPSHOT_DATE_KEY) FROM INVENTORY_DW.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT)
+        FROM INVENTORY_DW_DEMO.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT
+        WHERE SNAPSHOT_DATE_KEY = (SELECT MAX(SNAPSHOT_DATE_KEY) FROM INVENTORY_DW_DEMO.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT)
         """
         return explanation, sql.strip()
  
@@ -207,8 +206,8 @@ def generate_sql_from_prompt(prompt: str):
         explanation = "Calculating the total physical quantity of inventory currently on hand."
         sql = """
         SELECT SUM(ON_HAND_QTY) AS TOTAL_ON_HAND_QTY
-        FROM INVENTORY_DW.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT
-        WHERE SNAPSHOT_DATE_KEY = (SELECT MAX(SNAPSHOT_DATE_KEY) FROM INVENTORY_DW.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT)
+        FROM INVENTORY_DW_DEMO.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT
+        WHERE SNAPSHOT_DATE_KEY = (SELECT MAX(SNAPSHOT_DATE_KEY) FROM INVENTORY_DW_DEMO.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT)
         """
         return explanation, sql.strip()
  
@@ -216,9 +215,9 @@ def generate_sql_from_prompt(prompt: str):
         explanation = "Aggregating total inventory value grouped by warehouse location."
         sql = """
         SELECT w.WAREHOUSE_NAME, SUM(f.INVENTORY_VALUE_AMT) AS INVENTORY_VALUE
-        FROM INVENTORY_DW.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT f
-        JOIN INVENTORY_DW.GOLD.DIM_WAREHOUSE w ON f.WAREHOUSE_KEY = w.WAREHOUSE_KEY
-        WHERE f.SNAPSHOT_DATE_KEY = (SELECT MAX(SNAPSHOT_DATE_KEY) FROM INVENTORY_DW.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT)
+        FROM INVENTORY_DW_DEMO.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT f
+        JOIN INVENTORY_DW_DEMO.GOLD.DIM_WAREHOUSE w ON f.WAREHOUSE_KEY = w.WAREHOUSE_KEY
+        WHERE f.SNAPSHOT_DATE_KEY = (SELECT MAX(SNAPSHOT_DATE_KEY) FROM INVENTORY_DW_DEMO.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT)
         GROUP BY w.WAREHOUSE_NAME ORDER BY INVENTORY_VALUE DESC
         """
         return explanation, sql.strip()
@@ -227,9 +226,9 @@ def generate_sql_from_prompt(prompt: str):
         explanation = "Aggregating inventory value by product category."
         sql = """
         SELECT p.CATEGORY_NAME, SUM(f.INVENTORY_VALUE_AMT) AS TOTAL_INVENTORY_VALUE
-        FROM INVENTORY_DW.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT f
-        JOIN INVENTORY_DW.GOLD.DIM_PRODUCT p ON f.PRODUCT_KEY = p.PRODUCT_KEY
-        WHERE f.SNAPSHOT_DATE_KEY = (SELECT MAX(SNAPSHOT_DATE_KEY) FROM INVENTORY_DW.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT)
+        FROM INVENTORY_DW_DEMO.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT f
+        JOIN INVENTORY_DW_DEMO.GOLD.DIM_PRODUCT p ON f.PRODUCT_KEY = p.PRODUCT_KEY
+        WHERE f.SNAPSHOT_DATE_KEY = (SELECT MAX(SNAPSHOT_DATE_KEY) FROM INVENTORY_DW_DEMO.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT)
         GROUP BY p.CATEGORY_NAME ORDER BY TOTAL_INVENTORY_VALUE DESC
         """
         return explanation, sql.strip()
@@ -238,9 +237,9 @@ def generate_sql_from_prompt(prompt: str):
         explanation = "Aggregating inventory value by product subcategory."
         sql = """
         SELECT p.SUBCATEGORY_NAME, SUM(f.INVENTORY_VALUE_AMT) AS TOTAL_INVENTORY_VALUE
-        FROM INVENTORY_DW.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT f
-        JOIN INVENTORY_DW.GOLD.DIM_PRODUCT p ON f.PRODUCT_KEY = p.PRODUCT_KEY
-        WHERE f.SNAPSHOT_DATE_KEY = (SELECT MAX(SNAPSHOT_DATE_KEY) FROM INVENTORY_DW.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT)
+        FROM INVENTORY_DW_DEMO.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT f
+        JOIN INVENTORY_DW_DEMO.GOLD.DIM_PRODUCT p ON f.PRODUCT_KEY = p.PRODUCT_KEY
+        WHERE f.SNAPSHOT_DATE_KEY = (SELECT MAX(SNAPSHOT_DATE_KEY) FROM INVENTORY_DW_DEMO.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT)
         GROUP BY p.SUBCATEGORY_NAME ORDER BY TOTAL_INVENTORY_VALUE DESC
         """
         return explanation, sql.strip()
@@ -249,9 +248,9 @@ def generate_sql_from_prompt(prompt: str):
         explanation = "Aggregating inventory value by product brand."
         sql = """
         SELECT p.BRAND_NAME, SUM(f.INVENTORY_VALUE_AMT) AS TOTAL_INVENTORY_VALUE
-        FROM INVENTORY_DW.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT f
-        JOIN INVENTORY_DW.GOLD.DIM_PRODUCT p ON f.PRODUCT_KEY = p.PRODUCT_KEY
-        WHERE f.SNAPSHOT_DATE_KEY = (SELECT MAX(SNAPSHOT_DATE_KEY) FROM INVENTORY_DW.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT)
+        FROM INVENTORY_DW_DEMO.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT f
+        JOIN INVENTORY_DW_DEMO.GOLD.DIM_PRODUCT p ON f.PRODUCT_KEY = p.PRODUCT_KEY
+        WHERE f.SNAPSHOT_DATE_KEY = (SELECT MAX(SNAPSHOT_DATE_KEY) FROM INVENTORY_DW_DEMO.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT)
         GROUP BY p.BRAND_NAME ORDER BY TOTAL_INVENTORY_VALUE DESC
         """
         return explanation, sql.strip()
@@ -261,17 +260,17 @@ def generate_sql_from_prompt(prompt: str):
             explanation = "Calculating the number of stockouts organized by warehouse."
             sql = """
             SELECT w.WAREHOUSE_NAME, COUNT_IF(f.IS_STOCKOUT_FLAG) AS STOCKOUT_COUNT
-            FROM INVENTORY_DW.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT f
-            JOIN INVENTORY_DW.GOLD.DIM_WAREHOUSE w ON f.WAREHOUSE_KEY = w.WAREHOUSE_KEY
-            WHERE f.SNAPSHOT_DATE_KEY = (SELECT MAX(SNAPSHOT_DATE_KEY) FROM INVENTORY_DW.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT)
+            FROM INVENTORY_DW_DEMO.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT f
+            JOIN INVENTORY_DW_DEMO.GOLD.DIM_WAREHOUSE w ON f.WAREHOUSE_KEY = w.WAREHOUSE_KEY
+            WHERE f.SNAPSHOT_DATE_KEY = (SELECT MAX(SNAPSHOT_DATE_KEY) FROM INVENTORY_DW_DEMO.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT)
             GROUP BY w.WAREHOUSE_NAME ORDER BY STOCKOUT_COUNT DESC
             """
         else:
             explanation = "Counting how many products are completely out of stock."
             sql = """
             SELECT COUNT(*) AS STOCKOUT_COUNT
-            FROM INVENTORY_DW.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT
-            WHERE SNAPSHOT_DATE_KEY = (SELECT MAX(SNAPSHOT_DATE_KEY) FROM INVENTORY_DW.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT)
+            FROM INVENTORY_DW_DEMO.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT
+            WHERE SNAPSHOT_DATE_KEY = (SELECT MAX(SNAPSHOT_DATE_KEY) FROM INVENTORY_DW_DEMO.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT)
             AND IS_STOCKOUT_FLAG = TRUE
             """
         return explanation, sql.strip()
@@ -280,9 +279,9 @@ def generate_sql_from_prompt(prompt: str):
         explanation = "Aggregating the financial value of excess stock held above safety buffers by warehouse."
         sql = """
         SELECT w.WAREHOUSE_NAME, SUM(f.EXCESS_STOCK_VALUE_AMT) AS TOTAL_EXCESS_VALUE
-        FROM INVENTORY_DW.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT f
-        JOIN INVENTORY_DW.GOLD.DIM_WAREHOUSE w ON f.WAREHOUSE_KEY = w.WAREHOUSE_KEY
-        WHERE f.SNAPSHOT_DATE_KEY = (SELECT MAX(SNAPSHOT_DATE_KEY) FROM INVENTORY_DW.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT)
+        FROM INVENTORY_DW_DEMO.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT f
+        JOIN INVENTORY_DW_DEMO.GOLD.DIM_WAREHOUSE w ON f.WAREHOUSE_KEY = w.WAREHOUSE_KEY
+        WHERE f.SNAPSHOT_DATE_KEY = (SELECT MAX(SNAPSHOT_DATE_KEY) FROM INVENTORY_DW_DEMO.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT)
         GROUP BY w.WAREHOUSE_NAME ORDER BY TOTAL_EXCESS_VALUE DESC
         """
         return explanation, sql.strip()
@@ -291,9 +290,9 @@ def generate_sql_from_prompt(prompt: str):
         explanation = "Ranking the top 10 products carrying the highest inventory value."
         sql = """
         SELECT p.PRODUCT_SKU, p.PRODUCT_NAME, SUM(f.INVENTORY_VALUE_AMT) AS INVENTORY_VALUE
-        FROM INVENTORY_DW.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT f
-        JOIN INVENTORY_DW.GOLD.DIM_PRODUCT p ON f.PRODUCT_KEY = p.PRODUCT_KEY
-        WHERE f.SNAPSHOT_DATE_KEY = (SELECT MAX(SNAPSHOT_DATE_KEY) FROM INVENTORY_DW.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT)
+        FROM INVENTORY_DW_DEMO.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT f
+        JOIN INVENTORY_DW_DEMO.GOLD.DIM_PRODUCT p ON f.PRODUCT_KEY = p.PRODUCT_KEY
+        WHERE f.SNAPSHOT_DATE_KEY = (SELECT MAX(SNAPSHOT_DATE_KEY) FROM INVENTORY_DW_DEMO.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT)
         GROUP BY p.PRODUCT_SKU, p.PRODUCT_NAME ORDER BY INVENTORY_VALUE DESC LIMIT 10
         """
         return explanation, sql.strip()
@@ -302,8 +301,8 @@ def generate_sql_from_prompt(prompt: str):
         explanation = "Counting products that have fallen below their reorder threshold."
         sql = """
         SELECT COUNT(*) AS REORDER_NEEDED_COUNT
-        FROM INVENTORY_DW.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT
-        WHERE SNAPSHOT_DATE_KEY = (SELECT MAX(SNAPSHOT_DATE_KEY) FROM INVENTORY_DW.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT)
+        FROM INVENTORY_DW_DEMO.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT
+        WHERE SNAPSHOT_DATE_KEY = (SELECT MAX(SNAPSHOT_DATE_KEY) FROM INVENTORY_DW_DEMO.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT)
         AND IS_REORDER_NEEDED_FLAG = TRUE
         """
         return explanation, sql.strip()
@@ -312,9 +311,9 @@ def generate_sql_from_prompt(prompt: str):
         explanation = "Evaluating inventory value across ABC classification tiers."
         sql = """
         SELECT p.ABC_CLASSIFICATION, SUM(f.INVENTORY_VALUE_AMT) AS TOTAL_INVENTORY_VALUE
-        FROM INVENTORY_DW.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT f
-        JOIN INVENTORY_DW.GOLD.DIM_PRODUCT p ON f.PRODUCT_KEY = p.PRODUCT_KEY
-        WHERE f.SNAPSHOT_DATE_KEY = (SELECT MAX(SNAPSHOT_DATE_KEY) FROM INVENTORY_DW.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT)
+        FROM INVENTORY_DW_DEMO.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT f
+        JOIN INVENTORY_DW_DEMO.GOLD.DIM_PRODUCT p ON f.PRODUCT_KEY = p.PRODUCT_KEY
+        WHERE f.SNAPSHOT_DATE_KEY = (SELECT MAX(SNAPSHOT_DATE_KEY) FROM INVENTORY_DW_DEMO.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT)
         GROUP BY p.ABC_CLASSIFICATION ORDER BY p.ABC_CLASSIFICATION
         """
         return explanation, sql.strip()
@@ -336,11 +335,11 @@ def generate_sql_from_prompt(prompt: str):
         sql = """
         SELECT 
             d.FULL_DATE, p.PRODUCT_NAME, w.WAREHOUSE_NAME, f.ON_HAND_QTY, f.INVENTORY_VALUE_AMT, f.IS_STOCKOUT_FLAG
-        FROM INVENTORY_DW.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT f
-        JOIN INVENTORY_DW.GOLD.DIM_DATE d ON f.SNAPSHOT_DATE_KEY = d.DATE_KEY
-        JOIN INVENTORY_DW.GOLD.DIM_PRODUCT p ON f.PRODUCT_KEY = p.PRODUCT_KEY
-        JOIN INVENTORY_DW.GOLD.DIM_WAREHOUSE w ON f.WAREHOUSE_KEY = w.WAREHOUSE_KEY
-        WHERE f.SNAPSHOT_DATE_KEY = (SELECT MAX(SNAPSHOT_DATE_KEY) FROM INVENTORY_DW.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT)
+        FROM INVENTORY_DW_DEMO.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT f
+        JOIN INVENTORY_DW_DEMO.GOLD.DIM_DATE d ON f.SNAPSHOT_DATE_KEY = d.DATE_KEY
+        JOIN INVENTORY_DW_DEMO.GOLD.DIM_PRODUCT p ON f.PRODUCT_KEY = p.PRODUCT_KEY
+        JOIN INVENTORY_DW_DEMO.GOLD.DIM_WAREHOUSE w ON f.WAREHOUSE_KEY = w.WAREHOUSE_KEY
+        WHERE f.SNAPSHOT_DATE_KEY = (SELECT MAX(SNAPSHOT_DATE_KEY) FROM INVENTORY_DW_DEMO.GOLD.FACT_INVENTORY_DAILY_SNAPSHOT)
         ORDER BY f.INVENTORY_VALUE_AMT DESC
         LIMIT 20
         """
