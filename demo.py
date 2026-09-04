@@ -6,9 +6,9 @@ from snowflake.snowpark import Session
 import yaml
  
 # Configuration
-HOST = "XYUHKAV-XRB12650.snowflakecomputing.com" 
-ACCOUNT = "XYUHKAV-XRB12650"
-DATABASE = "INVENTORY_DW"
+HOST = "WDSDGTL-XCC29288.snowflakecomputing.com" 
+ACCOUNT = "WDSDGTL-XCC29288"
+DATABASE = "INVENTORY_DW_DEMO"
 SCHEMA = "GOLD"
 WAREHOUSE = "COMPUTE_WH"
 
