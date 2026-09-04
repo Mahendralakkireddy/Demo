@@ -6,9 +6,9 @@ from snowflake.snowpark import Session
 import yaml
  
 # Configuration
-HOST = "XYUHKAV-XRB12650.snowflakecomputing.com" 
-ACCOUNT = "XYUHKAV-XRB12650"
-DATABASE = "INVENTORY_DW"
+HOST = "WDSDGTL-XCC29288.snowflakecomputing.com" 
+ACCOUNT = "WDSDGTL-XCC29288"
+DATABASE = "INVENTORY_DW_DEMO"
 SCHEMA = "GOLD"
 WAREHOUSE = "COMPUTE_WH"
 
@@ -150,6 +150,7 @@ def display_chart_tab(df: pd.DataFrame, key_prefix: str = ""):
     x_key = f"{key_prefix}_x" if key_prefix else "x_axis"
     y_key = f"{key_prefix}_y" if key_prefix else "y_axis"
     t_key = f"{key_prefix}_type" if key_prefix else "chart_type"
+ 
     x_col = col1.selectbox("Dimension (X-axis)", all_cols, index=0, key=x_key)
     remaining_cols = [c for c in all_cols if c != x_col]
     y_col = col2.selectbox("Metric (Y-axis)", remaining_cols, index=0 if remaining_cols else 0, key=y_key)
