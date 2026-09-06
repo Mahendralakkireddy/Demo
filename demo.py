@@ -261,6 +261,30 @@ def _clean_generated_sql(text_value: str) -> str:
     return sql_text
 
 
+def _normalize_uploaded_dataframe(df: pd.DataFrame) -> pd.DataFrame:
+    """Normalize mixed Excel/CSV columns so Streamlit/Snowflake can serialize them safely.
+
+    Excel files often contain columns with a mixture of numbers, text such as
+    "Grand Total", and blank cells. Those mixed object columns can cause Arrow
+    conversion errors such as: "Expected bytes, got int object". Numeric and
+    datetime columns are left alone; only mixed object columns are converted to
+    strings while preserving missing values as None.
+    """
+    if df is None:
+        return df
+
+    work_df = df.copy()
+    for col in work_df.columns:
+        series = work_df[col]
+        if pd.api.types.is_object_dtype(series.dtype):
+            # Keep actual missing values as None, and make all non-null values
+            # consistently textual so Arrow/Snowflake never sees mixed bytes/int.
+            work_df[col] = series.map(
+                lambda value: None if pd.isna(value) else str(value)
+            )
+    return work_df
+
+
 def _safe_column_names(df: pd.DataFrame):
     """Create SQL-friendly column names while retaining a mapping for the prompt."""
     mapping = {}
@@ -292,12 +316,14 @@ def process_uploaded_document(uploaded_file):
 
     if extension == "csv":
         df = pd.read_csv(uploaded_file)
+        df = _normalize_uploaded_dataframe(df)
         return "table", df, "", f"CSV file loaded with {len(df):,} rows."
 
     if extension in {"xlsx", "xls"}:
         excel_file = pd.ExcelFile(uploaded_file)
         sheet_name = excel_file.sheet_names[0]
         df = pd.read_excel(excel_file, sheet_name=sheet_name)
+        df = _normalize_uploaded_dataframe(df)
         return (
             "table",
             df,
@@ -358,7 +384,7 @@ def prepare_uploaded_table(df: pd.DataFrame) -> str:
     if df is None or df.empty:
         raise ValueError("The uploaded spreadsheet contains no rows.")
 
-    work_df = df.copy()
+    work_df = _normalize_uploaded_dataframe(df)
     mapping = _safe_column_names(work_df)
 
     work_df.columns = [mapping[str(c)] for c in work_df.columns]
@@ -513,7 +539,7 @@ def render_uploaded_document_preview():
     if doc_type == "table":
         df = st.session_state.uploaded_document_df
         if df is not None:
-            st.dataframe(df, use_container_width=True)
+            st.dataframe(_normalize_uploaded_dataframe(df), use_container_width=True)
     elif doc_type == "text":
         with st.expander("📖 Extracted Document Content", expanded=False):
             st.text_area(
@@ -523,7 +549,6 @@ def render_uploaded_document_preview():
                 disabled=True,
                 label_visibility="collapsed",
             )
-    return result
 
 
 # ===================================================================
