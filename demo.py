@@ -21,7 +21,7 @@ INVENTORY_YAML_STAGE_PATH = (
     '@"INVENTORY_DW_DEMO"."INVENTORY_SCHEMA"."YAML"/INV_ANALYST_DEMO_90_VERIFIED.yaml'
 )
 SALES_YAML_STAGE_PATH = (
-    '@"CORTEX_DEMO"."CORTEX_SCHEMA"."YAML"/sales_intelligence_model_80_queries_fixed.yaml'
+    '@"CORTEX_DEMO"."CORTEX_SCHEMA"."YAML"/sales_intelligence_model_80_queries_fixed_FINAL.yaml'
 )
 
 ANALYST_ENDPOINT = f"https://{HOST}/api/v2/cortex/analyst/message"
