@@ -448,7 +448,6 @@ def build_uploaded_semantic_model(df: pd.DataFrame, table_name: str) -> str:
         dtype = df[original].dtype
         sf_type = _snowflake_type_for_pandas(dtype)
         synonyms = _column_synonyms(original)
-        samples = _sample_values(df, original)
         desc = f"Uploaded spreadsheet column '{original}'."
 
         # Close-out date is commonly the strongest completion indicator in
@@ -470,9 +469,6 @@ def build_uploaded_semantic_model(df: pd.DataFrame, table_name: str) -> str:
         }
         if synonyms:
             entry["synonyms"] = synonyms
-        if samples:
-            entry["sample_values"] = samples
-
         if pd.api.types.is_datetime64_any_dtype(dtype):
             time_dimensions.append(entry)
         else:
@@ -484,7 +480,6 @@ def build_uploaded_semantic_model(df: pd.DataFrame, table_name: str) -> str:
                 "description": f"Numeric value from uploaded column '{original}'.",
                 "expr": safe,
                 "data_type": "NUMBER",
-                "sample_values": samples,
             })
 
     # A row indicator gives Analyst an explicit way to calculate row/project
@@ -512,7 +507,6 @@ def build_uploaded_semantic_model(df: pd.DataFrame, table_name: str) -> str:
             "data_type": "BOOLEAN",
             "unique": False,
             "synonyms": ["completed", "project completed", "completion status"],
-            "sample_values": ["TRUE", "FALSE"],
         })
 
     table_definition = {
@@ -536,7 +530,9 @@ def build_uploaded_semantic_model(df: pd.DataFrame, table_name: str) -> str:
         "module_custom_instructions": {
             "sql_generation": (
                 "Use only the uploaded_data logical table. Query the complete underlying table. "
-                "Use ROW_INDICATOR for row/project counts when appropriate. "
+                "Use ROW_INDICATOR for total row/project counts when appropriate. "
+                "For questions asking for the count of an ID column, count non-null values of that ID; "
+                "if the ID is explicitly a unique project identifier, COUNT(DISTINCT ID) is appropriate. "
                 "If IS_COMPLETED exists, use it when the user asks about completed projects. "
                 "Do not invent columns or business definitions."
             ),
