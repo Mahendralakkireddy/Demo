@@ -218,15 +218,54 @@ if "uploaded_document_table" not in st.session_state:
     st.session_state.uploaded_document_table = None
 
 
+def _snowflake_sql_literal(value: str) -> str:
+    """Safely convert a Python string into a Snowflake SQL string literal."""
+    if value is None:
+        return "NULL"
+    return "'" + str(value).replace("'", "''") + "'"
+
+
 def cortex_complete(prompt: str) -> str:
-    """Run Snowflake Cortex COMPLETE using the existing Snowpark session."""
-    result = session.sql(
-        "SELECT SNOWFLAKE.CORTEX.COMPLETE(?, ?) AS RESPONSE",
-        params=[DOCUMENT_CORTEX_MODEL, prompt],
-    ).collect()
-    if not result:
+    """
+    Run Snowflake Cortex COMPLETE using the existing Snowpark session.
+
+    Do not use Session.sql(..., params=[...]) here. The document prompt can
+    contain percent signs and other formatting characters, and some
+    Snowflake connector/Snowpark parameter-style combinations can surface
+    'not all arguments converted during string formatting'. Embedding an
+    escaped SQL literal avoids that parameter-formatting path.
+    """
+    model_literal = _snowflake_sql_literal(DOCUMENT_CORTEX_MODEL)
+    prompt_literal = _snowflake_sql_literal(prompt)
+
+    sql = f"""
+        SELECT SNOWFLAKE.CORTEX.COMPLETE(
+            {model_literal},
+            {prompt_literal}
+        ) AS RESPONSE
+    """
+
+    rows = session.sql(sql).collect()
+
+    if not rows:
         raise RuntimeError("Cortex did not return a response.")
-    return str(result[0]["RESPONSE"])
+
+    row = rows[0]
+
+    try:
+        response = row["RESPONSE"]
+    except Exception:
+        try:
+            response = row[0]
+        except Exception as exc:
+            raise RuntimeError(
+                "Cortex returned an unexpected response structure."
+            ) from exc
+
+    if response is None:
+        raise RuntimeError("Cortex returned an empty response.")
+
+    return str(response)
 
 
 def _clean_generated_sql(text_value: str) -> str:
@@ -439,10 +478,16 @@ Sample rows:
 
 def answer_uploaded_table_question(question: str, df: pd.DataFrame):
     """Generate read-only SQL with Cortex and execute it on the full upload."""
+    if df is None or df.empty:
+        raise ValueError("The uploaded spreadsheet has no usable rows.")
+
     if not st.session_state.uploaded_document_table:
         prepare_uploaded_table(df)
 
     table_name = st.session_state.uploaded_document_table
+
+    if not table_name:
+        raise RuntimeError("The uploaded document table was not created.")
     schema_lines = [
         f"- {col}: {dtype}"
         for col, dtype in zip(df.columns, df.dtypes)
@@ -915,7 +960,8 @@ if user_prompt:
                         )
                         doc_answer = (
                             "I answered your question using the complete uploaded "
-                            "dataset."
+                            "dataset. The result below is generated dynamically "
+                            "from the uploaded document."
                         )
                     else:
                         doc_answer = answer_uploaded_text_question(
