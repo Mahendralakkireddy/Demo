@@ -5,6 +5,7 @@ import snowflake.connector
 from snowflake.snowpark import Session
 import requests
 from typing import Any, Dict, List, Optional
+import re
 
 # ===================================================================
 # Configuration
@@ -197,6 +198,331 @@ def extract_analyst_response(data: Dict[str, Any]) -> Dict[str, Any]:
     if not result["sql"]:
         result["sql"] = message.get("statement")
 
+# ===================================================================
+# 2A. UPLOADED DOCUMENT ANALYSIS (ADDED - ORIGINAL CORTEX ANALYST
+#     INVENTORY/SALES CODE IS PRESERVED)
+# ===================================================================
+DOCUMENT_CORTEX_MODEL = "claude-3-5-sonnet"
+
+if "uploaded_document" not in st.session_state:
+    st.session_state.uploaded_document = None
+if "uploaded_document_name" not in st.session_state:
+    st.session_state.uploaded_document_name = None
+if "uploaded_document_df" not in st.session_state:
+    st.session_state.uploaded_document_df = None
+if "uploaded_document_text" not in st.session_state:
+    st.session_state.uploaded_document_text = ""
+if "uploaded_document_type" not in st.session_state:
+    st.session_state.uploaded_document_type = None
+if "uploaded_document_table" not in st.session_state:
+    st.session_state.uploaded_document_table = None
+
+
+def cortex_complete(prompt: str) -> str:
+    """Run Snowflake Cortex COMPLETE using the existing Snowpark session."""
+    result = session.sql(
+        "SELECT SNOWFLAKE.CORTEX.COMPLETE(?, ?) AS RESPONSE",
+        params=[DOCUMENT_CORTEX_MODEL, prompt],
+    ).collect()
+    if not result:
+        raise RuntimeError("Cortex did not return a response.")
+    return str(result[0]["RESPONSE"])
+
+
+def _clean_generated_sql(text_value: str) -> str:
+    """Extract SQL if Cortex wrapped it in markdown/code fences."""
+    sql_text = str(text_value or "").strip()
+
+    if "```" in sql_text:
+        blocks = re.findall(r"```(?:sql|SQL)?\s*(.*?)```", sql_text, flags=re.DOTALL)
+        if blocks:
+            sql_text = blocks[0].strip()
+
+    # Remove common leading labels if the model ignored the SQL-only instruction.
+    sql_text = re.sub(r"^\s*(SQL\s*:|Query\s*:)\s*", "", sql_text, flags=re.I)
+    sql_text = sql_text.strip().rstrip(";").strip()
+
+    if not re.match(r"^(SELECT|WITH)\b", sql_text, flags=re.I):
+        raise RuntimeError(
+            "Cortex did not return a valid SELECT/WITH statement for the uploaded document."
+        )
+
+    # Safety guard: document analysis is read-only.
+    forbidden = re.search(
+        r"\b(INSERT|UPDATE|DELETE|MERGE|DROP|ALTER|TRUNCATE|CREATE|GRANT|REVOKE|COPY|PUT|REMOVE|CALL)\b",
+        sql_text,
+        flags=re.I,
+    )
+    if forbidden:
+        raise RuntimeError(
+            f"Generated document SQL contains a non-read-only command: {forbidden.group(1)}"
+        )
+
+    return sql_text
+
+
+def _safe_column_names(df: pd.DataFrame):
+    """Create SQL-friendly column names while retaining a mapping for the prompt."""
+    mapping = {}
+    used = set()
+
+    for original in df.columns:
+        base = re.sub(r"[^A-Za-z0-9_]+", "_", str(original)).strip("_").upper()
+        if not base:
+            base = "COLUMN"
+        if base[0].isdigit():
+            base = "_" + base
+
+        candidate = base
+        n = 2
+        while candidate in used:
+            candidate = f"{base}_{n}"
+            n += 1
+
+        used.add(candidate)
+        mapping[str(original)] = candidate
+
+    return mapping
+
+
+def process_uploaded_document(uploaded_file):
+    """Read CSV/XLSX/XLS/PDF/DOCX and return display data/text."""
+    name = uploaded_file.name
+    extension = name.rsplit(".", 1)[-1].lower()
+
+    if extension == "csv":
+        df = pd.read_csv(uploaded_file)
+        return "table", df, "", f"CSV file loaded with {len(df):,} rows."
+
+    if extension in {"xlsx", "xls"}:
+        excel_file = pd.ExcelFile(uploaded_file)
+        sheet_name = excel_file.sheet_names[0]
+        df = pd.read_excel(excel_file, sheet_name=sheet_name)
+        return (
+            "table",
+            df,
+            "",
+            f"Excel file loaded from sheet '{sheet_name}' with {len(df):,} rows.",
+        )
+
+    if extension == "pdf":
+        try:
+            from pypdf import PdfReader
+        except ImportError:
+            from PyPDF2 import PdfReader
+
+        uploaded_file.seek(0)
+        reader = PdfReader(uploaded_file)
+        pages = []
+        for page in reader.pages:
+            pages.append(page.extract_text() or "")
+        full_text = "\n\n".join(pages).strip()
+
+        return (
+            "text",
+            None,
+            full_text,
+            f"PDF analyzed successfully ({len(reader.pages)} pages).",
+        )
+
+    if extension == "docx":
+        from docx import Document
+
+        uploaded_file.seek(0)
+        document = Document(uploaded_file)
+        paragraphs = [p.text for p in document.paragraphs if p.text.strip()]
+
+        # Also include simple table contents from the DOCX.
+        table_parts = []
+        for table in document.tables:
+            for row in table.rows:
+                table_parts.append(" | ".join(cell.text.strip() for cell in row.cells))
+
+        full_text = "\n".join(paragraphs + table_parts).strip()
+
+        return (
+            "text",
+            None,
+            full_text,
+            "DOCX document analyzed successfully.",
+        )
+
+    raise ValueError("Unsupported document type.")
+
+
+def prepare_uploaded_table(df: pd.DataFrame) -> str:
+    """
+    Put the uploaded dataframe into a temporary Snowflake table so Cortex can
+    generate SQL over the complete dataset rather than only a text sample.
+    """
+    if df is None or df.empty:
+        raise ValueError("The uploaded spreadsheet contains no rows.")
+
+    work_df = df.copy()
+    mapping = _safe_column_names(work_df)
+
+    work_df.columns = [mapping[str(c)] for c in work_df.columns]
+
+    # Store the temporary table name in session state so subsequent questions
+    # reuse the same uploaded dataset.
+    table_name = (
+        "UPLOADED_DOCUMENT_"
+        + datetime.now().strftime("%Y%m%d_%H%M%S_%f").upper()
+    )
+
+    session.write_pandas(
+        work_df,
+        table_name,
+        auto_create_table=True,
+        overwrite=True,
+        table_type="temporary",
+    )
+
+    schema_lines = [
+        f"- {col}: {dtype}"
+        for col, dtype in zip(work_df.columns, work_df.dtypes)
+    ]
+    schema_text = "\n".join(schema_lines)
+
+    # A small sample helps Cortex understand the values while the generated
+    # SQL itself runs against the complete temporary table.
+    sample_csv = work_df.head(15).to_csv(index=False)
+
+    mapping_lines = [
+        f"- {original} -> {safe}"
+        for original, safe in mapping.items()
+    ]
+
+    table_context = f"""
+Temporary Snowflake table:
+{table_name}
+
+Columns and data types:
+{schema_text}
+
+Original-to-SQL column mapping:
+{chr(10).join(mapping_lines)}
+
+Sample rows:
+{sample_csv}
+"""
+
+    st.session_state.uploaded_document_table = table_name
+    return table_context
+
+
+def answer_uploaded_table_question(question: str, df: pd.DataFrame):
+    """Generate read-only SQL with Cortex and execute it on the full upload."""
+    if not st.session_state.uploaded_document_table:
+        prepare_uploaded_table(df)
+
+    table_name = st.session_state.uploaded_document_table
+    schema_lines = [
+        f"- {col}: {dtype}"
+        for col, dtype in zip(df.columns, df.dtypes)
+    ]
+
+    # The dataframe has already been normalized when it was staged. Recreate
+    # the mapping deterministically for the SQL-generation prompt.
+    mapping = _safe_column_names(df)
+    safe_columns = list(mapping.values())
+    schema_text = "\n".join(
+        f"- {safe}: original column '{original}', type {df[original].dtype}"
+        for original, safe in mapping.items()
+    )
+
+    sample_df = df.copy()
+    sample_df.columns = safe_columns
+    sample_csv = sample_df.head(15).to_csv(index=False)
+
+    prompt = f"""
+You are a data analyst answering a question about ONE uploaded spreadsheet.
+
+User question:
+{question}
+
+Use ONLY this Snowflake temporary table:
+{table_name}
+
+Available columns:
+{schema_text}
+
+Sample rows:
+{sample_csv}
+
+Rules:
+1. Generate exactly ONE read-only Snowflake SQL statement.
+2. The statement must be SELECT or WITH ... SELECT.
+3. Query the COMPLETE table, not only the sample rows.
+4. Do not invent columns, tables, filters, or business definitions.
+5. Use Snowflake SQL syntax.
+6. Handle division by zero with NULLIF when needed.
+7. For rankings such as highest/lowest, order appropriately and use LIMIT when the
+   user asks for a single result.
+8. Return ONLY the SQL statement. No markdown and no explanation.
+"""
+
+    generated = cortex_complete(prompt)
+    sql_query = _clean_generated_sql(generated)
+    result_df = session.sql(sql_query).to_pandas()
+
+    return result_df, sql_query
+
+
+def answer_uploaded_text_question(question: str, document_text: str):
+    """Answer a PDF/DOCX question using only extracted document text."""
+    if not document_text.strip():
+        raise ValueError("No readable text was extracted from the uploaded document.")
+
+    # Keep enough context for normal documents while preventing an enormous
+    # single prompt. The full extracted text is also retained in the UI.
+    max_chars = 120000
+    context = document_text[:max_chars]
+
+    prompt = f"""
+You are answering a user's question using ONLY the uploaded document below.
+
+User question:
+{question}
+
+Uploaded document:
+{context}
+
+Rules:
+- Answer only from the uploaded document.
+- Do not invent facts that are not present in the document.
+- If the document does not contain enough information, say so clearly.
+- Give a concise, direct answer.
+"""
+
+    answer = cortex_complete(prompt)
+    return answer.strip()
+
+
+def render_uploaded_document_preview():
+    """Display the analyzed document without interfering with the original UI."""
+    doc_type = st.session_state.uploaded_document_type
+    doc_name = st.session_state.uploaded_document_name
+
+    if not doc_name:
+        return
+
+    st.markdown("---")
+    st.markdown(f"### 📄 Uploaded Document: `{doc_name}`")
+
+    if doc_type == "table":
+        df = st.session_state.uploaded_document_df
+        if df is not None:
+            st.dataframe(df, use_container_width=True)
+    elif doc_type == "text":
+        with st.expander("📖 Extracted Document Content", expanded=False):
+            st.text_area(
+                "Document text",
+                st.session_state.uploaded_document_text,
+                height=350,
+                disabled=True,
+                label_visibility="collapsed",
+            )
     return result
 
 
@@ -329,6 +655,59 @@ with st.sidebar:
 
 
 # ===================================================================
+    st.markdown("---")
+    st.markdown("##### 📄 Analyze an Uploaded Document")
+
+    uploaded_doc = st.file_uploader(
+        "Upload CSV, Excel, PDF or Word",
+        type=["csv", "xlsx", "xls", "pdf", "docx"],
+        key="document_uploader",
+        help="Upload a document, click Analyze, then choose Uploaded Document in the chat.",
+    )
+
+    if st.button(
+        "🔍 Analyze Document",
+        use_container_width=True,
+        disabled=uploaded_doc is None,
+        key="analyze_uploaded_document",
+    ):
+        try:
+            with st.spinner("Reading and analyzing document..."):
+                doc_type, doc_df, doc_text, doc_message = process_uploaded_document(
+                    uploaded_doc
+                )
+
+                st.session_state.uploaded_document_name = uploaded_doc.name
+                st.session_state.uploaded_document_type = doc_type
+                st.session_state.uploaded_document_df = doc_df
+                st.session_state.uploaded_document_text = doc_text
+                st.session_state.uploaded_document = uploaded_doc.name
+                st.session_state.uploaded_document_table = None
+
+                if doc_type == "table":
+                    prepare_uploaded_table(doc_df)
+
+            st.success(doc_message)
+            st.rerun()
+        except Exception as e:
+            st.error(f"Document analysis failed: {e}")
+
+    if st.session_state.uploaded_document_name:
+        st.caption(
+            f"Loaded: `{st.session_state.uploaded_document_name}`"
+        )
+        if st.button(
+            "✖ Remove Uploaded Document",
+            use_container_width=True,
+            key="remove_uploaded_document",
+        ):
+            st.session_state.uploaded_document = None
+            st.session_state.uploaded_document_name = None
+            st.session_state.uploaded_document_df = None
+            st.session_state.uploaded_document_text = ""
+            st.session_state.uploaded_document_type = None
+            st.session_state.uploaded_document_table = None
+            st.rerun()
 # 6. MAIN HEADER
 # ===================================================================
 head_col1, head_col2 = st.columns([4.5, 1.2])
@@ -419,6 +798,10 @@ st.markdown("---")
 
 
 # ===================================================================
+# ===================================================================
+# 7A. UPLOADED DOCUMENT PREVIEW (ADDED)
+# ===================================================================
+render_uploaded_document_preview()
 # 8. DISPLAY CHAT HISTORY
 # ===================================================================
 for idx, msg in enumerate(messages):
@@ -451,6 +834,19 @@ for idx, msg in enumerate(messages):
 
 
 # ===================================================================
+# ===================================================================
+# 8A. ANSWER SOURCE (ADDED)
+# ===================================================================
+if st.session_state.uploaded_document_name:
+    answer_source = st.radio(
+        "Answer from:",
+        ["Snowflake Data", "Uploaded Document"],
+        horizontal=True,
+        key="answer_source",
+        help="Choose whether your question should use the existing Inventory/Sales semantic models or the uploaded document.",
+    )
+else:
+    answer_source = "Snowflake Data"
 # 9. CHAT INPUT
 # ===================================================================
 user_prompt = (
@@ -465,6 +861,81 @@ user_prompt = (
 # 10. CORTEX ANALYST EXECUTION
 # ===================================================================
 if user_prompt:
+    # ===================================================================
+    # UPLOADED DOCUMENT QUESTION PATH (ADDED)
+    # This branch is intentionally placed before the original Cortex
+    # Analyst block. The original Inventory/Sales path below is unchanged.
+    # ===================================================================
+    if answer_source == "Uploaded Document":
+        if len(messages) == 0:
+            st.session_state.chat_sessions[current_id]["title"] = (
+                user_prompt[:25] + ("..." if len(user_prompt) > 25 else "")
+            )
+
+        messages.append({"role": "user", "content": user_prompt})
+        with st.chat_message("user"):
+            st.markdown(user_prompt)
+
+        with st.chat_message("assistant"):
+            doc_df_result = None
+            doc_sql_result = None
+            doc_answer = ""
+
+            try:
+                with st.spinner("Analyzing your uploaded document..."):
+                    if st.session_state.uploaded_document_type == "table":
+                        doc_df_result, doc_sql_result = answer_uploaded_table_question(
+                            user_prompt,
+                            st.session_state.uploaded_document_df,
+                        )
+                        doc_answer = (
+                            "I answered your question using the complete uploaded "
+                            "dataset."
+                        )
+                    else:
+                        doc_answer = answer_uploaded_text_question(
+                            user_prompt,
+                            st.session_state.uploaded_document_text,
+                        )
+
+                st.markdown(doc_answer)
+
+                if doc_sql_result:
+                    with st.expander("Generated SQL for Uploaded Document", expanded=False):
+                        st.code(doc_sql_result, language="sql")
+
+                if doc_df_result is not None:
+                    tab_data, tab_chart = st.tabs(["Data 📄", "Chart 📈"])
+                    with tab_data:
+                        st.dataframe(doc_df_result, use_container_width=True)
+                    with tab_chart:
+                        display_chart_tab(
+                            doc_df_result,
+                            key_prefix=f"document_{current_id}_{len(messages)}",
+                        )
+
+                messages.append({
+                    "role": "assistant",
+                    "content": doc_answer,
+                    "sql": doc_sql_result,
+                    "data": doc_df_result,
+                    "semantic_model": "Uploaded Document",
+                    "verified_query": None,
+                })
+
+            except Exception as e:
+                doc_answer = f"Unable to analyze the uploaded document: {e}"
+                st.error(doc_answer)
+                messages.append({
+                    "role": "assistant",
+                    "content": doc_answer,
+                    "sql": None,
+                    "data": None,
+                    "semantic_model": "Uploaded Document",
+                    "verified_query": None,
+                })
+
+        st.rerun()
     if len(messages) == 0:
         st.session_state.chat_sessions[current_id]["title"] = (
             user_prompt[:25] + ("..." if len(user_prompt) > 25 else "")
