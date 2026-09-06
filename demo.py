@@ -6,6 +6,7 @@ from snowflake.snowpark import Session
 import requests
 from typing import Any, Dict, List, Optional
 import re
+import yaml
 
 # ===================================================================
 # Configuration
@@ -146,6 +147,45 @@ def call_cortex_analyst(prompt: str) -> Dict[str, Any]:
     return response.json()
 
 
+def call_cortex_analyst_with_semantic_model(
+    prompt: str,
+    semantic_model_yaml: str,
+) -> Dict[str, Any]:
+    """Call Cortex Analyst with an inline, dynamically generated YAML model."""
+    request_body = {
+        "messages": [{
+            "role": "user",
+            "content": [{"type": "text", "text": prompt}],
+        }],
+        "semantic_model": semantic_model_yaml,
+        "stream": False,
+    }
+
+    response = requests.post(
+        ANALYST_ENDPOINT,
+        headers=get_analyst_headers(),
+        json=request_body,
+        timeout=120,
+    )
+
+    if response.status_code >= 400:
+        try:
+            details = response.json()
+        except Exception:
+            details = response.text
+        raise RuntimeError(
+            f"Cortex Analyst API error ({response.status_code}): {details}"
+        )
+
+    data = response.json()
+    if isinstance(data, dict) and data.get("error_code"):
+        raise RuntimeError(
+            f"Cortex Analyst returned error {data.get('error_code')}: "
+            f"{data.get('message', data)}"
+        )
+    return data
+
+
 def extract_analyst_response(data: Dict[str, Any]) -> Dict[str, Any]:
     result = {
         "text": "",
@@ -198,11 +238,13 @@ def extract_analyst_response(data: Dict[str, Any]) -> Dict[str, Any]:
     if not result["sql"]:
         result["sql"] = message.get("statement")
 
+    return result
+
 # ===================================================================
 # 2A. UPLOADED DOCUMENT ANALYSIS (ADDED - ORIGINAL CORTEX ANALYST
 #     INVENTORY/SALES CODE IS PRESERVED)
 # ===================================================================
-DOCUMENT_CORTEX_MODEL = "claude-3-5-sonnet"
+DOCUMENT_CORTEX_MODEL = "claude-3-5-sonnet"  # retained only for legacy PDF/DOCX path
 
 if "uploaded_document" not in st.session_state:
     st.session_state.uploaded_document = None
@@ -216,6 +258,8 @@ if "uploaded_document_type" not in st.session_state:
     st.session_state.uploaded_document_type = None
 if "uploaded_document_table" not in st.session_state:
     st.session_state.uploaded_document_table = None
+if "uploaded_document_semantic_model" not in st.session_state:
+    st.session_state.uploaded_document_semantic_model = None
 
 
 def _snowflake_sql_literal(value: str) -> str:
@@ -226,67 +270,52 @@ def _snowflake_sql_literal(value: str) -> str:
 
 
 def cortex_complete(prompt: str) -> str:
-    """
-    Run Snowflake Cortex COMPLETE using the existing Snowpark session.
+    """Legacy PDF/DOCX helper.
 
-    Do not use Session.sql(..., params=[...]) here. The document prompt can
-    contain percent signs and other formatting characters, and some
-    Snowflake connector/Snowpark parameter-style combinations can surface
-    'not all arguments converted during string formatting'. Embedding an
-    escaped SQL literal avoids that parameter-formatting path.
+    Excel/CSV analysis does NOT use COMPLETE.  It uses Cortex Analyst below,
+    which is available in the user's current trial setup.
     """
     model_literal = _snowflake_sql_literal(DOCUMENT_CORTEX_MODEL)
     prompt_literal = _snowflake_sql_literal(prompt)
-
     sql = f"""
         SELECT SNOWFLAKE.CORTEX.COMPLETE(
             {model_literal},
             {prompt_literal}
         ) AS RESPONSE
     """
-
     rows = session.sql(sql).collect()
-
     if not rows:
         raise RuntimeError("Cortex did not return a response.")
-
     row = rows[0]
-
     try:
         response = row["RESPONSE"]
     except Exception:
-        try:
-            response = row[0]
-        except Exception as exc:
-            raise RuntimeError(
-                "Cortex returned an unexpected response structure."
-            ) from exc
-
+        response = row[0]
     if response is None:
         raise RuntimeError("Cortex returned an empty response.")
-
     return str(response)
 
 
 def _clean_generated_sql(text_value: str) -> str:
-    """Extract SQL if Cortex wrapped it in markdown/code fences."""
+    """Extract and validate a read-only SELECT/WITH SQL statement."""
     sql_text = str(text_value or "").strip()
 
     if "```" in sql_text:
-        blocks = re.findall(r"```(?:sql|SQL)?\s*(.*?)```", sql_text, flags=re.DOTALL)
+        blocks = re.findall(
+            r"```(?:sql|SQL)?\s*(.*?)```", sql_text, flags=re.DOTALL
+        )
         if blocks:
             sql_text = blocks[0].strip()
 
-    # Remove common leading labels if the model ignored the SQL-only instruction.
-    sql_text = re.sub(r"^\s*(SQL\s*:|Query\s*:)\s*", "", sql_text, flags=re.I)
-    sql_text = sql_text.strip().rstrip(";").strip()
+    sql_text = re.sub(
+        r"^\s*(SQL\s*:|Query\s*:)\s*", "", sql_text, flags=re.I
+    ).strip().rstrip(";").strip()
 
     if not re.match(r"^(SELECT|WITH)\b", sql_text, flags=re.I):
         raise RuntimeError(
-            "Cortex did not return a valid SELECT/WITH statement for the uploaded document."
+            "Cortex Analyst did not return a valid SELECT/WITH statement."
         )
 
-    # Safety guard: document analysis is read-only.
     forbidden = re.search(
         r"\b(INSERT|UPDATE|DELETE|MERGE|DROP|ALTER|TRUNCATE|CREATE|GRANT|REVOKE|COPY|PUT|REMOVE|CALL)\b",
         sql_text,
@@ -301,13 +330,11 @@ def _clean_generated_sql(text_value: str) -> str:
 
 
 def _normalize_uploaded_dataframe(df: pd.DataFrame) -> pd.DataFrame:
-    """Normalize mixed Excel/CSV columns so Streamlit/Snowflake can serialize them safely.
+    """Make mixed Excel/CSV columns safe for Streamlit and Snowflake.
 
-    Excel files often contain columns with a mixture of numbers, text such as
-    "Grand Total", and blank cells. Those mixed object columns can cause Arrow
-    conversion errors such as: "Expected bytes, got int object". Numeric and
-    datetime columns are left alone; only mixed object columns are converted to
-    strings while preserving missing values as None.
+    Numeric/date/bool columns stay typed. Object columns are normalized to text
+    because Excel frequently mixes integers, strings such as 'Grand Total', and
+    blanks in the same column.
     """
     if df is None:
         return df
@@ -316,8 +343,6 @@ def _normalize_uploaded_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     for col in work_df.columns:
         series = work_df[col]
         if pd.api.types.is_object_dtype(series.dtype):
-            # Keep actual missing values as None, and make all non-null values
-            # consistently textual so Arrow/Snowflake never sees mixed bytes/int.
             work_df[col] = series.map(
                 lambda value: None if pd.isna(value) else str(value)
             )
@@ -325,12 +350,14 @@ def _normalize_uploaded_dataframe(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def _safe_column_names(df: pd.DataFrame):
-    """Create SQL-friendly column names while retaining a mapping for the prompt."""
+    """Create SQL-friendly, unique Snowflake column names."""
     mapping = {}
     used = set()
 
     for original in df.columns:
-        base = re.sub(r"[^A-Za-z0-9_]+", "_", str(original)).strip("_").upper()
+        base = re.sub(
+            r"[^A-Za-z0-9_]+", "_", str(original)
+        ).strip("_").upper()
         if not base:
             base = "COLUMN"
         if base[0].isdigit():
@@ -348,17 +375,213 @@ def _safe_column_names(df: pd.DataFrame):
     return mapping
 
 
+def _snowflake_type_for_pandas(dtype) -> str:
+    if pd.api.types.is_bool_dtype(dtype):
+        return "BOOLEAN"
+    if pd.api.types.is_integer_dtype(dtype):
+        return "NUMBER"
+    if pd.api.types.is_float_dtype(dtype):
+        return "NUMBER"
+    if pd.api.types.is_datetime64_any_dtype(dtype):
+        return "TIMESTAMP_NTZ"
+    return "TEXT"
+
+
+def _column_synonyms(original_name: str):
+    """Create conservative synonyms from the actual uploaded header."""
+    text = re.sub(r"[_\-]+", " ", str(original_name)).strip()
+    words = text.split()
+    synonyms = [text.lower()]
+
+    if text.lower().endswith(" id"):
+        synonyms.append(text[:-3].strip().lower() + " identifier")
+    if "commercial project" in text.lower() and "id" in text.lower():
+        synonyms.extend(["project id", "commercial project"])
+    if "jurisdiction" in text.lower():
+        synonyms.extend(["jurisdiction", "local jurisdiction"])
+    if "contractor" in text.lower():
+        synonyms.extend(["contractor", "vendor"])
+    if "business name" in text.lower():
+        synonyms.extend(["business", "project business"])
+    if "close out" in text.lower() or "closeout" in text.lower():
+        synonyms.extend([
+            "closeout date",
+            "close out date",
+            "completion date",
+            "completed date",
+        ])
+
+    # Preserve order and uniqueness.
+    result = []
+    seen = set()
+    for item in synonyms:
+        item = item.strip()
+        if item and item not in seen:
+            result.append(item)
+            seen.add(item)
+    return result[:8]
+
+
+def _sample_values(df: pd.DataFrame, original: str, limit: int = 5):
+    values = []
+    for value in df[original].dropna().head(limit).tolist():
+        text = str(value)
+        if len(text) > 100:
+            text = text[:97] + "..."
+        values.append(text)
+    return values
+
+
+def build_uploaded_semantic_model(df: pd.DataFrame, table_name: str) -> str:
+    """Build a semantic model directly from the uploaded spreadsheet schema.
+
+    The model is sent inline to the Cortex Analyst REST API. No COMPLETE call
+    and no hard-coded question-to-SQL mapping are used.
+    """
+    mapping = _safe_column_names(df)
+
+    dimensions = []
+    time_dimensions = []
+    facts = []
+
+    for original, safe in mapping.items():
+        dtype = df[original].dtype
+        sf_type = _snowflake_type_for_pandas(dtype)
+        synonyms = _column_synonyms(original)
+        samples = _sample_values(df, original)
+        desc = f"Uploaded spreadsheet column '{original}'."
+
+        # Close-out date is commonly the strongest completion indicator in
+        # project workbooks. Only add this interpretation when that real column exists.
+        original_lower = original.lower()
+        if "close out" in original_lower or "closeout" in original_lower:
+            desc = (
+                f"Uploaded spreadsheet column '{original}'. A non-null value indicates "
+                "that the project received close-out approval and can be used as a "
+                "completion indicator."
+            )
+
+        entry = {
+            "name": safe,
+            "description": desc,
+            "expr": safe,
+            "data_type": sf_type,
+            "unique": False,
+        }
+        if synonyms:
+            entry["synonyms"] = synonyms
+        if samples:
+            entry["sample_values"] = samples
+
+        if pd.api.types.is_datetime64_any_dtype(dtype):
+            time_dimensions.append(entry)
+        else:
+            dimensions.append(entry)
+
+        if pd.api.types.is_numeric_dtype(dtype):
+            facts.append({
+                "name": safe,
+                "description": f"Numeric value from uploaded column '{original}'.",
+                "expr": safe,
+                "data_type": "NUMBER",
+                "sample_values": samples,
+            })
+
+    # A row indicator gives Analyst an explicit way to calculate row/project
+    # counts without requiring any hard-coded question mapping.
+    facts.append({
+        "name": "ROW_INDICATOR",
+        "description": "One numeric indicator per uploaded spreadsheet row. SUM this fact to count rows/projects.",
+        "expr": "1",
+        "data_type": "NUMBER",
+    })
+
+    # Add a semantic completion flag only when a real close-out column exists.
+    closeout_safe = None
+    for original, safe in mapping.items():
+        low = original.lower()
+        if "close out" in low or "closeout" in low:
+            closeout_safe = safe
+            break
+
+    if closeout_safe:
+        dimensions.append({
+            "name": "IS_COMPLETED",
+            "description": "True when the close-out approval date is not null; this represents a completed project in this uploaded workbook.",
+            "expr": f"{closeout_safe} IS NOT NULL",
+            "data_type": "BOOLEAN",
+            "unique": False,
+            "synonyms": ["completed", "project completed", "completion status"],
+            "sample_values": ["TRUE", "FALSE"],
+        })
+
+    table_definition = {
+        "name": "UPLOADED_DATA",
+        "description": "One logical table containing the complete uploaded spreadsheet.",
+        "base_table": {
+            "database": DATABASE,
+            "schema": SCHEMA,
+            "table": table_name,
+        },
+        "dimensions": dimensions,
+        "facts": facts,
+    }
+    if time_dimensions:
+        table_definition["time_dimensions"] = time_dimensions
+
+    model = {
+        "name": "UPLOADED_DOCUMENT_ANALYSIS",
+        "description": "Semantic model generated dynamically from one uploaded spreadsheet. Use only this uploaded dataset.",
+        "tables": [table_definition],
+        "module_custom_instructions": {
+            "sql_generation": (
+                "Use only the uploaded_data logical table. Query the complete underlying table. "
+                "Use ROW_INDICATOR for row/project counts when appropriate. "
+                "If IS_COMPLETED exists, use it when the user asks about completed projects. "
+                "Do not invent columns or business definitions."
+            ),
+            "question_categorization": (
+                "Classify questions only from the uploaded table's actual columns and values. "
+                "Do not use the Inventory or Sales semantic models for this document question."
+            ),
+        },
+    }
+
+    return yaml.safe_dump(
+        model,
+        sort_keys=False,
+        allow_unicode=True,
+        default_flow_style=False,
+    )
+
+
+def _drop_uploaded_table():
+    table_name = st.session_state.get("uploaded_document_table")
+    if not table_name:
+        return
+    try:
+        # Generated names contain only A-Z, 0-9 and underscore.
+        if re.fullmatch(r"UPLOADED_DOCUMENT_[A-Z0-9_]+", str(table_name)):
+            session.sql(f'DROP TABLE IF EXISTS "{table_name}"').collect()
+    except Exception:
+        pass
+    st.session_state.uploaded_document_table = None
+    st.session_state.uploaded_document_semantic_model = None
+
+
 def process_uploaded_document(uploaded_file):
     """Read CSV/XLSX/XLS/PDF/DOCX and return display data/text."""
     name = uploaded_file.name
     extension = name.rsplit(".", 1)[-1].lower()
 
     if extension == "csv":
+        uploaded_file.seek(0)
         df = pd.read_csv(uploaded_file)
         df = _normalize_uploaded_dataframe(df)
         return "table", df, "", f"CSV file loaded with {len(df):,} rows."
 
     if extension in {"xlsx", "xls"}:
+        uploaded_file.seek(0)
         excel_file = pd.ExcelFile(uploaded_file)
         sheet_name = excel_file.sheet_names[0]
         df = pd.read_excel(excel_file, sheet_name=sheet_name)
@@ -382,13 +605,7 @@ def process_uploaded_document(uploaded_file):
         for page in reader.pages:
             pages.append(page.extract_text() or "")
         full_text = "\n\n".join(pages).strip()
-
-        return (
-            "text",
-            None,
-            full_text,
-            f"PDF analyzed successfully ({len(reader.pages)} pages).",
-        )
+        return "text", None, full_text, f"PDF analyzed successfully ({len(reader.pages)} pages)."
 
     if extension == "docx":
         from docx import Document
@@ -396,88 +613,61 @@ def process_uploaded_document(uploaded_file):
         uploaded_file.seek(0)
         document = Document(uploaded_file)
         paragraphs = [p.text for p in document.paragraphs if p.text.strip()]
-
-        # Also include simple table contents from the DOCX.
         table_parts = []
         for table in document.tables:
             for row in table.rows:
                 table_parts.append(" | ".join(cell.text.strip() for cell in row.cells))
-
         full_text = "\n".join(paragraphs + table_parts).strip()
-
-        return (
-            "text",
-            None,
-            full_text,
-            "DOCX document analyzed successfully.",
-        )
+        return "text", None, full_text, "DOCX document analyzed successfully."
 
     raise ValueError("Unsupported document type.")
 
 
 def prepare_uploaded_table(df: pd.DataFrame) -> str:
-    """
-    Put the uploaded dataframe into a temporary Snowflake table so Cortex can
-    generate SQL over the complete dataset rather than only a text sample.
-    """
+    """Create a transient table so Cortex Analyst's REST session can see it."""
     if df is None or df.empty:
         raise ValueError("The uploaded spreadsheet contains no rows.")
 
+    _drop_uploaded_table()
+
     work_df = _normalize_uploaded_dataframe(df)
     mapping = _safe_column_names(work_df)
-
     work_df.columns = [mapping[str(c)] for c in work_df.columns]
 
-    # Store the temporary table name in session state so subsequent questions
-    # reuse the same uploaded dataset.
     table_name = (
         "UPLOADED_DOCUMENT_"
         + datetime.now().strftime("%Y%m%d_%H%M%S_%f").upper()
     )
 
+    # IMPORTANT: do NOT use a TEMPORARY table here. Cortex Analyst REST runs
+    # in a separate Snowflake session and cannot see session-scoped temp tables.
+    # A TRANSIENT table is visible to the Analyst request and is dropped when
+    # the user uploads another document or removes the current document.
     session.write_pandas(
         work_df,
         table_name,
         auto_create_table=True,
         overwrite=True,
-        table_type="temporary",
+        table_type="transient",
     )
 
-    schema_lines = [
-        f"- {col}: {dtype}"
-        for col, dtype in zip(work_df.columns, work_df.dtypes)
-    ]
-    schema_text = "\n".join(schema_lines)
+    try:
+        session.sql(
+            f'ALTER TABLE "{table_name}" SET DATA_RETENTION_TIME_IN_DAYS = 0'
+        ).collect()
+    except Exception:
+        pass
 
-    # A small sample helps Cortex understand the values while the generated
-    # SQL itself runs against the complete temporary table.
-    sample_csv = work_df.head(15).to_csv(index=False)
-
-    mapping_lines = [
-        f"- {original} -> {safe}"
-        for original, safe in mapping.items()
-    ]
-
-    table_context = f"""
-Temporary Snowflake table:
-{table_name}
-
-Columns and data types:
-{schema_text}
-
-Original-to-SQL column mapping:
-{chr(10).join(mapping_lines)}
-
-Sample rows:
-{sample_csv}
-"""
+    semantic_model = build_uploaded_semantic_model(df, table_name)
 
     st.session_state.uploaded_document_table = table_name
-    return table_context
+    st.session_state.uploaded_document_semantic_model = semantic_model
+
+    return semantic_model
 
 
 def answer_uploaded_table_question(question: str, df: pd.DataFrame):
-    """Generate read-only SQL with Cortex and execute it on the full upload."""
+    """Use Cortex Analyst to generate SQL against the complete uploaded table."""
     if df is None or df.empty:
         raise ValueError("The uploaded spreadsheet has no usable rows.")
 
@@ -485,89 +675,46 @@ def answer_uploaded_table_question(question: str, df: pd.DataFrame):
         prepare_uploaded_table(df)
 
     table_name = st.session_state.uploaded_document_table
+    semantic_model = st.session_state.uploaded_document_semantic_model
 
-    if not table_name:
-        raise RuntimeError("The uploaded document table was not created.")
-    schema_lines = [
-        f"- {col}: {dtype}"
-        for col, dtype in zip(df.columns, df.dtypes)
-    ]
+    if not table_name or not semantic_model:
+        raise RuntimeError("The uploaded document semantic model was not created.")
 
-    # The dataframe has already been normalized when it was staged. Recreate
-    # the mapping deterministically for the SQL-generation prompt.
-    mapping = _safe_column_names(df)
-    safe_columns = list(mapping.values())
-    schema_text = "\n".join(
-        f"- {safe}: original column '{original}', type {df[original].dtype}"
-        for original, safe in mapping.items()
+    analyst_json = call_cortex_analyst_with_semantic_model(
+        question,
+        semantic_model,
     )
+    result = extract_analyst_response(analyst_json)
 
-    sample_df = df.copy()
-    sample_df.columns = safe_columns
-    sample_csv = sample_df.head(15).to_csv(index=False)
+    if result.get("warnings"):
+        warning_text = " ".join(
+            str(w.get("message", w)) if isinstance(w, dict) else str(w)
+            for w in result["warnings"]
+        )
+        if warning_text:
+            st.warning(warning_text)
 
-    prompt = f"""
-You are a data analyst answering a question about ONE uploaded spreadsheet.
+    if not result.get("sql"):
+        raise RuntimeError(
+            result.get("text")
+            or "Cortex Analyst could not generate SQL for the uploaded document question."
+        )
 
-User question:
-{question}
-
-Use ONLY this Snowflake temporary table:
-{table_name}
-
-Available columns:
-{schema_text}
-
-Sample rows:
-{sample_csv}
-
-Rules:
-1. Generate exactly ONE read-only Snowflake SQL statement.
-2. The statement must be SELECT or WITH ... SELECT.
-3. Query the COMPLETE table, not only the sample rows.
-4. Do not invent columns, tables, filters, or business definitions.
-5. Use Snowflake SQL syntax.
-6. Handle division by zero with NULLIF when needed.
-7. For rankings such as highest/lowest, order appropriately and use LIMIT when the
-   user asks for a single result.
-8. Return ONLY the SQL statement. No markdown and no explanation.
-"""
-
-    generated = cortex_complete(prompt)
-    sql_query = _clean_generated_sql(generated)
+    sql_query = _clean_generated_sql(result["sql"])
     result_df = session.sql(sql_query).to_pandas()
 
-    return result_df, sql_query
+    return result_df, sql_query, result
 
 
 def answer_uploaded_text_question(question: str, document_text: str):
-    """Answer a PDF/DOCX question using only extracted document text."""
+    """Legacy PDF/DOCX path. Trial accounts without COMPLETE cannot use it."""
     if not document_text.strip():
         raise ValueError("No readable text was extracted from the uploaded document.")
-
-    # Keep enough context for normal documents while preventing an enormous
-    # single prompt. The full extracted text is also retained in the UI.
-    max_chars = 120000
-    context = document_text[:max_chars]
-
-    prompt = f"""
-You are answering a user's question using ONLY the uploaded document below.
-
-User question:
-{question}
-
-Uploaded document:
-{context}
-
-Rules:
-- Answer only from the uploaded document.
-- Do not invent facts that are not present in the document.
-- If the document does not contain enough information, say so clearly.
-- Give a concise, direct answer.
-"""
-
-    answer = cortex_complete(prompt)
-    return answer.strip()
+    raise RuntimeError(
+        "PDF/DOCX question answering currently requires a Cortex text-generation "
+        "function that is not enabled for this Snowflake trial account. Excel/CSV "
+        "analysis uses Cortex Analyst and does not require COMPLETE."
+    )
 
 
 def render_uploaded_document_preview():
@@ -747,12 +894,14 @@ with st.sidebar:
                     uploaded_doc
                 )
 
+                _drop_uploaded_table()
                 st.session_state.uploaded_document_name = uploaded_doc.name
                 st.session_state.uploaded_document_type = doc_type
                 st.session_state.uploaded_document_df = doc_df
                 st.session_state.uploaded_document_text = doc_text
                 st.session_state.uploaded_document = uploaded_doc.name
                 st.session_state.uploaded_document_table = None
+                st.session_state.uploaded_document_semantic_model = None
 
                 if doc_type == "table":
                     prepare_uploaded_table(doc_df)
@@ -771,12 +920,14 @@ with st.sidebar:
             use_container_width=True,
             key="remove_uploaded_document",
         ):
+            _drop_uploaded_table()
             st.session_state.uploaded_document = None
             st.session_state.uploaded_document_name = None
             st.session_state.uploaded_document_df = None
             st.session_state.uploaded_document_text = ""
             st.session_state.uploaded_document_type = None
             st.session_state.uploaded_document_table = None
+            st.session_state.uploaded_document_semantic_model = None
             st.rerun()
 # 6. MAIN HEADER
 # ===================================================================
@@ -954,15 +1105,20 @@ if user_prompt:
             try:
                 with st.spinner("Analyzing your uploaded document..."):
                     if st.session_state.uploaded_document_type == "table":
-                        doc_df_result, doc_sql_result = answer_uploaded_table_question(
+                        doc_df_result, doc_sql_result, doc_analyst_result = answer_uploaded_table_question(
                             user_prompt,
                             st.session_state.uploaded_document_df,
                         )
                         doc_answer = (
                             "I answered your question using the complete uploaded "
-                            "dataset. The result below is generated dynamically "
-                            "from the uploaded document."
+                            "dataset through Cortex Analyst. The SQL below was "
+                            "generated dynamically from the uploaded document schema."
                         )
+                        if doc_analyst_result.get("semantic_model_selection"):
+                            st.caption(
+                                "Semantic model selected: "
+                                + str(doc_analyst_result["semantic_model_selection"])
+                            )
                     else:
                         doc_answer = answer_uploaded_text_question(
                             user_prompt,
