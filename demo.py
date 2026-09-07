@@ -1,3 +1,4 @@
+import io
 import streamlit as st
 import pandas as pd
 from datetime import datetime
@@ -703,15 +704,44 @@ def process_uploaded_document(uploaded_file):
         return "text", None, full_text, f"PDF analyzed successfully ({len(reader.pages)} pages)."
 
     if extension == "docx":
-        from docx import Document
+        # DOCX is a ZIP package containing XML. Parse it with Python's standard
+        # library so the app does not require the optional python-docx package.
+        import zipfile
+        import xml.etree.ElementTree as ET
 
         uploaded_file.seek(0)
-        document = Document(uploaded_file)
-        paragraphs = [p.text for p in document.paragraphs if p.text.strip()]
+        docx_bytes = uploaded_file.read()
+
+        try:
+            with zipfile.ZipFile(io.BytesIO(docx_bytes)) as zf:
+                xml_bytes = zf.read("word/document.xml")
+        except (KeyError, zipfile.BadZipFile) as exc:
+            raise ValueError("The uploaded Word file is not a valid .docx document.") from exc
+
+        try:
+            root = ET.fromstring(xml_bytes)
+        except ET.ParseError as exc:
+            raise ValueError("Could not read the Word document content.") from exc
+
+        ns = {"w": "http://schemas.openxmlformats.org/wordprocessingml/2006/main"}
+        paragraphs = []
+        for paragraph in root.findall(".//w:p", ns):
+            parts = [node.text or "" for node in paragraph.findall(".//w:t", ns)]
+            text = "".join(parts).strip()
+            if text:
+                paragraphs.append(text)
+
+        # Preserve Word tables in a simple row/column text representation.
         table_parts = []
-        for table in document.tables:
-            for row in table.rows:
-                table_parts.append(" | ".join(cell.text.strip() for cell in row.cells))
+        for table in root.findall(".//w:tbl", ns):
+            for row in table.findall("./w:tr", ns):
+                cells = []
+                for cell in row.findall("./w:tc", ns):
+                    cell_parts = [node.text or "" for node in cell.findall(".//w:t", ns)]
+                    cells.append(" ".join("".join(cell_parts).split()))
+                if any(cells):
+                    table_parts.append(" | ".join(cells))
+
         full_text = "\n".join(paragraphs + table_parts).strip()
         return "text", None, full_text, "DOCX document analyzed successfully."
 
