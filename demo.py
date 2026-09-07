@@ -2105,7 +2105,7 @@ with st.container(key="dly_chat_header"):
 
 # 7. EXAMPLE QUESTIONS
 # These buttons are only examples. They do NOT contain SQL.
-# ===================================================================
+# ==================================================================
 quick_prompt = None
 
 st.markdown("### Explore your data")
