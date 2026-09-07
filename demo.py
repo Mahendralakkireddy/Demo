@@ -1233,6 +1233,7 @@ with head_col2:
 # These buttons are only examples. They do NOT contain SQL.
 # ===================================================================
 quick_prompt = None
+
 tab_inv, tab_sales = st.tabs(
     ["📦 Inventory Intelligence", "💰 Sales Intelligence"]
 )
@@ -1240,57 +1241,151 @@ tab_inv, tab_sales = st.tabs(
 with tab_inv:
     with st.expander("💡 What can I ask about Inventory?", expanded=False):
         st.markdown("""
-        Questions are answered by Cortex Analyst using
-        `INV_ANALYST_DEMO_90_VERIFIED.yaml`.
+        **Warehouse & Stock Levels**
 
-        * How many products are out of stock?
-        * What is the inventory value by warehouse?
-        * Which products have the highest inventory value?
-        * Which warehouses have the highest outbound quantity?
-        * Which products need to be reordered?
-        * What is the inventory value by product category?
+        Explore stock quantities, inventory value, warehouse-level performance,
+        stockouts, excess stock, and products that need attention.
+
+        **Products & Categories**
+
+        Analyze inventory by product category, subcategory, brand, and individual
+        products to understand where inventory value is concentrated.
+
+        **⚠️ Exceptions & Supply Issues**
+
+        Identify stockout products, excess inventory, reorder needs, and other
+        inventory risks.
+
+        **💡 Pro-Tip:** Type naturally below or click any question to get started.
         """)
 
-    st.markdown("##### 💡 Example Inventory Questions")
-    q1, q2, q3, q4, q5 = st.columns(5)
+        st.markdown("##### 🔹 Example Inventory Questions")
+        inv_left, inv_right = st.columns(2)
 
-    if q1.button("💰 Inventory Value", use_container_width=True, key="i1"):
-        quick_prompt = "What is the total inventory value?"
-    if q2.button("🏭 Value by Warehouse", use_container_width=True, key="i2"):
-        quick_prompt = "What is the inventory value by warehouse?"
-    if q3.button("📦 Value by Category", use_container_width=True, key="i3"):
-        quick_prompt = "What is the inventory value by product category?"
-    if q4.button("📉 Stockout Count", use_container_width=True, key="i4"):
-        quick_prompt = "How many products are out of stock?"
-    if q5.button("⚠️ Excess Stock", use_container_width=True, key="i5"):
-        quick_prompt = "What is the total excess inventory value by warehouse?"
+        with inv_left:
+            if st.button(
+                "💰 What is the total inventory value?",
+                use_container_width=True,
+                key="i1",
+            ):
+                quick_prompt = "What is the total inventory value?"
+
+            if st.button(
+                "🏭 What is the inventory value by warehouse?",
+                use_container_width=True,
+                key="i2",
+            ):
+                quick_prompt = "What is the inventory value by warehouse?"
+
+            if st.button(
+                "📦 Which products have the highest inventory value?",
+                use_container_width=True,
+                key="i3",
+            ):
+                quick_prompt = "Which products have the highest inventory value?"
+
+        with inv_right:
+            if st.button(
+                "📉 How many products are out of stock?",
+                use_container_width=True,
+                key="i4",
+            ):
+                quick_prompt = "How many products are out of stock?"
+
+            if st.button(
+                "⚠️ What is the total excess inventory value by warehouse?",
+                use_container_width=True,
+                key="i5",
+            ):
+                quick_prompt = "What is the total excess inventory value by warehouse?"
+
+            if st.button(
+                "🔄 Which products need to be reordered?",
+                use_container_width=True,
+                key="i6",
+            ):
+                quick_prompt = "Which products need to be reordered?"
+
+            if st.button(
+                "🏷️ What is the inventory value by product category?",
+                use_container_width=True,
+                key="i7",
+            ):
+                quick_prompt = "What is the inventory value by product category?"
 
 with tab_sales:
     with st.expander("💡 What can I ask about Sales?", expanded=False):
         st.markdown("""
-        Questions are answered by Cortex Analyst using
-        `sales_intelligence_model_80_queries_fixed.yaml`.
+        **Sales Performance**
 
-        * What is the total sales amount?
-        * What are the top products by sales?
-        * What are total sales by customer region?
-        * What are total sales by month?
-        * What is total sales by order channel?
+        Explore total sales, order performance, average order value, discounts,
+        taxes, shipping costs, and overall sales trends.
+
+        **Products & Customers**
+
+        Analyze top-performing products and compare sales across customer regions
+        and customer segments.
+
+        **Channels & Trends**
+
+        Understand how sales perform across order channels and over time by month.
+
+        **💡 Pro-Tip:** Type naturally below or click any question to get started.
         """)
 
-    st.markdown("##### 💡 Example Sales Questions")
-    s1, s2, s3, s4, s5 = st.columns(5)
+        st.markdown("##### 🔹 Example Sales Questions")
+        sales_left, sales_right = st.columns(2)
 
-    if s1.button("💵 Total Sales", use_container_width=True, key="s1"):
-        quick_prompt = "What is the total sales amount?"
-    if s2.button("🏆 Top Products", use_container_width=True, key="s2"):
-        quick_prompt = "What are the top products by sales?"
-    if s3.button("🌍 Sales by Region", use_container_width=True, key="s3"):
-        quick_prompt = "What are total sales by customer region?"
-    if s4.button("📅 Monthly Sales", use_container_width=True, key="s4"):
-        quick_prompt = "What are total sales by month?"
-    if s5.button("📊 Sales by Channel", use_container_width=True, key="s5"):
-        quick_prompt = "What is total sales by order channel?"
+        with sales_left:
+            if st.button(
+                "💵 What is the total sales amount?",
+                use_container_width=True,
+                key="s1",
+            ):
+                quick_prompt = "What is the total sales amount?"
+
+            if st.button(
+                "🏆 What are the top products by sales?",
+                use_container_width=True,
+                key="s2",
+            ):
+                quick_prompt = "What are the top products by sales?"
+
+            if st.button(
+                "🌍 What are total sales by customer region?",
+                use_container_width=True,
+                key="s3",
+            ):
+                quick_prompt = "What are total sales by customer region?"
+
+        with sales_right:
+            if st.button(
+                "📅 What are total sales by month?",
+                use_container_width=True,
+                key="s4",
+            ):
+                quick_prompt = "What are total sales by month?"
+
+            if st.button(
+                "📊 What is total sales by order channel?",
+                use_container_width=True,
+                key="s5",
+            ):
+                quick_prompt = "What is total sales by order channel?"
+
+            if st.button(
+                "💳 What is the average order value?",
+                use_container_width=True,
+                key="s6",
+            ):
+                quick_prompt = "What is the average order value?"
+
+            if st.button(
+                "🎟️ What is the total discount?",
+                use_container_width=True,
+                key="s7",
+            ):
+                quick_prompt = "What is the total discount?"
 
 st.markdown("---")
 
