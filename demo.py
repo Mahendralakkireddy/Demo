@@ -248,7 +248,9 @@ def extract_analyst_response(data: Dict[str, Any]) -> Dict[str, Any]:
 # PDF/Word document Q&A uses the current AI_COMPLETE document capability.
 # Excel/CSV continues to use the existing Cortex Analyst path unchanged.
 DOCUMENT_AI_MODEL = "claude-sonnet-4-6"
-DOCUMENT_STAGE_NAME = "DILYtics_DOCUMENT_STAGE"
+DOCUMENT_STAGE_DB = "INVENTORY_DW_DEMO"
+DOCUMENT_STAGE_SCHEMA = "GOLD"
+DOCUMENT_STAGE_NAME = "DILYTICS_DOCUMENT_STAGE"
 
 if "uploaded_document" not in st.session_state:
     st.session_state.uploaded_document = None
@@ -278,19 +280,39 @@ def _snowflake_sql_literal(value: str) -> str:
 
 
 def _document_stage_quoted_name() -> str:
-    """Return the quoted temporary stage identifier used for PDF/DOCX files."""
-    return '"' + DOCUMENT_STAGE_NAME + '"'
+    """Return the fully-qualified named stage used for PDF/DOCX files."""
+    return (
+        f'"{DOCUMENT_STAGE_DB}"."{DOCUMENT_STAGE_SCHEMA}".'
+        f'"{DOCUMENT_STAGE_NAME}"'
+    )
 
 
 def _document_stage_file_reference() -> str:
-    """Return the @stage reference required by TO_FILE()."""
-    return '@' + DOCUMENT_STAGE_NAME
+    """Return the fully-qualified @stage reference required by PUT/TO_FILE."""
+    return '@' + _document_stage_quoted_name()
 
 
 def _ensure_document_stage():
-    """Create a server-encrypted temporary stage for the current Streamlit session."""
+    """Create the persistent, server-encrypted named stage used by AI_COMPLETE.
+
+    AI_COMPLETE document processing requires the referenced FILE to live on an
+    accessible internal/external stage. A temporary stage is session-scoped and
+    is not reliable for this document-processing path, so use a dedicated named
+    internal stage instead.
+    """
     stage_name = _document_stage_quoted_name()
-    session.sql(f"CREATE TEMP STAGE IF NOT EXISTS {stage_name}").collect()
+    try:
+        session.sql(
+            f"CREATE STAGE IF NOT EXISTS {stage_name} "
+            "ENCRYPTION = (TYPE = 'SNOWFLAKE_SSE')"
+        ).collect()
+    except Exception as exc:
+        raise RuntimeError(
+            f"Could not create or access document stage {stage_name}. "
+            "Run this once with a role that can CREATE STAGE in "
+            f"{DOCUMENT_STAGE_DB}.{DOCUMENT_STAGE_SCHEMA}, or grant the Streamlit role "
+            "USAGE on the database/schema and READ/WRITE on the stage."
+        ) from exc
     return stage_name
 
 
@@ -306,12 +328,12 @@ def _upload_document_to_stage(uploaded_file) -> str:
     stage_name = _ensure_document_stage()
     safe_name = re.sub(r"[^A-Za-z0-9_.-]+", "_", uploaded_file.name)
 
-    # Claude document processing supports documents up to 4.5 MB.
+    # Claude Sonnet 4.6 supports documents up to 22 MB.
     file_size = getattr(uploaded_file, "size", None)
-    if file_size is not None and file_size > 4.5 * 1024 * 1024:
+    if file_size is not None and file_size > 22 * 1024 * 1024:
         raise ValueError(
             f"The PDF/Word file is {file_size / (1024 * 1024):.2f} MB. "
-            "The selected Claude document model supports files up to 4.5 MB."
+            "The selected Claude Sonnet 4.6 document model supports files up to 22 MB."
         )
     if not safe_name.lower().endswith((".pdf", ".docx")):
         safe_name = f"document.{extension}"
@@ -362,6 +384,8 @@ def ai_complete_document_question(question: str) -> str:
         "to answer, say so instead of inventing information. "
         "User question: " + question
     )
+    # TO_FILE expects the stage reference as a string such as
+    # '@"DATABASE"."SCHEMA"."STAGE"'.
     stage_literal = _snowflake_sql_literal(stage_name)
     file_literal = _snowflake_sql_literal(stage_file)
 
