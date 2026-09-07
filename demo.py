@@ -203,6 +203,118 @@ header { background:transparent !important; }
 """, unsafe_allow_html=True)
 
 
+
+st.markdown("""
+<style>
+/* ================================================================
+   Dilytics Landing Page
+   Visual/navigation layer only. Backend functionality is unchanged.
+   ================================================================ */
+.dly-landing-wrap {
+    min-height: 78vh;
+    margin: -1.2rem -2rem 0;
+    padding: 2rem 5vw 4rem;
+    background:
+        radial-gradient(circle at 78% 18%, rgba(29,190,255,.30), transparent 28%),
+        radial-gradient(circle at 35% 100%, rgba(20,111,220,.24), transparent 35%),
+        linear-gradient(135deg,#071a42 0%,#063b79 48%,#0b83bd 100%);
+    border-radius: 0 0 28px 28px;
+    position: relative;
+    overflow: hidden;
+}
+.dly-landing-wrap:before,
+.dly-landing-wrap:after {
+    content:""; position:absolute; border:1px solid rgba(100,220,255,.18);
+    border-radius:50%; pointer-events:none;
+}
+.dly-landing-wrap:before { width:760px; height:760px; right:-250px; top:-420px; }
+.dly-landing-wrap:after { width:680px; height:680px; left:-360px; bottom:-470px; }
+.dly-landing-nav {
+    display:flex; align-items:center; justify-content:space-between;
+    position:relative; z-index:2; margin-bottom:7vh;
+}
+.dly-landing-logo {
+    display:inline-flex; align-items:center; justify-content:center;
+    background:#ef222c; color:#fff; padding:9px 18px;
+    font-size:1.25rem; font-weight:900; letter-spacing:.5px;
+    border-radius:2px; box-shadow:0 8px 25px rgba(0,0,0,.18);
+}
+.dly-landing-powered {
+    color:#bfeeff; font-size:.76rem; font-weight:700;
+    letter-spacing:1px; text-transform:uppercase;
+}
+.dly-landing-grid {
+    display:grid; grid-template-columns: 1.02fr .98fr; gap:4rem;
+    align-items:center; position:relative; z-index:2;
+}
+.dly-landing-copy h1 {
+    color:#fff; font-size:clamp(3rem,6vw,5.5rem); line-height:.98;
+    letter-spacing:-3px; margin:0 0 22px; font-weight:850;
+}
+.dly-landing-copy h1 span { color:#20d7ff; }
+.dly-landing-copy p {
+    color:#d0e7ff; font-size:1.15rem; line-height:1.6;
+    max-width:620px; margin-bottom:28px;
+}
+.dly-landing-actions {
+    display:flex; gap:16px; align-items:center; flex-wrap:wrap;
+}
+.dly-landing-actions button {
+    border:0; border-radius:30px; padding:13px 27px;
+    font-size:1rem; font-weight:800; cursor:pointer;
+}
+.dly-explore {
+    background:linear-gradient(90deg,#0da9ff,#2ed8c4); color:#fff;
+    box-shadow:0 10px 30px rgba(0,183,255,.25);
+}
+.dly-ask {
+    background:rgba(4,25,62,.35); color:#fff;
+    border:1px solid rgba(140,225,255,.55) !important;
+}
+.dly-landing-search {
+    margin-top:25px; max-width:680px; padding:10px;
+    border-radius:17px; background:rgba(255,255,255,.10);
+    border:1px solid rgba(255,255,255,.20); backdrop-filter:blur(12px);
+}
+.dly-landing-search input {
+    color:#fff !important; background:rgba(2,18,48,.55) !important;
+}
+.dly-landing-search input::placeholder { color:#b8d4ee !important; }
+.dly-landing-visual {
+    min-height:470px; position:relative; display:flex;
+    align-items:center; justify-content:center;
+}
+.dly-robot-orb {
+    width:390px; height:390px; border-radius:50%;
+    background:radial-gradient(circle at 35% 30%,#25cfff,#0878c8 58%,#073c80);
+    box-shadow:0 0 90px rgba(30,208,255,.28);
+    display:flex; align-items:center; justify-content:center;
+    font-size:12rem; position:relative;
+}
+.dly-chat-bubble {
+    position:absolute; right:0; top:15%; background:#eaf6ff;
+    color:#073579; padding:18px 23px; border-radius:22px 22px 5px 22px;
+    font-size:1.05rem; line-height:1.35; box-shadow:0 15px 35px rgba(0,0,0,.2);
+}
+.dly-chat-bubble strong { font-size:1.2rem; }
+.dly-landing-stats {
+    display:flex; gap:35px; margin-top:48px; color:#dff4ff;
+}
+.dly-stat { display:flex; gap:10px; align-items:center; }
+.dly-stat-icon { font-size:1.4rem; }
+.dly-stat-text { font-size:.9rem; line-height:1.2; }
+.dly-stat-text b { display:block; color:#fff; font-size:1rem; }
+@media (max-width: 900px) {
+    .dly-landing-grid { grid-template-columns:1fr; gap:1rem; }
+    .dly-landing-visual { min-height:300px; }
+    .dly-robot-orb { width:280px; height:280px; font-size:8rem; }
+    .dly-chat-bubble { right:3%; }
+    .dly-landing-wrap { margin-left:-1rem; margin-right:-1rem; }
+}
+</style>
+""", unsafe_allow_html=True)
+
+
 # ===================================================================
 # 1. LOGIN / SNOWFLAKE SESSION
 # ===================================================================
@@ -250,6 +362,76 @@ if not st.session_state.authenticated:
 
 session = st.session_state.snowpark_session
 conn = st.session_state.snowflake_conn
+
+# ===================================================================
+# LANDING PAGE NAVIGATION
+# ===================================================================
+if "show_landing_page" not in st.session_state:
+    st.session_state.show_landing_page = True
+if "landing_prompt" not in st.session_state:
+    st.session_state.landing_prompt = None
+
+if st.session_state.show_landing_page:
+    st.markdown("""
+    <style>
+        section[data-testid="stSidebar"] { display:none; }
+        .main .block-container { max-width: 1450px; padding-top: 0; }
+    </style>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
+    <div class="dly-landing-wrap">
+      <div class="dly-landing-nav">
+        <div class="dly-landing-logo">DILYTICS</div>
+        <div class="dly-landing-powered">Powered by Snowflake Cortex AI</div>
+      </div>
+      <div class="dly-landing-grid">
+        <div class="dly-landing-copy">
+          <div class="dly-eyebrow">Dilytics Enterprise AI</div>
+          <h1>Let's find your<br><span>answers</span></h1>
+          <p>A friendly AI copilot for your business data. Ask questions in natural language and get intelligent insights from Inventory, Sales, Supply Chain, and uploaded documents.</p>
+          <div class="dly-landing-actions">
+            <div id="landing-explore" class="dly-explore">Explore Data &nbsp; →</div>
+            <div class="dly-ask">🤖 &nbsp; Ask Me Anything</div>
+          </div>
+          <div class="dly-landing-stats">
+            <div class="dly-stat"><span class="dly-stat-icon">📊</span><span class="dly-stat-text"><b>Insights</b>made simple</span></div>
+            <div class="dly-stat"><span class="dly-stat-icon">⚡</span><span class="dly-stat-text"><b>Faster</b>decisions</span></div>
+            <div class="dly-stat"><span class="dly-stat-icon">🛡️</span><span class="dly-stat-text"><b>Reliable</b>support</span></div>
+          </div>
+        </div>
+        <div class="dly-landing-visual">
+          <div class="dly-robot-orb">🤖</div>
+          <div class="dly-chat-bubble"><strong>Hi!</strong><br>How can I help you<br>today?</div>
+        </div>
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown('<div class="dly-landing-search">', unsafe_allow_html=True)
+    landing_question = st.text_input(
+        "Ask Me Anything",
+        placeholder="Ask me anything about your data...",
+        label_visibility="collapsed",
+        key="landing_question",
+    )
+    search_cols = st.columns([1, 1, 3])
+    with search_cols[0]:
+        explore_clicked = st.button("🚀 Explore Data", use_container_width=True, key="landing_explore_btn")
+    with search_cols[1]:
+        ask_clicked = st.button("🤖 Ask Me Anything", use_container_width=True, key="landing_ask_btn")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    if explore_clicked:
+        st.session_state.show_landing_page = False
+        st.rerun()
+
+    if ask_clicked and landing_question.strip():
+        st.session_state.landing_prompt = landing_question.strip()
+        st.session_state.show_landing_page = False
+        st.rerun()
+
+    st.stop()
 
 
 # ===================================================================
@@ -1373,7 +1555,7 @@ with head_col1:
         <div class="dly-hero">
             <div class="dly-eyebrow">Powered by Snowflake Cortex AI</div>
             <h1>Chat with your <span>business data</span></h1>
-            <p>Ask questions in natural language and get intelligent insights from Inventory, Sales, and your connected data sources.</p>
+            <p>Ask questions in natural language and get intelligent insights from Inventory, Sales, Supply Chain, and your connected data sources.</p>
         </div>
         """,
         unsafe_allow_html=True,
@@ -1581,10 +1763,15 @@ else:
 # ===================================================================
 user_prompt = (
     st.chat_input(
-        "Ask a question about inventory, warehouses, products, sales, customers..."
+        "Ask me anything about inventory, sales, supply chain, customers, or uploaded documents..."
     )
     or quick_prompt
+    or st.session_state.get("landing_prompt")
 )
+
+# A question entered on the landing page is consumed once after navigation.
+if st.session_state.get("landing_prompt"):
+    st.session_state.landing_prompt = None
 
 
 # ===================================================================
