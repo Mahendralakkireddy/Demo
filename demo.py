@@ -37,16 +37,168 @@ st.set_page_config(
 
 st.markdown("""
 <style>
+/* ================================================================
+   Dilytics Professional AI UI
+   Visual-only layer: backend/chat/document logic is unchanged.
+   ================================================================ */
+:root {
+    --dly-navy: #10182d;
+    --dly-navy-2: #17213b;
+    --dly-blue: #1598e5;
+    --dly-cyan: #36c9ff;
+    --dly-text: #eef5ff;
+    --dly-muted: #9eabc2;
+}
+
+.stApp {
+    background:
+        radial-gradient(circle at 82% 7%, rgba(21,152,229,.16), transparent 27%),
+        radial-gradient(circle at 18% 100%, rgba(54,201,255,.08), transparent 30%),
+        #0b1222;
+}
+
+.main .block-container {
+    max-width: 1180px;
+    padding-top: 1.25rem;
+    padding-bottom: 4rem;
+}
+
+/* Header / brand */
+.dly-topbar {
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 12px 18px;
+    margin-bottom: 24px;
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 16px;
+    background: rgba(15,24,45,.78);
+    backdrop-filter: blur(14px);
+    box-shadow: 0 10px 35px rgba(0,0,0,.20);
+}
+.dly-brand {
+    display:flex; align-items:center; gap:10px;
+    font-size: 1.05rem; font-weight:800; letter-spacing:.4px;
+    color:#fff;
+}
+.dly-logo {
+    display:inline-flex; align-items:center; justify-content:center;
+    width:34px; height:28px; border-radius:7px;
+    background:linear-gradient(135deg,#ff4b4b,#ff6262);
+    color:white; font-size:.78rem; font-weight:900;
+}
+.dly-nav {
+    display:flex; gap:22px; color:#b9c4d8; font-size:.78rem;
+}
+.dly-nav span:first-child { color:#fff; }
+.dly-status {
+    display:inline-flex; align-items:center; gap:6px;
+    padding:6px 10px; border-radius:999px;
+    background:rgba(34,197,94,.08);
+    border:1px solid rgba(74,222,128,.28);
+    color:#86efac; font-size:.72rem; font-weight:700;
+}
+.dly-hero {
+    padding: 26px 8px 22px;
+}
+.dly-eyebrow {
+    color:#55c8ff; font-size:.78rem; font-weight:800;
+    text-transform:uppercase; letter-spacing:1.5px;
+}
+.dly-hero h1 {
+    margin: 7px 0 8px; color:#fff;
+    font-size: clamp(2rem, 4vw, 3.35rem);
+    line-height:1.06; letter-spacing:-1.8px;
+}
+.dly-hero h1 span { color:#159fe8; }
+.dly-hero p {
+    max-width:650px; color:#aebbd0; font-size:.92rem; line-height:1.65;
+}
+
+/* Status pill used in sidebar */
 .status-pill {
     display:inline-flex; align-items:center; gap:6px;
-    background-color:#ecfdf5; color:#065f46;
-    border:1px solid #a7f3d0; border-radius:20px;
-    padding:2px 10px; font-size:.75rem; font-weight:600;
+    background:rgba(34,197,94,.08); color:#86efac;
+    border:1px solid rgba(74,222,128,.28); border-radius:20px;
+    padding:4px 10px; font-size:.72rem; font-weight:700;
 }
+
+/* Buttons */
 div[data-testid="stButton"] > button {
-    border-radius:8px; font-weight:500;
-    transition:all .2s ease-in-out;
+    border-radius:10px; font-weight:600;
+    min-height:42px;
+    transition:all .18s ease-in-out;
 }
+.main div[data-testid="stButton"] > button {
+    background:rgba(19,31,56,.78);
+    border:1px solid rgba(120,150,190,.20);
+    color:#eaf4ff;
+}
+.main div[data-testid="stButton"] > button:hover {
+    border-color:rgba(54,201,255,.55);
+    color:#fff; transform:translateY(-1px);
+    box-shadow:0 7px 22px rgba(0,0,0,.20);
+}
+
+/* Intelligence tabs */
+.stTabs [data-baseweb="tab-list"] {
+    gap:8px; background:transparent;
+    border-bottom:1px solid rgba(255,255,255,.08);
+}
+.stTabs [data-baseweb="tab"] {
+    color:#9eabc2; border-radius:10px 10px 0 0; padding:10px 18px;
+}
+.stTabs [aria-selected="true"] {
+    color:#fff !important;
+    background:rgba(21,152,229,.12);
+}
+
+/* Expander / cards */
+[data-testid="stExpander"] {
+    background:rgba(17,28,50,.72);
+    border:1px solid rgba(120,150,190,.16);
+    border-radius:14px;
+}
+
+/* Chat bubbles */
+[data-testid="stChatMessage"] {
+    border:1px solid rgba(120,150,190,.13);
+    border-radius:15px;
+    background:rgba(17,28,50,.48);
+    margin-bottom:10px;
+}
+[data-testid="stChatMessage"] p { line-height:1.6; }
+
+/* Chat input */
+[data-testid="stChatInput"] {
+    background:rgba(15,24,45,.92);
+}
+[data-testid="stChatInput"] > div {
+    border:1px solid rgba(54,201,255,.24) !important;
+    border-radius:15px !important;
+    background:#111c32 !important;
+}
+
+/* Sidebar */
+section[data-testid="stSidebar"] {
+    background:linear-gradient(180deg,#0d1528 0%,#0a1120 100%);
+    border-right:1px solid rgba(255,255,255,.06);
+}
+section[data-testid="stSidebar"] .stMarkdown { color:#d7e2f2; }
+
+/* File uploader */
+[data-testid="stFileUploader"] {
+    background:rgba(17,28,50,.65);
+    border-radius:12px;
+}
+
+/* Dataframes */
+[data-testid="stDataFrame"] {
+    border-radius:12px; overflow:hidden;
+}
+
+/* Remove excess Streamlit decoration */
+#MainMenu { visibility:hidden; }
+footer { visibility:hidden; }
+header { background:transparent !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -1211,21 +1363,25 @@ with st.sidebar:
 head_col1, head_col2 = st.columns([4.5, 1.2])
 
 with head_col1:
-    st.title("💬 Dilytics Enterprise AI")
-    st.caption(
-        "Ask natural-language questions to explore Inventory and Sales."
+    st.markdown(
+        """
+        <div class="dly-topbar">
+            <div class="dly-brand"><span class="dly-logo">DLY</span> Dilytics Enterprise AI</div>
+            <div class="dly-nav"><span>Solutions</span><span>Data Intelligence</span><span>Cortex AI</span><span>Analytics</span></div>
+            <div class="dly-status">● Cortex Analyst Live</div>
+        </div>
+        <div class="dly-hero">
+            <div class="dly-eyebrow">Powered by Snowflake Cortex AI</div>
+            <h1>Chat with your <span>business data</span></h1>
+            <p>Ask questions in natural language and get intelligent insights from Inventory, Sales, and your connected data sources.</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
 
 with head_col2:
     st.write("")
-    if st.button(
-        "🔄 Reset Thread",
-        use_container_width=True,
-        help="Clear message history",
-    ):
-        st.session_state.chat_sessions[current_id]["messages"] = []
-        st.session_state.chat_sessions[current_id]["title"] = "New Conversation"
-        st.rerun()
+    st.write("")
 
 
 # ===================================================================
@@ -1233,6 +1389,9 @@ with head_col2:
 # These buttons are only examples. They do NOT contain SQL.
 # ===================================================================
 quick_prompt = None
+
+st.markdown("### Explore your data")
+st.caption("Choose a question below or type your own question in the chat.")
 
 tab_inv, tab_sales = st.tabs(
     ["📦 Inventory Intelligence", "💰 Sales Intelligence"]
