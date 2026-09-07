@@ -1153,6 +1153,34 @@ with st.sidebar:
                     if uploaded_doc.name.lower().endswith(".pdf"):
                         _upload_document_to_stage(uploaded_doc)
 
+            # Keep document analysis inside the current conversation timeline.
+            # The upload is an event in the chat, so it appears exactly where
+            # it happened instead of being rendered above the old messages.
+            # The chat session is initialized here as well because the upload
+            # controls are rendered before the main chat-session block below.
+            if "chat_sessions" not in st.session_state:
+                st.session_state.chat_sessions = {}
+            if "current_session_id" not in st.session_state:
+                init_id = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+                st.session_state.current_session_id = init_id
+                st.session_state.chat_sessions[init_id] = {
+                    "title": "New Conversation",
+                    "messages": [],
+                }
+            current_id = st.session_state.current_session_id
+            messages_for_event = st.session_state.chat_sessions[current_id]["messages"]
+            messages_for_event.append({
+                "role": "assistant",
+                "content": f"📄 **Document analyzed:** `{uploaded_doc.name}`\n\n{doc_message}",
+                "sql": None,
+                "data": None,
+                "semantic_model": "Uploaded Document",
+                "verified_query": None,
+                "document_event": True,
+                "document_name": uploaded_doc.name,
+                "document_type": doc_type,
+            })
+
             st.success(doc_message)
             st.rerun()
         except Exception as e:
@@ -1268,15 +1296,40 @@ st.markdown("---")
 
 
 # ===================================================================
-# ===================================================================
-# 7A. UPLOADED DOCUMENT PREVIEW (ADDED)
-# ===================================================================
-render_uploaded_document_preview()
 # 8. DISPLAY CHAT HISTORY
 # ===================================================================
+# IMPORTANT: Uploaded-document events are rendered as normal chat events.
+# This preserves chronological order: Question 1 -> ... -> Question 10 ->
+# Document uploaded -> Question 11 -> Answer 11.
 for idx, msg in enumerate(messages):
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
+
+        if msg.get("document_event"):
+            doc_type = msg.get("document_type")
+            doc_name = msg.get("document_name")
+
+            if doc_type == "table":
+                current_df = st.session_state.uploaded_document_df
+                # Show the preview only for the currently loaded document.
+                if current_df is not None and doc_name == st.session_state.uploaded_document_name:
+                    with st.expander("📊 View uploaded data", expanded=False):
+                        st.dataframe(
+                            _normalize_uploaded_dataframe(current_df),
+                            use_container_width=True,
+                        )
+            elif doc_type == "text":
+                current_text = st.session_state.uploaded_document_text
+                if current_text and doc_name == st.session_state.uploaded_document_name:
+                    with st.expander("📖 View extracted document content", expanded=False):
+                        st.text_area(
+                            "Document text",
+                            current_text,
+                            height=300,
+                            disabled=True,
+                            label_visibility="collapsed",
+                            key=f"doc_preview_{current_id}_{idx}",
+                        )
 
         if msg.get("sql"):
             with st.expander("Generated SQL", expanded=False):
