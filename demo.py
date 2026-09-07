@@ -207,498 +207,112 @@ header { background:transparent !important; }
 st.markdown("""
 <style>
 /* ================================================================
-   Dilytics Landing Page — clean blue/green chatbot interface
-   VISUAL ONLY: backend/chat/document logic is unchanged.
+   Dilytics Landing Page
+   Visual/navigation layer only. Backend functionality is unchanged.
    ================================================================ */
-
 .dly-landing-wrap {
     min-height: 78vh;
     margin: -1.2rem -2rem 0;
-    padding: 1.7rem 5vw 2.8rem;
+    padding: 2rem 5vw 4rem;
+    background:
+        radial-gradient(circle at 78% 18%, rgba(29,190,255,.30), transparent 28%),
+        radial-gradient(circle at 35% 100%, rgba(20,111,220,.24), transparent 35%),
+        linear-gradient(135deg,#071a42 0%,#063b79 48%,#0b83bd 100%);
+    border-radius: 0 0 28px 28px;
     position: relative;
     overflow: hidden;
-    border-radius: 0 0 28px 28px;
-    background:
-        radial-gradient(circle at 82% 22%, rgba(31, 220, 178, .22), transparent 25%),
-        radial-gradient(circle at 66% 12%, rgba(30, 168, 255, .25), transparent 30%),
-        linear-gradient(118deg, #061b3d 0%, #073b72 43%, #087fa0 72%, #16ad78 100%);
-    box-shadow: inset 0 0 90px rgba(0,0,0,.12);
 }
-
-.dly-landing-wrap::before,
-.dly-landing-wrap::after {
-    content: "";
-    position: absolute;
-    pointer-events: none;
-    border: 1px solid rgba(106, 225, 255, .16);
-    border-radius: 50%;
+.dly-landing-wrap:before,
+.dly-landing-wrap:after {
+    content:""; position:absolute; border:1px solid rgba(100,220,255,.18);
+    border-radius:50%; pointer-events:none;
 }
-
-.dly-landing-wrap::before {
-    width: 820px;
-    height: 820px;
-    right: -360px;
-    top: -510px;
+.dly-landing-wrap:before { width:760px; height:760px; right:-250px; top:-420px; }
+.dly-landing-wrap:after { width:680px; height:680px; left:-360px; bottom:-470px; }
+.dly-landing-nav {
+    display:flex; align-items:center; justify-content:space-between;
+    position:relative; z-index:2; margin-bottom:7vh;
 }
-
-.dly-landing-wrap::after {
-    width: 720px;
-    height: 720px;
-    left: -430px;
-    bottom: -560px;
-}
-
-.dly-landing-top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    position: relative;
-    z-index: 5;
-    margin-bottom: 4.5rem;
-}
-
 .dly-landing-logo {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    background: #ef2635;
-    color: #fff;
-    padding: 11px 20px;
-    font-size: 1.22rem;
-    font-weight: 900;
-    letter-spacing: .6px;
-    border-radius: 2px;
-    box-shadow: 0 8px 25px rgba(0,0,0,.18);
+    display:inline-flex; align-items:center; justify-content:center;
+    background:#ef222c; color:#fff; padding:9px 18px;
+    font-size:1.25rem; font-weight:900; letter-spacing:.5px;
+    border-radius:2px; box-shadow:0 8px 25px rgba(0,0,0,.18);
 }
-
 .dly-landing-powered {
-    color: #d9f7ff;
-    font-size: .72rem;
-    font-weight: 750;
-    letter-spacing: 1.2px;
-    text-transform: uppercase;
+    color:#bfeeff; font-size:.76rem; font-weight:700;
+    letter-spacing:1px; text-transform:uppercase;
 }
-
 .dly-landing-grid {
-    display: grid;
-    grid-template-columns: 1.03fr .97fr;
-    gap: 2.5rem;
-    align-items: center;
-    position: relative;
-    z-index: 4;
+    display:grid; grid-template-columns: 1.02fr .98fr; gap:4rem;
+    align-items:center; position:relative; z-index:2;
 }
-
-.dly-landing-copy {
-    padding-left: 1px;
-}
-
-.dly-eyebrow {
-    color: #45d5ff;
-    font-size: .75rem;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 1.8px;
-    margin-bottom: 1.25rem;
-}
-
 .dly-landing-copy h1 {
-    margin: 0;
-    color: #fff;
-    font-size: clamp(3.4rem, 5.8vw, 5.7rem);
-    line-height: .96;
-    letter-spacing: -3.5px;
-    font-weight: 850;
+    color:#fff; font-size:clamp(3rem,6vw,5.5rem); line-height:.98;
+    letter-spacing:-3px; margin:0 0 22px; font-weight:850;
 }
-
-.dly-landing-copy h1 span {
-    background: linear-gradient(90deg, #17c7ff 0%, #18d9c6 55%, #24df91 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-}
-
+.dly-landing-copy h1 span { color:#20d7ff; }
 .dly-landing-copy p {
-    color: #d3e8fb;
-    font-size: 1.02rem;
-    line-height: 1.7;
-    max-width: 600px;
-    margin: 1.8rem 0 0;
+    color:#d0e7ff; font-size:1.15rem; line-height:1.6;
+    max-width:620px; margin-bottom:28px;
 }
-
+.dly-landing-actions {
+    display:flex; gap:16px; align-items:center; flex-wrap:wrap;
+}
+.dly-landing-actions button {
+    border:0; border-radius:30px; padding:13px 27px;
+    font-size:1rem; font-weight:800; cursor:pointer;
+}
+.dly-explore {
+    background:linear-gradient(90deg,#0da9ff,#2ed8c4); color:#fff;
+    box-shadow:0 10px 30px rgba(0,183,255,.25);
+}
+.dly-ask {
+    background:rgba(4,25,62,.35); color:#fff;
+    border:1px solid rgba(140,225,255,.55) !important;
+}
+.dly-landing-search {
+    margin-top:25px; max-width:680px; padding:10px;
+    border-radius:17px; background:rgba(255,255,255,.10);
+    border:1px solid rgba(255,255,255,.20); backdrop-filter:blur(12px);
+}
+.dly-landing-search input {
+    color:#fff !important; background:rgba(2,18,48,.55) !important;
+}
+.dly-landing-search input::placeholder { color:#b8d4ee !important; }
 .dly-landing-visual {
-    min-height: 500px;
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    min-height:470px; position:relative; display:flex;
+    align-items:center; justify-content:center;
 }
-
-/* Soft circular blue/green visual behind the robot */
 .dly-robot-orb {
-    position: absolute;
-    width: 430px;
-    height: 430px;
-    border-radius: 50%;
-    background:
-        radial-gradient(circle at 32% 25%, #2bd5ff 0%, #159edc 36%, #0872bd 65%, #087b83 100%);
-    box-shadow:
-        0 0 85px rgba(20, 206, 255, .24),
-        inset -30px -30px 70px rgba(0, 60, 130, .18);
+    width:390px; height:390px; border-radius:50%;
+    background:radial-gradient(circle at 35% 30%,#25cfff,#0878c8 58%,#073c80);
+    box-shadow:0 0 90px rgba(30,208,255,.28);
+    display:flex; align-items:center; justify-content:center;
+    font-size:12rem; position:relative;
 }
-
-/* CSS robot — no external image dependency */
-.dly-robot {
-    position: relative;
-    width: 300px;
-    height: 365px;
-    z-index: 5;
-    margin-top: 50px;
-}
-
-.dly-antenna {
-    position: absolute;
-    width: 10px;
-    height: 42px;
-    left: 145px;
-    top: 0;
-    border-radius: 10px;
-    background: #14233b;
-}
-
-.dly-antenna::before {
-    content: "";
-    position: absolute;
-    width: 29px;
-    height: 29px;
-    left: -9px;
-    top: -20px;
-    border-radius: 50%;
-    background: radial-gradient(circle at 35% 30%, #fff, #20d8ff 38%, #0878d8 78%);
-    box-shadow: 0 0 24px rgba(25, 218, 255, .9);
-}
-
-.dly-robot-head {
-    position: absolute;
-    left: 15px;
-    top: 38px;
-    width: 270px;
-    height: 178px;
-    border-radius: 82px;
-    background: linear-gradient(145deg, #fff, #d8e6f1);
-    border: 5px solid rgba(255,255,255,.82);
-    box-shadow: 0 25px 55px rgba(0,0,0,.24);
-}
-
-.dly-robot-face {
-    position: absolute;
-    left: 28px;
-    top: 23px;
-    width: 205px;
-    height: 124px;
-    border-radius: 60px;
-    background: linear-gradient(145deg, #061329, #111f3a);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 38px;
-    box-shadow: inset 0 0 25px rgba(0,205,255,.10);
-}
-
-.dly-eye {
-    width: 31px;
-    height: 21px;
-    border-top: 7px solid #18e2ff;
-    border-radius: 50%;
-    filter: drop-shadow(0 0 7px #16dfff);
-}
-
-.dly-smile {
-    position: absolute;
-    bottom: 25px;
-    left: 87px;
-    width: 30px;
-    height: 15px;
-    border-bottom: 5px solid #19e2ff;
-    border-radius: 0 0 24px 24px;
-    filter: drop-shadow(0 0 7px #16dfff);
-}
-
-.dly-robot-body {
-    position: absolute;
-    left: 62px;
-    top: 225px;
-    width: 176px;
-    height: 130px;
-    border-radius: 52px 52px 30px 30px;
-    background: linear-gradient(145deg, #fff, #c8d9e8);
-    box-shadow: 0 20px 40px rgba(0,0,0,.22);
-}
-
-.dly-body-logo {
-    position: absolute;
-    top: 42px;
-    left: 39px;
-    background: #ef2635;
-    color: #fff;
-    padding: 6px 12px;
-    border-radius: 3px;
-    font-size: 12px;
-    font-weight: 900;
-}
-
-.dly-arm {
-    position: absolute;
-    width: 51px;
-    height: 112px;
-    top: 6px;
-    border-radius: 35px;
-    background: linear-gradient(145deg, #fff, #c8d9e8);
-}
-
-.dly-arm-left {
-    left: -38px;
-    transform: rotate(38deg);
-}
-
-.dly-arm-right {
-    right: -38px;
-    transform: rotate(-14deg);
-}
-
-.dly-hand {
-    position: absolute;
-    width: 48px;
-    height: 48px;
-    bottom: -12px;
-    left: 1px;
-    border-radius: 50%;
-    background: #101c32;
-}
-
-.dly-desk {
-    position: absolute;
-    bottom: 15px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 590px;
-    height: 72px;
-    border-radius: 9px;
-    background: linear-gradient(180deg, #c89463, #855531);
-    box-shadow: 0 25px 45px rgba(0,0,0,.27);
-    z-index: 2;
-}
-
-.dly-laptop {
-    position: absolute;
-    width: 255px;
-    height: 150px;
-    left: 50%;
-    bottom: 55px;
-    transform: translateX(-50%) perspective(500px) rotateX(-5deg);
-    border-radius: 10px 10px 4px 4px;
-    background: linear-gradient(145deg, #d0d7df, #788594);
-    z-index: 6;
-}
-
-.dly-laptop::before {
-    content: "D";
-    position: absolute;
-    top: 42px;
-    left: 112px;
-    color: rgba(30,40,60,.38);
-    font-size: 40px;
-    font-weight: 750;
-}
-
-.dly-plant {
-    position: absolute;
-    right: 10px;
-    bottom: 72px;
-    z-index: 7;
-    width: 80px;
-    height: 105px;
-}
-
-.dly-pot {
-    position: absolute;
-    bottom: 0;
-    left: 7px;
-    width: 66px;
-    height: 58px;
-    border-radius: 8px 8px 20px 20px;
-    background: linear-gradient(145deg, #f0f2f4, #bac5ce);
-}
-
-.dly-leaf {
-    position: absolute;
-    width: 31px;
-    height: 62px;
-    bottom: 42px;
-    border-radius: 100% 0 100% 0;
-    background: linear-gradient(160deg, #2ad891, #087c73);
-}
-
-.dly-leaf-1 { left: 6px; transform: rotate(-32deg); }
-.dly-leaf-2 { left: 25px; bottom: 58px; transform: rotate(2deg); }
-.dly-leaf-3 { left: 45px; transform: rotate(34deg); }
-
 .dly-chat-bubble {
-    position: absolute;
-    right: 0;
-    top: 8%;
-    width: 238px;
-    padding: 19px 23px;
-    border-radius: 21px 21px 5px 21px;
-    background: rgba(241,250,255,.97);
-    color: #062e62;
-    font-size: 1rem;
-    line-height: 1.45;
-    box-shadow: 0 15px 40px rgba(0,0,0,.18);
-    z-index: 9;
+    position:absolute; right:0; top:15%; background:#eaf6ff;
+    color:#073579; padding:18px 23px; border-radius:22px 22px 5px 22px;
+    font-size:1.05rem; line-height:1.35; box-shadow:0 15px 35px rgba(0,0,0,.2);
 }
-
-.dly-chat-bubble strong {
-    display: block;
-    font-size: 1.22rem;
-    margin-bottom: 5px;
-}
-
-.dly-chat-bubble::after {
-    content: "";
-    position: absolute;
-    bottom: -16px;
-    left: 42px;
-    border-left: 18px solid transparent;
-    border-right: 18px solid transparent;
-    border-top: 22px solid rgba(241,250,255,.97);
-}
-
-/* Bottom feature strip */
+.dly-chat-bubble strong { font-size:1.2rem; }
 .dly-landing-stats {
-    display: flex;
-    gap: 0;
-    margin-top: 3.2rem;
-    color: #e4f6ff;
+    display:flex; gap:35px; margin-top:48px; color:#dff4ff;
 }
-
-.dly-stat {
-    display: flex;
-    align-items: center;
-    gap: 11px;
-    padding-right: 28px;
-    margin-right: 28px;
-    border-right: 1px solid rgba(255,255,255,.20);
-}
-
-.dly-stat:last-child {
-    border-right: none;
-}
-
-.dly-stat-icon {
-    width: 45px;
-    height: 45px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    font-size: 1.2rem;
-    background: rgba(0, 174, 255, .16);
-}
-
-.dly-stat:nth-child(2) .dly-stat-icon {
-    background: rgba(20, 218, 161, .16);
-}
-
-.dly-stat:nth-child(3) .dly-stat-icon {
-    background: rgba(255, 195, 50, .16);
-}
-
-.dly-stat-text {
-    font-size: .82rem;
-    line-height: 1.2;
-}
-
-.dly-stat-text b {
-    display: block;
-    color: #fff;
-    font-size: .94rem;
-    margin-bottom: 2px;
-}
-
-/* Streamlit controls used by the existing landing-page logic */
-.dly-landing-controls {
-    position: relative;
-    z-index: 20;
-    margin-top: -7.2rem;
-    margin-left: 5vw;
-    width: min(650px, 48%);
-}
-
-.dly-landing-controls [data-testid="stTextInput"] input {
-    background: rgba(5, 23, 52, .78) !important;
-    color: #fff !important;
-    border: 1px solid rgba(71, 211, 255, .35) !important;
-    border-radius: 15px !important;
-}
-
-.dly-landing-controls [data-testid="stButton"] > button {
-    border-radius: 28px !important;
-    min-height: 48px !important;
-    font-weight: 750 !important;
-}
-
-.dly-landing-controls [data-testid="stButton"] button[kind="secondary"] {
-    background: rgba(5, 30, 64, .45) !important;
-    color: #fff !important;
-    border: 1px solid rgba(111, 221, 255, .45) !important;
-}
-
-.dly-landing-controls [data-testid="stButton"] button[kind="primary"] {
-    background: linear-gradient(90deg, #0daaff, #20d7a3) !important;
-    color: #fff !important;
-    border: 0 !important;
-}
-
-@media (max-width: 1000px) {
-    .dly-landing-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .dly-landing-visual {
-        min-height: 430px;
-    }
-
-    .dly-landing-controls {
-        margin: 0 5vw;
-        width: auto;
-    }
-}
-
-@media (max-width: 650px) {
-    .dly-landing-powered {
-        display: none;
-    }
-
-    .dly-landing-copy h1 {
-        font-size: 3.2rem;
-    }
-
-    .dly-landing-visual {
-        transform: scale(.78);
-        margin-top: -45px;
-        margin-bottom: -45px;
-    }
-
-    .dly-landing-stats {
-        display: none;
-    }
-
-    .dly-landing-controls {
-        margin-top: 0;
-    }
+.dly-stat { display:flex; gap:10px; align-items:center; }
+.dly-stat-icon { font-size:1.4rem; }
+.dly-stat-text { font-size:.9rem; line-height:1.2; }
+.dly-stat-text b { display:block; color:#fff; font-size:1rem; }
+@media (max-width: 900px) {
+    .dly-landing-grid { grid-template-columns:1fr; gap:1rem; }
+    .dly-landing-visual { min-height:300px; }
+    .dly-robot-orb { width:280px; height:280px; font-size:8rem; }
+    .dly-chat-bubble { right:3%; }
+    .dly-landing-wrap { margin-left:-1rem; margin-right:-1rem; }
 }
 </style>
 """, unsafe_allow_html=True)
-
 
 
 # ===================================================================
@@ -767,137 +381,45 @@ if st.session_state.show_landing_page:
 
     st.markdown("""
     <div class="dly-landing-wrap">
-
-        <div class="dly-landing-top">
-            <div class="dly-landing-logo">DILYTICS</div>
-            <div class="dly-landing-powered">Powered by Snowflake Cortex AI</div>
+      <div class="dly-landing-nav">
+        <div class="dly-landing-logo">DILYTICS</div>
+        <div class="dly-landing-powered">Powered by Snowflake Cortex AI</div>
+      </div>
+      <div class="dly-landing-grid">
+        <div class="dly-landing-copy">
+          <div class="dly-eyebrow">Dilytics Enterprise AI</div>
+          <h1>Let's find your<br><span>answers</span></h1>
+          <p>A friendly AI copilot for your business data. Ask questions in natural language and get intelligent insights from Inventory, Sales, Supply Chain, and uploaded documents.</p>
+          <div class="dly-landing-actions">
+            <div id="landing-explore" class="dly-explore">Explore Data &nbsp; →</div>
+            <div class="dly-ask">🤖 &nbsp; Ask Me Anything</div>
+          </div>
+          <div class="dly-landing-stats">
+            <div class="dly-stat"><span class="dly-stat-icon">📊</span><span class="dly-stat-text"><b>Insights</b>made simple</span></div>
+            <div class="dly-stat"><span class="dly-stat-icon">⚡</span><span class="dly-stat-text"><b>Faster</b>decisions</span></div>
+            <div class="dly-stat"><span class="dly-stat-icon">🛡️</span><span class="dly-stat-text"><b>Reliable</b>support</span></div>
+          </div>
         </div>
-
-        <div class="dly-landing-grid">
-
-            <div class="dly-landing-copy">
-
-                <div class="dly-eyebrow">Dilytics Enterprise AI</div>
-
-                <h1>
-                    Let's find your<br>
-                    <span>answers</span>
-                </h1>
-
-                <p>
-                    A friendly AI chatbot, always here for you.
-                    Ask questions in natural language and get intelligent
-                    insights from your business data.
-                </p>
-
-                <div class="dly-landing-stats">
-
-                    <div class="dly-stat">
-                        <span class="dly-stat-icon">📊</span>
-                        <span class="dly-stat-text">
-                            <b>Insights</b>
-                            made simple
-                        </span>
-                    </div>
-
-                    <div class="dly-stat">
-                        <span class="dly-stat-icon">⚡</span>
-                        <span class="dly-stat-text">
-                            <b>Faster</b>
-                            decisions
-                        </span>
-                    </div>
-
-                    <div class="dly-stat">
-                        <span class="dly-stat-icon">🛡</span>
-                        <span class="dly-stat-text">
-                            <b>Reliable</b>
-                            support
-                        </span>
-                    </div>
-
-                </div>
-            </div>
-
-
-            <div class="dly-landing-visual">
-
-                <div class="dly-robot-orb"></div>
-
-                <div class="dly-chat-bubble">
-                    <strong>Hi! 👋</strong>
-                    How can I help you today?
-                </div>
-
-                <div class="dly-robot">
-
-                    <div class="dly-antenna"></div>
-
-                    <div class="dly-robot-head">
-                        <div class="dly-robot-face">
-                            <div class="dly-eye"></div>
-                            <div class="dly-eye"></div>
-                            <div class="dly-smile"></div>
-                        </div>
-                    </div>
-
-                    <div class="dly-robot-body">
-
-                        <div class="dly-arm dly-arm-left">
-                            <div class="dly-hand"></div>
-                        </div>
-
-                        <div class="dly-arm dly-arm-right">
-                            <div class="dly-hand"></div>
-                        </div>
-
-                        <div class="dly-body-logo">DILYTICS</div>
-
-                    </div>
-                </div>
-
-                <div class="dly-laptop"></div>
-                <div class="dly-desk"></div>
-
-                <div class="dly-plant">
-                    <div class="dly-leaf dly-leaf-1"></div>
-                    <div class="dly-leaf dly-leaf-2"></div>
-                    <div class="dly-leaf dly-leaf-3"></div>
-                    <div class="dly-pot"></div>
-                </div>
-
-            </div>
-
+        <div class="dly-landing-visual">
+          <div class="dly-robot-orb">🤖</div>
+          <div class="dly-chat-bubble"><strong>Hi!</strong><br>How can I help you<br>today?</div>
         </div>
+      </div>
     </div>
     """, unsafe_allow_html=True)
 
-    # Existing landing-page controls retained so functionality is unchanged.
-    st.markdown('<div class="dly-landing-controls">', unsafe_allow_html=True)
-
+    st.markdown('<div class="dly-landing-search">', unsafe_allow_html=True)
     landing_question = st.text_input(
         "Ask Me Anything",
         placeholder="Ask me anything about your data...",
         label_visibility="collapsed",
         key="landing_question",
     )
-
     search_cols = st.columns([1, 1, 3])
-
     with search_cols[0]:
-        explore_clicked = st.button(
-            "Explore Data  →",
-            use_container_width=True,
-            key="landing_explore_btn",
-        )
-
+        explore_clicked = st.button("🚀 Explore Data", use_container_width=True, key="landing_explore_btn")
     with search_cols[1]:
-        ask_clicked = st.button(
-            "🤖  Ask Me Anything",
-            use_container_width=True,
-            key="landing_ask_btn",
-        )
-
+        ask_clicked = st.button("🤖 Ask Me Anything", use_container_width=True, key="landing_ask_btn")
     st.markdown('</div>', unsafe_allow_html=True)
 
     if explore_clicked:
@@ -910,7 +432,6 @@ if st.session_state.show_landing_page:
         st.rerun()
 
     st.stop()
-
 
 
 # ===================================================================
