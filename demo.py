@@ -245,743 +245,246 @@ def extract_analyst_response(data: Dict[str, Any]) -> Dict[str, Any]:
 # 2A. UPLOADED DOCUMENT ANALYSIS (ADDED - ORIGINAL CORTEX ANALYST
 #     INVENTORY/SALES CODE IS PRESERVED)
 # ===================================================================
-# PDF/Word document Q&A uses the current AI_COMPLETE document capability.
-# Excel/CSV continues to use the existing Cortex Analyst path unchanged.
-DOCUMENT_AI_MODEL = "claude-sonnet-4-6"
-DOCUMENT_STAGE_DB = "INVENTORY_DW_DEMO"
-DOCUMENT_STAGE_SCHEMA = "GOLD"
-DOCUMENT_STAGE_NAME = "DILYTICS_DOCUMENT_STAGE"
-
-if "uploaded_document" not in st.session_state:
-    st.session_state.uploaded_document = None
-if "uploaded_document_name" not in st.session_state:
-    st.session_state.uploaded_document_name = None
-if "uploaded_document_df" not in st.session_state:
-    st.session_state.uploaded_document_df = None
-if "uploaded_document_text" not in st.session_state:
-    st.session_state.uploaded_document_text = ""
-if "uploaded_document_type" not in st.session_state:
-    st.session_state.uploaded_document_type = None
-if "uploaded_document_table" not in st.session_state:
-    st.session_state.uploaded_document_table = None
-if "uploaded_document_semantic_model" not in st.session_state:
-    st.session_state.uploaded_document_semantic_model = None
-if "uploaded_document_stage" not in st.session_state:
-    st.session_state.uploaded_document_stage = None
-if "uploaded_document_stage_file" not in st.session_state:
-    st.session_state.uploaded_document_stage_file = None
-
-
-def _snowflake_sql_literal(value: str) -> str:
-    """Safely convert a Python string into a Snowflake SQL string literal."""
-    if value is None:
-        return "NULL"
-    return "'" + str(value).replace("'", "''") + "'"
-
-
-def _document_stage_quoted_name() -> str:
-    """Return the fully-qualified named stage used for PDF/DOCX files."""
-    return (
-        f'"{DOCUMENT_STAGE_DB}"."{DOCUMENT_STAGE_SCHEMA}".'
-        f'"{DOCUMENT_STAGE_NAME}"'
-    )
-
-
-def _document_stage_file_reference() -> str:
-    """Return the fully-qualified @stage reference required by PUT/TO_FILE."""
-    return '@' + _document_stage_quoted_name()
-
-
-def _ensure_document_stage():
-    """Create the persistent, server-encrypted named stage used by AI_COMPLETE.
-
-    AI_COMPLETE document processing requires the referenced FILE to live on an
-    accessible internal/external stage. A temporary stage is session-scoped and
-    is not reliable for this document-processing path, so use a dedicated named
-    internal stage instead.
-    """
-    stage_name = _document_stage_quoted_name()
+def extract_df_from_xlsx(file_bytes: bytes) -> pd.DataFrame:
+    """Multi-stage robust spreadsheet extraction supporting XLSX, XLS, HTML, and CSV fallbacks."""
+    # 1. Standard openpyxl engine
     try:
-        session.sql(
-            f"CREATE STAGE IF NOT EXISTS {stage_name} "
-            "ENCRYPTION = (TYPE = 'SNOWFLAKE_SSE')"
-        ).collect()
+        df = pd.read_excel(io.BytesIO(file_bytes), engine="openpyxl")
+        if df is not None and not df.empty:
+            return df
+    except Exception:
+        pass
+
+    # 2. Try xlrd for older binary .xls files
+    try:
+        df = pd.read_excel(io.BytesIO(file_bytes), engine="xlrd")
+        if df is not None and not df.empty:
+            return df
+    except Exception:
+        pass
+
+    # 3. Try default auto engine
+    try:
+        df = pd.read_excel(io.BytesIO(file_bytes))
+        if df is not None and not df.empty:
+            return df
+    except Exception:
+        pass
+
+    # 4. Deep ZIP-XML parsing for modern .xlsx
+    try:
+        with zipfile.ZipFile(io.BytesIO(file_bytes)) as z:
+            shared_strings = []
+            if 'xl/sharedStrings.xml' in z.namelist():
+                ss_tree = ET.fromstring(z.read('xl/sharedStrings.xml'))
+                for si in ss_tree.iterfind('{http://schemas.openxmlformats.org/spreadsheetml/2006/main}si'):
+                    t_nodes = si.iterfind('.//{http://schemas.openxmlformats.org/spreadsheetml/2006/main}t')
+                    shared_strings.append("".join([n.text or "" for n in t_nodes]))
+
+            sheet_files = [n for n in z.namelist() if n.startswith('xl/worksheets/sheet')]
+            if sheet_files:
+                sheet_tree = ET.fromstring(z.read(sheet_files[0]))
+                rows_data = []
+                for row in sheet_tree.iterfind('.//{http://schemas.openxmlformats.org/spreadsheetml/2006/main}row'):
+                    row_cells = []
+                    for c in row.iterfind('{http://schemas.openxmlformats.org/spreadsheetml/2006/main}c'):
+                        val_node = c.find('{http://schemas.openxmlformats.org/spreadsheetml/2006/main}v')
+                        cell_val = val_node.text if val_node is not None else ""
+                        if c.attrib.get('t') == 's' and cell_val.isdigit():
+                            idx = int(cell_val)
+                            cell_val = shared_strings[idx] if idx < len(shared_strings) else cell_val
+                        row_cells.append(cell_val)
+                    if any(str(cell).strip() for cell in row_cells):
+                        rows_data.append(row_cells)
+
+                if rows_data:
+                    headers = [str(h).strip() if str(h).strip() else f"Col_{i+1}" for i, h in enumerate(rows_data[0])]
+                    df = pd.DataFrame(rows_data[1:], columns=headers)
+                    for col in df.columns:
+                        try:
+                            df[col] = pd.to_numeric(df[col])
+                        except (ValueError, TypeError):
+                            pass
+                    return df
+    except Exception:
+        pass
+
+    # 5. Check if the spreadsheet is actually an HTML table export
+    try:
+        tables = pd.read_html(io.BytesIO(file_bytes))
+        if tables:
+            return tables[0]
+    except Exception:
+        pass
+
+    # 6. Check if it is a renamed CSV file across standard delimiters and encodings
+    for enc in ['utf-8', 'latin1', 'cp1252']:
+        for sep in [',', '\t', ';', '|']:
+            try:
+                df = pd.read_csv(io.BytesIO(file_bytes), sep=sep, encoding=enc)
+                if df is not None and len(df.columns) > 1 and len(df) > 0:
+                    return df
+            except Exception:
+                pass
+
+    raise ValueError("Unable to read this spreadsheet. Please ensure it is a valid .xlsx, .xls, or .csv file.")
+
+def extract_text_from_pdf(file_bytes: bytes) -> str:
+    if pypdf is None:
+        return "PDF text extraction requires the pypdf library."
+    try:
+        reader = pypdf.PdfReader(io.BytesIO(file_bytes))
+        return "".join([page.extract_text() or "" for page in reader.pages]).strip()
     except Exception as exc:
-        raise RuntimeError(
-            f"Could not create or access document stage {stage_name}. "
-            "Run this once with a role that can CREATE STAGE in "
-            f"{DOCUMENT_STAGE_DB}.{DOCUMENT_STAGE_SCHEMA}, or grant the Streamlit role "
-            "USAGE on the database/schema and READ/WRITE on the stage."
-        ) from exc
-    return stage_name
+        return f"Error extracting PDF: {str(exc)}"
 
-
-def _upload_document_to_stage(uploaded_file) -> str:
-    """Upload a PDF/DOCX to the session's temporary Snowflake stage."""
-    import os
-    import tempfile
-
-    extension = uploaded_file.name.rsplit(".", 1)[-1].lower()
-    if extension not in {"pdf", "docx"}:
-        raise ValueError("Only PDF and Word (.docx) documents can use document Q&A.")
-
-    stage_name = _ensure_document_stage()
-    safe_name = re.sub(r"[^A-Za-z0-9_.-]+", "_", uploaded_file.name)
-
-    # Claude Sonnet 4.6 supports documents up to 22 MB.
-    file_size = getattr(uploaded_file, "size", None)
-    if file_size is not None and file_size > 22 * 1024 * 1024:
-        raise ValueError(
-            f"The PDF/Word file is {file_size / (1024 * 1024):.2f} MB. "
-            "The selected Claude Sonnet 4.6 document model supports files up to 22 MB."
-        )
-    if not safe_name.lower().endswith((".pdf", ".docx")):
-        safe_name = f"document.{extension}"
-
-    with tempfile.NamedTemporaryFile(delete=False, suffix=f".{extension}") as tmp:
-        uploaded_file.seek(0)
-        tmp.write(uploaded_file.getvalue())
-        local_path = tmp.name
-
+def extract_text_from_docx(file_bytes: bytes) -> str:
+    if not file_bytes:
+        return ""
     try:
-        # Do not compress: AI_COMPLETE needs the original document extension/content.
-        session.file.put(
-            local_path,
-            _document_stage_file_reference(),
-            auto_compress=False,
-            overwrite=True,
-        )
-    finally:
-        try:
-            os.remove(local_path)
-        except OSError:
-            pass
+        with zipfile.ZipFile(io.BytesIO(file_bytes)) as z:
+            xml_content = z.read('word/document.xml')
+            tree = ET.fromstring(xml_content)
+            text_pieces = []
+            for node in tree.iter():
+                if node.tag.split('}')[-1] == 't' and node.text:
+                    text_pieces.append(node.text)
+                elif node.tag.split('}')[-1] in ('p', 'tr'):
+                    text_pieces.append("\n")
+            return re.sub(r'\n\s*\n+', '\n\n', "".join(text_pieces)).strip()
+    except Exception as exc:
+        return f"Error extracting Word document: {str(exc)}"
 
-    st.session_state.uploaded_document_stage = _document_stage_file_reference()
-    st.session_state.uploaded_document_stage_file = safe_name
-    return safe_name
+def answer_user_question_on_document(question: str, doc_context: str, filename: str, df: Optional[pd.DataFrame] = None) -> str:
+    q_lower = question.lower().strip()
 
+    if df is not None and not df.empty:
+        col_map = {str(col).lower().strip(): col for col in df.columns}
+        matched_target_col = None
+        for c_lower, c_orig in col_map.items():
+            stem = c_lower.rstrip('s')
+            if stem in q_lower or (stem.endswith('y') and stem[:-1] + 'ies' in q_lower):
+                matched_target_col = c_orig
+                break
 
-def ai_complete_document_question(question: str) -> str:
-    """Answer a question directly from the uploaded PDF/DOCX using AI_COMPLETE.
+        is_count_query = any(k in q_lower for k in ["how many", "count", "number of", "total", "distinct", "unique"])
+        is_list_query = any(k in q_lower for k in ["list", "what are", "show", "names of", "give me"])
 
-    This is intentionally separate from the working Excel/CSV Cortex Analyst path.
-    It does not use the legacy SNOWFLAKE.CORTEX.COMPLETE function.
-    """
-    stage_name = st.session_state.get("uploaded_document_stage")
-    stage_file = st.session_state.get("uploaded_document_stage_file")
+        if matched_target_col and is_count_query:
+            valid_entries = df[matched_target_col].dropna()
+            valid_entries = valid_entries[valid_entries.astype(str).str.strip().str.lower() != 'none']
+            total_rows = len(valid_entries)
+            unique_count = valid_entries.nunique()
+            unique_vals = list(valid_entries.unique())
 
-    if not stage_name or not stage_file:
-        raise RuntimeError(
-            "The uploaded PDF/Word document is not available in the Snowflake stage. "
-            "Please click Analyze Document again."
-        )
+            sample_str = ", ".join([f"`{str(v)}`" for v in unique_vals[:8]])
+            if len(unique_vals) > 8:
+                sample_str += f" and {len(unique_vals) - 8} more..."
 
-    model_literal = _snowflake_sql_literal(DOCUMENT_AI_MODEL)
-    question_literal = _snowflake_sql_literal(
-        "Answer the user's question using only the uploaded document. "
-        "Be precise and concise. If the document does not contain enough information "
-        "to answer, say so instead of inventing information. "
-        "User question: " + question
-    )
-    # TO_FILE expects the stage reference as a string such as
-    # '@"DATABASE"."SCHEMA"."STAGE"'.
-    stage_literal = _snowflake_sql_literal(stage_name)
-    file_literal = _snowflake_sql_literal(stage_file)
-
-    sql = f"""
-        SELECT AI_COMPLETE(
-            MODEL => {model_literal},
-            PROMPT => PROMPT(
-                {question_literal} || '\n\nDocument to analyze: {{0}}',
-                TO_FILE({stage_literal}, {file_literal})
-            )
-        ) AS RESPONSE
-    """
-
-    rows = session.sql(sql).collect()
-    if not rows:
-        raise RuntimeError("AI_COMPLETE did not return a response.")
-
-    row = rows[0]
-    try:
-        response = row["RESPONSE"]
-    except Exception:
-        response = row[0]
-
-    if response is None:
-        raise RuntimeError(
-            "AI_COMPLETE returned no answer. Check that the SNOWFLAKE.CORTEX_USER "
-            "database role is available and that the document is within the model's size limit."
-        )
-
-    # Some AI_COMPLETE variants can return an object when error details are requested;
-    # this call uses the normal string response, so stringify defensively.
-    return str(response)
-
-def _clean_generated_sql(text_value: str) -> str:
-    """Extract and validate a read-only SELECT/WITH SQL statement."""
-    sql_text = str(text_value or "").strip()
-
-    if "```" in sql_text:
-        blocks = re.findall(
-            r"```(?:sql|SQL)?\s*(.*?)```", sql_text, flags=re.DOTALL
-        )
-        if blocks:
-            sql_text = blocks[0].strip()
-
-    sql_text = re.sub(
-        r"^\s*(SQL\s*:|Query\s*:)\s*", "", sql_text, flags=re.I
-    ).strip().rstrip(";").strip()
-
-    if not re.match(r"^(SELECT|WITH)\b", sql_text, flags=re.I):
-        raise RuntimeError(
-            "Cortex Analyst did not return a valid SELECT/WITH statement."
-        )
-
-    forbidden = re.search(
-        r"\b(INSERT|UPDATE|DELETE|MERGE|DROP|ALTER|TRUNCATE|CREATE|GRANT|REVOKE|COPY|PUT|REMOVE|CALL)\b",
-        sql_text,
-        flags=re.I,
-    )
-    if forbidden:
-        raise RuntimeError(
-            f"Generated document SQL contains a non-read-only command: {forbidden.group(1)}"
-        )
-
-    return sql_text
-
-
-def _normalize_uploaded_dataframe(df: pd.DataFrame) -> pd.DataFrame:
-    """Make mixed Excel/CSV columns safe for Streamlit and Snowflake.
-
-    Numeric/date/bool columns stay typed. Object columns are normalized to text
-    because Excel frequently mixes integers, strings such as 'Grand Total', and
-    blanks in the same column.
-    """
-    if df is None:
-        return df
-
-    work_df = df.copy()
-    for col in work_df.columns:
-        series = work_df[col]
-        if pd.api.types.is_object_dtype(series.dtype):
-            work_df[col] = series.map(
-                lambda value: None if pd.isna(value) else str(value)
-            )
-    return work_df
-
-
-def _safe_column_names(df: pd.DataFrame):
-    """Create SQL-friendly, unique Snowflake column names."""
-    mapping = {}
-    used = set()
-
-    for original in df.columns:
-        base = re.sub(
-            r"[^A-Za-z0-9_]+", "_", str(original)
-        ).strip("_").upper()
-        if not base:
-            base = "COLUMN"
-        if base[0].isdigit():
-            base = "_" + base
-
-        candidate = base
-        n = 2
-        while candidate in used:
-            candidate = f"{base}_{n}"
-            n += 1
-
-        used.add(candidate)
-        mapping[str(original)] = candidate
-
-    return mapping
-
-
-def _snowflake_type_for_pandas(dtype) -> str:
-    if pd.api.types.is_bool_dtype(dtype):
-        return "BOOLEAN"
-    if pd.api.types.is_integer_dtype(dtype):
-        return "NUMBER"
-    if pd.api.types.is_float_dtype(dtype):
-        return "NUMBER"
-    if pd.api.types.is_datetime64_any_dtype(dtype):
-        return "TIMESTAMP_NTZ"
-    return "TEXT"
-
-
-def _column_synonyms(original_name: str):
-    """Create conservative synonyms from the actual uploaded header."""
-    text = re.sub(r"[_\-]+", " ", str(original_name)).strip()
-    words = text.split()
-    synonyms = [text.lower()]
-
-    if text.lower().endswith(" id"):
-        synonyms.append(text[:-3].strip().lower() + " identifier")
-    if "commercial project" in text.lower() and "id" in text.lower():
-        synonyms.extend(["project id", "commercial project"])
-    if "jurisdiction" in text.lower():
-        synonyms.extend(["jurisdiction", "local jurisdiction"])
-    if "contractor" in text.lower():
-        synonyms.extend(["contractor", "vendor"])
-    if "business name" in text.lower():
-        synonyms.extend(["business", "project business"])
-    if "close out" in text.lower() or "closeout" in text.lower():
-        synonyms.extend([
-            "closeout date",
-            "close out date",
-            "completion date",
-            "completed date",
-        ])
-
-    # Preserve order and uniqueness.
-    result = []
-    seen = set()
-    for item in synonyms:
-        item = item.strip()
-        if item and item not in seen:
-            result.append(item)
-            seen.add(item)
-    return result[:8]
-
-
-def _sample_values(df: pd.DataFrame, original: str, limit: int = 5):
-    values = []
-    for value in df[original].dropna().head(limit).tolist():
-        text = str(value)
-        if len(text) > 100:
-            text = text[:97] + "..."
-        values.append(text)
-    return values
-
-
-def build_uploaded_semantic_model(df: pd.DataFrame, table_name: str) -> str:
-    """Build a semantic model directly from the uploaded spreadsheet schema.
-
-    The model is sent inline to the Cortex Analyst REST API. No COMPLETE call
-    and no hard-coded question-to-SQL mapping are used.
-    """
-    mapping = _safe_column_names(df)
-
-    dimensions = []
-    time_dimensions = []
-    facts = []
-
-    for original, safe in mapping.items():
-        dtype = df[original].dtype
-        sf_type = _snowflake_type_for_pandas(dtype)
-        synonyms = _column_synonyms(original)
-        desc = f"Uploaded spreadsheet column '{original}'."
-
-        # Close-out date is commonly the strongest completion indicator in
-        # project workbooks. Only add this interpretation when that real column exists.
-        original_lower = original.lower()
-        if "close out" in original_lower or "closeout" in original_lower:
-            desc = (
-                f"Uploaded spreadsheet column '{original}'. A non-null value indicates "
-                "that the project received close-out approval and can be used as a "
-                "completion indicator."
+            return (
+                f"In **`{filename}`**, there are **{unique_count} unique {matched_target_col}s** "
+                f"(across **{total_rows}** total populated records).\n\n"
+                f"**Entries:** {sample_str}"
             )
 
-        entry = {
-            "name": safe,
-            "description": desc,
-            "expr": safe,
-            "data_type": sf_type,
-            "unique": False,
-        }
-        if synonyms:
-            entry["synonyms"] = synonyms
-        if pd.api.types.is_datetime64_any_dtype(dtype):
-            time_dimensions.append(entry)
-        else:
-            dimensions.append(entry)
+        if matched_target_col and is_list_query:
+            valid_entries = df[matched_target_col].dropna()
+            valid_entries = valid_entries[valid_entries.astype(str).str.strip().str.lower() != 'none']
+            unique_vals = list(valid_entries.unique())
+            val_bullets = "\n".join([f"• {str(v)}" for v in unique_vals])
+            return f"**List of {matched_target_col}s in `{filename}` ({len(unique_vals)} unique):**\n\n{val_bullets}"
 
-        if pd.api.types.is_numeric_dtype(dtype):
-            facts.append({
-                "name": safe,
-                "description": f"Numeric value from uploaded column '{original}'.",
-                "expr": safe,
-                "data_type": "NUMBER",
-            })
+        words = [w for w in re.findall(r'\b[a-zA-Z0-9_]+\b', q_lower) if len(w) > 2 and w not in [
+            "what", "is", "the", "are", "sales", "for", "total", "average", "avg", 
+            "count", "show", "give", "list", "of", "in", "by", "all", "me", "find",
+            "county", "state", "city", "district", "value", "how", "many"
+        ]]
+        
+        mask = pd.Series(False, index=df.index)
+        for col in df.columns:
+            for word in words:
+                mask = mask | df[col].astype(str).str.lower().str.contains(r'\b' + re.escape(word) + r'\b', na=False)
+        
+        matched_df = df[mask]
+        
+        if not matched_df.empty:
+            numeric_cols = df.select_dtypes(include=['number']).columns.tolist()
+            sales_cols = [c for c in numeric_cols if any(k in c.lower() for k in ["sale", "amount", "revenue", "total", "val"])]
+            target_metric_col = sales_cols[0] if sales_cols else (numeric_cols[0] if numeric_cols else None)
 
-    # A row indicator gives Analyst an explicit way to calculate row/project
-    # counts without requiring any hard-coded question mapping.
-    facts.append({
-        "name": "ROW_INDICATOR",
-        "description": "One numeric indicator per uploaded spreadsheet row. SUM this fact to count rows/projects.",
-        "expr": "1",
-        "data_type": "NUMBER",
-    })
+            if target_metric_col:
+                total_val = matched_df[target_metric_col].sum()
+                avg_val = matched_df[target_metric_col].mean()
+                count_val = len(matched_df)
+                matched_entity = ' '.join(words).title() if words else "the requested entity"
 
-    # Add a semantic completion flag only when a real close-out column exists.
-    closeout_safe = None
-    for original, safe in mapping.items():
-        low = original.lower()
-        if "close out" in low or "closeout" in low:
-            closeout_safe = safe
-            break
+                if any(k in q_lower for k in ["average", "avg", "mean"]):
+                    return f"In **`{filename}`**, the average **{target_metric_col}** for **{matched_entity}** is **{avg_val:,.2f}** ({count_val} matching records found)."
+                else:
+                    return f"In **`{filename}`**, the total **{target_metric_col}** for **{matched_entity}** is **{total_val:,.2f}** ({count_val} matching records found)."
+            else:
+                preview = matched_df.dropna(how='all', axis=1).head(15)
+                return f"Found **{len(matched_df)}** matching record(s) in **`{filename}`**:\n\n" + preview.to_markdown(index=False)
 
-    if closeout_safe:
-        dimensions.append({
-            "name": "IS_COMPLETED",
-            "description": "True when the close-out approval date is not null; this represents a completed project in this uploaded workbook.",
-            "expr": f"{closeout_safe} IS NOT NULL",
-            "data_type": "BOOLEAN",
-            "unique": False,
-            "synonyms": ["completed", "project completed", "completion status"],
-        })
+    clean_doc = doc_context[:10000].replace("'", "''")
+    clean_q = question.replace("'", "''")
+    prompt = f"Answer factually using only this data from {filename}:\n\n{clean_doc}\n\nQuestion: {clean_q}"
+    
+    for model in ['llama3.1-8b', 'mistral-7b']:
+        try:
+            res = session.sql(f"SELECT SNOWFLAKE.CORTEX.COMPLETE('{model}', '{prompt}') AS answer").collect()
+            ans = res[0]["ANSWER"].strip()
+            if ans and len(ans) > 2:
+                return ans
+        except Exception:
+            continue
 
-    table_definition = {
-        "name": "UPLOADED_DATA",
-        "description": "One logical table containing the complete uploaded spreadsheet.",
-        "base_table": {
-            "database": DATABASE,
-            "schema": SCHEMA,
-            "table": table_name,
-        },
-        "dimensions": dimensions,
-        "facts": facts,
-    }
-    if time_dimensions:
-        table_definition["time_dimensions"] = time_dimensions
+    return f"The uploaded document (`{filename}`) does not contain information to answer this query."
 
-    model = {
-        "name": "UPLOADED_DOCUMENT_ANALYSIS",
-        "description": "Semantic model generated dynamically from one uploaded spreadsheet. Use only this uploaded dataset.",
-        "tables": [table_definition],
-        "module_custom_instructions": {
-            "sql_generation": (
-                "Use only the uploaded_data logical table. Query the complete underlying table. "
-                "Use ROW_INDICATOR for total row/project counts when appropriate. "
-                "For questions asking for the count of an ID column, count non-null values of that ID; "
-                "if the ID is explicitly a unique project identifier, COUNT(DISTINCT ID) is appropriate. "
-                "If IS_COMPLETED exists, use it when the user asks about completed projects. "
-                "Do not invent columns or business definitions."
-            ),
-            "question_categorization": (
-                "Classify questions only from the uploaded table's actual columns and values. "
-                "Do not use the Inventory or Sales semantic models for this document question."
-            ),
-        },
-    }
+def process_uploaded_document(uploaded_file) -> Tuple[str, Optional[pd.DataFrame], Optional[str]]:
+    uploaded_file.seek(0)
+    filename = uploaded_file.name
+    file_bytes = uploaded_file.read()
+    if not file_bytes:
+        return f"The uploaded file `{filename}` is empty.", None, None
 
-    return yaml.safe_dump(
-        model,
-        sort_keys=False,
-        allow_unicode=True,
-        default_flow_style=False,
-    )
-
-
-def _drop_uploaded_table():
-    table_name = st.session_state.get("uploaded_document_table")
-    if not table_name:
-        return
+    fname_lower = filename.lower()
     try:
-        # Generated names contain only A-Z, 0-9 and underscore.
-        if re.fullmatch(r"UPLOADED_DOCUMENT_[A-Z0-9_]+", str(table_name)):
-            session.sql(f'DROP TABLE IF EXISTS "{table_name}"').collect()
-    except Exception:
-        pass
-    st.session_state.uploaded_document_table = None
-    st.session_state.uploaded_document_semantic_model = None
-    st.session_state.uploaded_document_stage_file = None
-
-
-def process_uploaded_document(uploaded_file):
-    """Read CSV/XLSX/XLS/PDF/DOCX and return display data/text."""
-    name = uploaded_file.name
-    extension = name.rsplit(".", 1)[-1].lower()
-
-    if extension == "csv":
-        uploaded_file.seek(0)
-        df = pd.read_csv(uploaded_file)
-        df = _normalize_uploaded_dataframe(df)
-        return "table", df, "", f"CSV file loaded with {len(df):,} rows."
-
-    if extension in {"xlsx", "xls"}:
-        uploaded_file.seek(0)
-        excel_file = pd.ExcelFile(uploaded_file)
-        sheet_name = excel_file.sheet_names[0]
-        df = pd.read_excel(excel_file, sheet_name=sheet_name)
-        df = _normalize_uploaded_dataframe(df)
-        return (
-            "table",
-            df,
-            "",
-            f"Excel file loaded from sheet '{sheet_name}' with {len(df):,} rows.",
-        )
-
-    if extension == "pdf":
-        try:
-            from pypdf import PdfReader
-        except ImportError:
-            from PyPDF2 import PdfReader
-
-        uploaded_file.seek(0)
-        reader = PdfReader(uploaded_file)
-        pages = []
-        for page in reader.pages:
-            pages.append(page.extract_text() or "")
-        full_text = "\n\n".join(pages).strip()
-        return "text", None, full_text, f"PDF analyzed successfully ({len(reader.pages)} pages)."
-
-    if extension == "docx":
-        # DOCX is a ZIP package containing XML. Parse it with Python's standard
-        # library so the app does not require the optional python-docx package.
-        import zipfile
-        import xml.etree.ElementTree as ET
-
-        uploaded_file.seek(0)
-        docx_bytes = uploaded_file.read()
-
-        try:
-            with zipfile.ZipFile(io.BytesIO(docx_bytes)) as zf:
-                xml_bytes = zf.read("word/document.xml")
-        except (KeyError, zipfile.BadZipFile) as exc:
-            raise ValueError("The uploaded Word file is not a valid .docx document.") from exc
-
-        try:
-            root = ET.fromstring(xml_bytes)
-        except ET.ParseError as exc:
-            raise ValueError("Could not read the Word document content.") from exc
-
-        ns = {"w": "http://schemas.openxmlformats.org/wordprocessingml/2006/main"}
-        paragraphs = []
-        for paragraph in root.findall(".//w:p", ns):
-            parts = [node.text or "" for node in paragraph.findall(".//w:t", ns)]
-            text = "".join(parts).strip()
-            if text:
-                paragraphs.append(text)
-
-        # Preserve Word tables in a simple row/column text representation.
-        table_parts = []
-        for table in root.findall(".//w:tbl", ns):
-            for row in table.findall("./w:tr", ns):
-                cells = []
-                for cell in row.findall("./w:tc", ns):
-                    cell_parts = [node.text or "" for node in cell.findall(".//w:t", ns)]
-                    cells.append(" ".join("".join(cell_parts).split()))
-                if any(cells):
-                    table_parts.append(" | ".join(cells))
-
-        full_text = "\n".join(paragraphs + table_parts).strip()
-        return "text", None, full_text, "DOCX document analyzed successfully."
-
-    raise ValueError("Unsupported document type.")
-
-
-def prepare_uploaded_table(df: pd.DataFrame) -> str:
-    """Create a transient table so Cortex Analyst's REST session can see it."""
-    if df is None or df.empty:
-        raise ValueError("The uploaded spreadsheet contains no rows.")
-
-    _drop_uploaded_table()
-
-    work_df = _normalize_uploaded_dataframe(df)
-    mapping = _safe_column_names(work_df)
-    work_df.columns = [mapping[str(c)] for c in work_df.columns]
-
-    table_name = (
-        "UPLOADED_DOCUMENT_"
-        + datetime.now().strftime("%Y%m%d_%H%M%S_%f").upper()
-    )
-
-    # IMPORTANT: do NOT use a TEMPORARY table here. Cortex Analyst REST runs
-    # in a separate Snowflake session and cannot see session-scoped temp tables.
-    # A TRANSIENT table is visible to the Analyst request and is dropped when
-    # the user uploads another document or removes the current document.
-    session.write_pandas(
-        work_df,
-        table_name,
-        auto_create_table=True,
-        overwrite=True,
-        table_type="transient",
-    )
-
-    try:
-        session.sql(
-            f'ALTER TABLE "{table_name}" SET DATA_RETENTION_TIME_IN_DAYS = 0'
-        ).collect()
-    except Exception:
-        pass
-
-    semantic_model = build_uploaded_semantic_model(df, table_name)
-
-    st.session_state.uploaded_document_table = table_name
-    st.session_state.uploaded_document_semantic_model = semantic_model
-
-    return semantic_model
-
-
-def answer_uploaded_table_question(question: str, df: pd.DataFrame):
-    """Use Cortex Analyst to generate SQL against the complete uploaded table."""
-    if df is None or df.empty:
-        raise ValueError("The uploaded spreadsheet has no usable rows.")
-
-    if not st.session_state.uploaded_document_table:
-        prepare_uploaded_table(df)
-
-    table_name = st.session_state.uploaded_document_table
-    semantic_model = st.session_state.uploaded_document_semantic_model
-
-    if not table_name or not semantic_model:
-        raise RuntimeError("The uploaded document semantic model was not created.")
-
-    analyst_json = call_cortex_analyst_with_semantic_model(
-        question,
-        semantic_model,
-    )
-    result = extract_analyst_response(analyst_json)
-
-    if result.get("warnings"):
-        warning_text = " ".join(
-            str(w.get("message", w)) if isinstance(w, dict) else str(w)
-            for w in result["warnings"]
-        )
-        if warning_text:
-            st.warning(warning_text)
-
-    if not result.get("sql"):
-        raise RuntimeError(
-            result.get("text")
-            or "Cortex Analyst could not generate SQL for the uploaded document question."
-        )
-
-    sql_query = _clean_generated_sql(result["sql"])
-    result_df = session.sql(sql_query).to_pandas()
-
-    return result_df, sql_query, result
-
-
-def _split_document_into_chunks(document_text: str) -> List[str]:
-    """Split extracted Word text into useful paragraph/table chunks."""
-    chunks = []
-    for block in re.split(r"\n{2,}|\n", document_text):
-        block = re.sub(r"\s+", " ", block).strip()
-        if block:
-            chunks.append(block)
-    return chunks
-
-
-def _word_question_answer(question: str, document_text: str) -> str:
-    """Answer Word-document questions without Cortex COMPLETE/AI_COMPLETE.
-
-    This is an extractive, trial-safe fallback: it ranks paragraphs/table rows
-    by overlap with the question and returns the most relevant document content.
-    It does not invent information and therefore works without an LLM entitlement.
-    """
-    chunks = _split_document_into_chunks(document_text)
-    if not chunks:
-        raise ValueError("No readable text was extracted from the Word document.")
-
-    stop_words = {
-        "what", "is", "are", "the", "a", "an", "of", "for", "to",
-        "in", "on", "and", "or", "with", "from", "this", "that",
-        "which", "who", "how", "why", "does", "do", "can", "please",
-        "tell", "me", "about", "give", "explain", "purpose",
-    }
-    question_words = [
-        w.lower() for w in re.findall(r"[A-Za-z0-9_]+", question)
-        if w.lower() not in stop_words and len(w) > 2
-    ]
-
-    # Also recognize common phrase variants so questions such as
-    # "What is the purpose of PII?" find a paragraph headed "Purpose".
-    query_lower = question.lower()
-    phrase_terms = []
-    if "purpose" in query_lower:
-        phrase_terms.extend(["purpose", "objective", "goal", "intended"])
-    if "pii" in query_lower:
-        phrase_terms.extend(["pii", "personally identifiable information"])
-    if "handling" in query_lower:
-        phrase_terms.extend(["handling", "protect", "protection", "process"])
-    if "approach" in query_lower or "approaches" in query_lower:
-        phrase_terms.extend(["approach", "approaches", "method"])
-
-    terms = list(dict.fromkeys(question_words + phrase_terms))
-    scored = []
-    for idx, chunk in enumerate(chunks):
-        low = chunk.lower()
-        score = 0
-        matched = 0
-        for term in terms:
-            if term in low:
-                matched += 1
-                score += 2 if " " in term else 1
-        # Prefer shorter focused passages when relevance is similar.
-        if matched:
-            score += min(len(terms), matched)
-            score += 1 if len(chunk) < 500 else 0
-            scored.append((score, matched, -len(chunk), idx, chunk))
-
-    if not scored:
-        # Safe fallback: show the beginning of the document rather than inventing.
-        preview = "\n\n".join(chunks[:3])
-        return (
-            "I could not find a passage in the Word document that directly matches "
-            "your question. Here is the beginning of the extracted document content "
-            "so you can refine the question:\n\n" + preview
-        )
-
-    scored.sort(reverse=True)
-    selected = []
-    seen = set()
-    for _, _, _, idx, chunk in scored[:5]:
-        # Include nearby context when available.
-        for pos in (idx - 1, idx, idx + 1):
-            if 0 <= pos < len(chunks) and pos not in seen:
-                seen.add(pos)
-                selected.append(chunks[pos])
-        if len(selected) >= 7:
-            break
-
-    return (
-        "Based on the uploaded Word document, the most relevant content is:\n\n"
-        + "\n\n".join(selected[:7])
-    )
-
-
-def answer_uploaded_text_question(question: str, document_text: str):
-    """Answer Word questions without changing the working Excel/CSV path.
-
-    DOCX uses local extractive search because AI_COMPLETE/COMPLETE is blocked on
-    the current Snowflake trial account. PDF keeps the existing AI_COMPLETE path.
-    """
-    if not document_text.strip():
-        raise ValueError("No readable text was extracted from the uploaded document.")
-
-    if st.session_state.get("uploaded_document_name", "").lower().endswith(".docx"):
-        return _word_question_answer(question, document_text)
-
-    return ai_complete_document_question(question)
-
-
-def render_uploaded_document_preview():
-    """Display the analyzed document without interfering with the original UI."""
-    doc_type = st.session_state.uploaded_document_type
-    doc_name = st.session_state.uploaded_document_name
-
-    if not doc_name:
-        return
-
-    st.markdown("---")
-    st.markdown(f"### 📄 Uploaded Document: `{doc_name}`")
-
-    if doc_type == "table":
-        df = st.session_state.uploaded_document_df
-        if df is not None:
-            st.dataframe(_normalize_uploaded_dataframe(df), use_container_width=True)
-    elif doc_type == "text":
-        with st.expander("📖 Extracted Document Content", expanded=False):
-            st.text_area(
-                "Document text",
-                st.session_state.uploaded_document_text,
-                height=350,
-                disabled=True,
-                label_visibility="collapsed",
+        if fname_lower.endswith((".csv", ".xlsx", ".xls")):
+            if fname_lower.endswith(".csv"):
+                try:
+                    df = pd.read_csv(io.BytesIO(file_bytes))
+                except Exception:
+                    df = pd.read_csv(io.BytesIO(file_bytes), encoding='latin1')
+            else:
+                df = extract_df_from_xlsx(file_bytes)
+                
+            clean_df = df.dropna(how='all')
+            context_str = f"File: {filename}\nTotal Rows: {len(clean_df)}\nColumns: {', '.join([str(c) for c in clean_df.columns])}\n\nDATA PREVIEW AND RECORDS:\n"
+            context_str += clean_df.to_string(max_rows=150)
+            
+            summary = (
+                f"Successfully processed **`{filename}`** with **{len(clean_df):,} rows** and **{len(clean_df.columns)} columns**.\n\n"
+                f"**Columns:** {', '.join([f'`{col}`' for col in clean_df.columns])}\n\n"
+                f"You can now ask questions about the records, values, or metrics in this file."
             )
+            return summary, clean_df, context_str
+            
+        elif fname_lower.endswith(".pdf"):
+            txt = extract_text_from_pdf(file_bytes)
+            summary = f"Uploaded PDF **`{filename}`** (~{len(txt.split()):,} words). Ready for your questions."
+            return summary, None, txt
+            
+        elif fname_lower.endswith((".docx", ".doc")):
+            txt = extract_text_from_docx(file_bytes)
+            summary = f"Uploaded Word Document **`{filename}`** (~{len(txt.split()):,} words). Ready for your questions."
+            return summary, None, txt
+            
+    except Exception as err:
+        return f"⚠️ Could not parse `{filename}`: {str(err)}", None, None
+
+    return f"Unsupported format for `{filename}`.", None, None
+
 
 
 # ===================================================================
