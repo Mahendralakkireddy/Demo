@@ -1840,77 +1840,104 @@ with st.sidebar:
             st.rerun()
 # 6. MAIN HEADER
 # ===================================================================
-# Single solid header container: brand + tagline on the left and
-# compact navigation buttons on the same line on the right.
+# One continuous header container: brand/tagline + navigation all live
+# inside the same background box and on the same horizontal line.
 st.markdown("""
 <style>
-/* Header styling */
-.dly-chat-header {
-    background: #e8f4ff;
-    border: 1px solid #c7e2f8;
-    border-radius: 14px;
-    padding: 8px 12px;
-    margin: 0 0 18px 0;
-    box-shadow: 0 5px 18px rgba(35, 111, 177, .08);
+/* ================================================================
+   Dilytics Chat Header
+   One continuous box containing brand + navigation.
+   ================================================================ */
+.st-key-dly_chat_header {
+    background: #e7f4ff !important;
+    border: 1px solid #c7e2f8 !important;
+    border-radius: 14px !important;
+    padding: 10px 12px !important;
+    margin: 0 0 18px 0 !important;
+    box-shadow: 0 5px 18px rgba(35,111,177,.08) !important;
 }
-.dly-chat-brand {
-    font-size: 1.08rem;
-    font-weight: 900;
-    color: #0a3b78;
-    line-height: 1.15;
-    margin: 0;
-    white-space: nowrap;
-}
-.dly-chat-brand span { color: #1769d2; }
-.dly-chat-tagline {
-    color: #52718f;
-    font-size: .67rem;
-    line-height: 1.2;
-    margin-top: 3px;
-    white-space: nowrap;
-}
-/* Make the Streamlit buttons compact, blue, and vertically centered. */
-.dly-chat-header [data-testid="stButton"] > button {
-    min-height: 32px !important;
-    height: 32px !important;
-    padding: 0 10px !important;
-    border-radius: 8px !important;
-    border: 1px solid #78afe0 !important;
-    background: #d5ebff !important;
-    color: #0a3f7c !important;
-    font-size: .70rem !important;
-    font-weight: 700 !important;
-    line-height: 1 !important;
-    box-shadow: none !important;
-    white-space: nowrap !important;
-}
-.dly-chat-header [data-testid="stButton"] > button:hover {
-    background: #bddfff !important;
-    border-color: #4e97d2 !important;
-    color: #07356c !important;
-}
-.dly-chat-header [data-testid="column"] {
+
+.st-key-dly_chat_header [data-testid="column"] {
     display: flex;
     align-items: center;
-    justify-content: center;
 }
-.dly-chat-header [data-testid="column"]:first-child {
-    justify-content: flex-start;
+
+.dly-chat-brandline {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 34px;
+    white-space: nowrap;
 }
-@media (max-width: 850px) {
-    .dly-chat-brand, .dly-chat-tagline { white-space: normal; }
-    .dly-chat-header [data-testid="stButton"] > button { font-size: .64rem !important; padding: 0 6px !important; }
+
+.dly-chat-brand {
+    font-size: 1.02rem;
+    font-weight: 900;
+    color: #e51f2b;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.dly-chat-brand span {
+    color: #0a3b78;
+}
+
+.dly-chat-tagline {
+    color: #52718f;
+    font-size: .68rem;
+    line-height: 1;
+    white-space: nowrap;
+    padding-left: 1px;
+}
+
+/* Blue navigation button boxes */
+.st-key-dly_chat_header [data-testid="stButton"] > button {
+    min-height: 32px !important;
+    height: 32px !important;
+    padding: 0 11px !important;
+    border-radius: 8px !important;
+    border: 1px solid #0878c8 !important;
+    background: #0878c8 !important;
+    color: #ffffff !important;
+    font-size: .68rem !important;
+    font-weight: 700 !important;
+    line-height: 1 !important;
+    box-shadow: 0 2px 5px rgba(8,120,200,.18) !important;
+    white-space: nowrap !important;
+}
+
+.st-key-dly_chat_header [data-testid="stButton"] > button:hover {
+    background: #075fa3 !important;
+    border-color: #075fa3 !important;
+    color: #ffffff !important;
+}
+
+@media (max-width: 900px) {
+    .dly-chat-brandline {
+        gap: 6px;
+    }
+    .dly-chat-brand {
+        font-size: .9rem;
+    }
+    .dly-chat-tagline {
+        font-size: .58rem;
+    }
+    .st-key-dly_chat_header [data-testid="stButton"] > button {
+        font-size: .60rem !important;
+        padding: 0 6px !important;
+    }
 }
 </style>
 """, unsafe_allow_html=True)
 
-with st.container():
-    st.markdown('<div class="dly-chat-header">', unsafe_allow_html=True)
-    h1, h2, h3, h4 = st.columns([2.45, 1.0, 1.35, 1.0], gap="small")
+with st.container(key="dly_chat_header"):
+    h1, h2, h3, h4 = st.columns([2.7, .8, 1.15, .8], gap="small", vertical_alignment="center")
     with h1:
         st.markdown(
+            '<div class="dly-chat-brandline">'
             '<div class="dly-chat-brand">DILYTICS <span>Enterprise AI</span></div>'
-            '<div class="dly-chat-tagline">Data. Insights. Impact.</div>',
+            '<div class="dly-chat-tagline">Data. Insights. Impact.</div>'
+            '</div>',
             unsafe_allow_html=True,
         )
     with h2:
@@ -1922,7 +1949,6 @@ with st.container():
     with h4:
         if st.button("↪  Logout", use_container_width=True, key="chat_logout"):
             _logout()
-    st.markdown('</div>', unsafe_allow_html=True)
 
 # 7. EXAMPLE QUESTIONS
 # These buttons are only examples. They do NOT contain SQL.
