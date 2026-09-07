@@ -1365,9 +1365,9 @@ def _top_nav():
           background:#e7f5ff !important;
           border:1px solid #b9dcf7 !important;
           border-radius:12px !important;
-          padding:10px 14px !important;
-          margin:0 0 24px 0 !important;
-          min-height:52px !important;
+          padding:11px 14px !important;
+          margin:-14px 0 22px 0 !important;
+          min-height:60px !important;
           box-shadow:0 5px 18px rgba(35,111,177,.10) !important;
       }
       .st-key-dly_main_header > div,
@@ -1383,7 +1383,7 @@ def _top_nav():
           display:flex;
           align-items:center;
           gap:8px;
-          min-height:38px;
+          min-height:44px;
           white-space:nowrap;
       }
       .dly-main-logo {
@@ -1392,10 +1392,11 @@ def _top_nav():
           justify-content:center;
           background:#e51f2b;
           color:#fff;
-          height:34px;
-          padding:0 13px;
+          height:40px;
+          min-width:72px;
+          padding:0 16px;
           border-radius:3px;
-          font-size:.74rem;
+          font-size:.86rem;
           font-weight:900;
           letter-spacing:.2px;
       }
@@ -1418,9 +1419,12 @@ def _top_nav():
           border:1px solid #0878c8 !important;
           background:#0878c8 !important;
           color:#fff !important;
-          font-size:.62rem !important;
+          font-size:.68rem !important;
           font-weight:700 !important;
           line-height:1 !important;
+          display:flex !important;
+          align-items:center !important;
+          justify-content:center !important;
           white-space:nowrap !important;
           box-shadow:0 2px 5px rgba(8,120,200,.16) !important;
       }
@@ -1432,7 +1436,7 @@ def _top_nav():
       @media(max-width:850px){
           .st-key-dly_main_header { padding:6px !important; }
           .dly-main-tagline { display:none; }
-          .dly-main-logo { font-size:.65rem; padding:0 8px; }
+          .dly-main-logo { font-size:.76rem; padding:0 11px; }
           .st-key-dly_main_header [data-testid="stButton"] > button {
               font-size:.56rem !important;
               padding:0 4px !important;
