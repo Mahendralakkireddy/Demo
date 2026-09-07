@@ -26,6 +26,9 @@ INVENTORY_YAML_STAGE_PATH = (
 SALES_YAML_STAGE_PATH = (
     '@"CORTEX_DEMO"."CORTEX_SCHEMA"."YAML"/sales_intelligence_model_80_queries_fixed_FINAL.yaml'
 )
+SUPPLY_CHAIN_YAML_STAGE_PATH = (
+    '@"SUPPLY_CHAIN_DW_DEMO"."GOLD"."YAML"/SUPPLY_CHAIN.yml'
+)
 
 ANALYST_ENDPOINT = f"https://{HOST}/api/v2/cortex/analyst/message"
 
@@ -207,498 +210,112 @@ header { background:transparent !important; }
 st.markdown("""
 <style>
 /* ================================================================
-   Dilytics Landing Page — clean blue/green chatbot interface
-   VISUAL ONLY: backend/chat/document logic is unchanged.
+   Dilytics Landing Page
+   Visual/navigation layer only. Backend functionality is unchanged.
    ================================================================ */
-
 .dly-landing-wrap {
     min-height: 78vh;
     margin: -1.2rem -2rem 0;
-    padding: 1.7rem 5vw 2.8rem;
+    padding: 2rem 5vw 4rem;
+    background:
+        radial-gradient(circle at 78% 18%, rgba(29,190,255,.30), transparent 28%),
+        radial-gradient(circle at 35% 100%, rgba(20,111,220,.24), transparent 35%),
+        linear-gradient(135deg,#071a42 0%,#063b79 48%,#0b83bd 100%);
+    border-radius: 0 0 28px 28px;
     position: relative;
     overflow: hidden;
-    border-radius: 0 0 28px 28px;
-    background:
-        radial-gradient(circle at 82% 22%, rgba(31, 220, 178, .22), transparent 25%),
-        radial-gradient(circle at 66% 12%, rgba(30, 168, 255, .25), transparent 30%),
-        linear-gradient(118deg, #061b3d 0%, #073b72 43%, #087fa0 72%, #16ad78 100%);
-    box-shadow: inset 0 0 90px rgba(0,0,0,.12);
 }
-
-.dly-landing-wrap::before,
-.dly-landing-wrap::after {
-    content: "";
-    position: absolute;
-    pointer-events: none;
-    border: 1px solid rgba(106, 225, 255, .16);
-    border-radius: 50%;
+.dly-landing-wrap:before,
+.dly-landing-wrap:after {
+    content:""; position:absolute; border:1px solid rgba(100,220,255,.18);
+    border-radius:50%; pointer-events:none;
 }
-
-.dly-landing-wrap::before {
-    width: 820px;
-    height: 820px;
-    right: -360px;
-    top: -510px;
+.dly-landing-wrap:before { width:760px; height:760px; right:-250px; top:-420px; }
+.dly-landing-wrap:after { width:680px; height:680px; left:-360px; bottom:-470px; }
+.dly-landing-nav {
+    display:flex; align-items:center; justify-content:space-between;
+    position:relative; z-index:2; margin-bottom:7vh;
 }
-
-.dly-landing-wrap::after {
-    width: 720px;
-    height: 720px;
-    left: -430px;
-    bottom: -560px;
-}
-
-.dly-landing-top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    position: relative;
-    z-index: 5;
-    margin-bottom: 4.5rem;
-}
-
 .dly-landing-logo {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    background: #ef2635;
-    color: #fff;
-    padding: 11px 20px;
-    font-size: 1.22rem;
-    font-weight: 900;
-    letter-spacing: .6px;
-    border-radius: 2px;
-    box-shadow: 0 8px 25px rgba(0,0,0,.18);
+    display:inline-flex; align-items:center; justify-content:center;
+    background:#ef222c; color:#fff; padding:9px 18px;
+    font-size:1.25rem; font-weight:900; letter-spacing:.5px;
+    border-radius:2px; box-shadow:0 8px 25px rgba(0,0,0,.18);
 }
-
 .dly-landing-powered {
-    color: #d9f7ff;
-    font-size: .72rem;
-    font-weight: 750;
-    letter-spacing: 1.2px;
-    text-transform: uppercase;
+    color:#bfeeff; font-size:.76rem; font-weight:700;
+    letter-spacing:1px; text-transform:uppercase;
 }
-
 .dly-landing-grid {
-    display: grid;
-    grid-template-columns: 1.03fr .97fr;
-    gap: 2.5rem;
-    align-items: center;
-    position: relative;
-    z-index: 4;
+    display:grid; grid-template-columns: 1.02fr .98fr; gap:4rem;
+    align-items:center; position:relative; z-index:2;
 }
-
-.dly-landing-copy {
-    padding-left: 1px;
-}
-
-.dly-eyebrow {
-    color: #45d5ff;
-    font-size: .75rem;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 1.8px;
-    margin-bottom: 1.25rem;
-}
-
 .dly-landing-copy h1 {
-    margin: 0;
-    color: #fff;
-    font-size: clamp(3.4rem, 5.8vw, 5.7rem);
-    line-height: .96;
-    letter-spacing: -3.5px;
-    font-weight: 850;
+    color:#fff; font-size:clamp(3rem,6vw,5.5rem); line-height:.98;
+    letter-spacing:-3px; margin:0 0 22px; font-weight:850;
 }
-
-.dly-landing-copy h1 span {
-    background: linear-gradient(90deg, #17c7ff 0%, #18d9c6 55%, #24df91 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-}
-
+.dly-landing-copy h1 span { color:#20d7ff; }
 .dly-landing-copy p {
-    color: #d3e8fb;
-    font-size: 1.02rem;
-    line-height: 1.7;
-    max-width: 600px;
-    margin: 1.8rem 0 0;
+    color:#d0e7ff; font-size:1.15rem; line-height:1.6;
+    max-width:620px; margin-bottom:28px;
 }
-
+.dly-landing-actions {
+    display:flex; gap:16px; align-items:center; flex-wrap:wrap;
+}
+.dly-landing-actions button {
+    border:0; border-radius:30px; padding:13px 27px;
+    font-size:1rem; font-weight:800; cursor:pointer;
+}
+.dly-explore {
+    background:linear-gradient(90deg,#0da9ff,#2ed8c4); color:#fff;
+    box-shadow:0 10px 30px rgba(0,183,255,.25);
+}
+.dly-ask {
+    background:rgba(4,25,62,.35); color:#fff;
+    border:1px solid rgba(140,225,255,.55) !important;
+}
+.dly-landing-search {
+    margin-top:25px; max-width:680px; padding:10px;
+    border-radius:17px; background:rgba(255,255,255,.10);
+    border:1px solid rgba(255,255,255,.20); backdrop-filter:blur(12px);
+}
+.dly-landing-search input {
+    color:#fff !important; background:rgba(2,18,48,.55) !important;
+}
+.dly-landing-search input::placeholder { color:#b8d4ee !important; }
 .dly-landing-visual {
-    min-height: 500px;
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    min-height:470px; position:relative; display:flex;
+    align-items:center; justify-content:center;
 }
-
-/* Soft circular blue/green visual behind the robot */
 .dly-robot-orb {
-    position: absolute;
-    width: 430px;
-    height: 430px;
-    border-radius: 50%;
-    background:
-        radial-gradient(circle at 32% 25%, #2bd5ff 0%, #159edc 36%, #0872bd 65%, #087b83 100%);
-    box-shadow:
-        0 0 85px rgba(20, 206, 255, .24),
-        inset -30px -30px 70px rgba(0, 60, 130, .18);
+    width:390px; height:390px; border-radius:50%;
+    background:radial-gradient(circle at 35% 30%,#25cfff,#0878c8 58%,#073c80);
+    box-shadow:0 0 90px rgba(30,208,255,.28);
+    display:flex; align-items:center; justify-content:center;
+    font-size:12rem; position:relative;
 }
-
-/* CSS robot — no external image dependency */
-.dly-robot {
-    position: relative;
-    width: 300px;
-    height: 365px;
-    z-index: 5;
-    margin-top: 50px;
-}
-
-.dly-antenna {
-    position: absolute;
-    width: 10px;
-    height: 42px;
-    left: 145px;
-    top: 0;
-    border-radius: 10px;
-    background: #14233b;
-}
-
-.dly-antenna::before {
-    content: "";
-    position: absolute;
-    width: 29px;
-    height: 29px;
-    left: -9px;
-    top: -20px;
-    border-radius: 50%;
-    background: radial-gradient(circle at 35% 30%, #fff, #20d8ff 38%, #0878d8 78%);
-    box-shadow: 0 0 24px rgba(25, 218, 255, .9);
-}
-
-.dly-robot-head {
-    position: absolute;
-    left: 15px;
-    top: 38px;
-    width: 270px;
-    height: 178px;
-    border-radius: 82px;
-    background: linear-gradient(145deg, #fff, #d8e6f1);
-    border: 5px solid rgba(255,255,255,.82);
-    box-shadow: 0 25px 55px rgba(0,0,0,.24);
-}
-
-.dly-robot-face {
-    position: absolute;
-    left: 28px;
-    top: 23px;
-    width: 205px;
-    height: 124px;
-    border-radius: 60px;
-    background: linear-gradient(145deg, #061329, #111f3a);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 38px;
-    box-shadow: inset 0 0 25px rgba(0,205,255,.10);
-}
-
-.dly-eye {
-    width: 31px;
-    height: 21px;
-    border-top: 7px solid #18e2ff;
-    border-radius: 50%;
-    filter: drop-shadow(0 0 7px #16dfff);
-}
-
-.dly-smile {
-    position: absolute;
-    bottom: 25px;
-    left: 87px;
-    width: 30px;
-    height: 15px;
-    border-bottom: 5px solid #19e2ff;
-    border-radius: 0 0 24px 24px;
-    filter: drop-shadow(0 0 7px #16dfff);
-}
-
-.dly-robot-body {
-    position: absolute;
-    left: 62px;
-    top: 225px;
-    width: 176px;
-    height: 130px;
-    border-radius: 52px 52px 30px 30px;
-    background: linear-gradient(145deg, #fff, #c8d9e8);
-    box-shadow: 0 20px 40px rgba(0,0,0,.22);
-}
-
-.dly-body-logo {
-    position: absolute;
-    top: 42px;
-    left: 39px;
-    background: #ef2635;
-    color: #fff;
-    padding: 6px 12px;
-    border-radius: 3px;
-    font-size: 12px;
-    font-weight: 900;
-}
-
-.dly-arm {
-    position: absolute;
-    width: 51px;
-    height: 112px;
-    top: 6px;
-    border-radius: 35px;
-    background: linear-gradient(145deg, #fff, #c8d9e8);
-}
-
-.dly-arm-left {
-    left: -38px;
-    transform: rotate(38deg);
-}
-
-.dly-arm-right {
-    right: -38px;
-    transform: rotate(-14deg);
-}
-
-.dly-hand {
-    position: absolute;
-    width: 48px;
-    height: 48px;
-    bottom: -12px;
-    left: 1px;
-    border-radius: 50%;
-    background: #101c32;
-}
-
-.dly-desk {
-    position: absolute;
-    bottom: 15px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 590px;
-    height: 72px;
-    border-radius: 9px;
-    background: linear-gradient(180deg, #c89463, #855531);
-    box-shadow: 0 25px 45px rgba(0,0,0,.27);
-    z-index: 2;
-}
-
-.dly-laptop {
-    position: absolute;
-    width: 255px;
-    height: 150px;
-    left: 50%;
-    bottom: 55px;
-    transform: translateX(-50%) perspective(500px) rotateX(-5deg);
-    border-radius: 10px 10px 4px 4px;
-    background: linear-gradient(145deg, #d0d7df, #788594);
-    z-index: 6;
-}
-
-.dly-laptop::before {
-    content: "D";
-    position: absolute;
-    top: 42px;
-    left: 112px;
-    color: rgba(30,40,60,.38);
-    font-size: 40px;
-    font-weight: 750;
-}
-
-.dly-plant {
-    position: absolute;
-    right: 10px;
-    bottom: 72px;
-    z-index: 7;
-    width: 80px;
-    height: 105px;
-}
-
-.dly-pot {
-    position: absolute;
-    bottom: 0;
-    left: 7px;
-    width: 66px;
-    height: 58px;
-    border-radius: 8px 8px 20px 20px;
-    background: linear-gradient(145deg, #f0f2f4, #bac5ce);
-}
-
-.dly-leaf {
-    position: absolute;
-    width: 31px;
-    height: 62px;
-    bottom: 42px;
-    border-radius: 100% 0 100% 0;
-    background: linear-gradient(160deg, #2ad891, #087c73);
-}
-
-.dly-leaf-1 { left: 6px; transform: rotate(-32deg); }
-.dly-leaf-2 { left: 25px; bottom: 58px; transform: rotate(2deg); }
-.dly-leaf-3 { left: 45px; transform: rotate(34deg); }
-
 .dly-chat-bubble {
-    position: absolute;
-    right: 0;
-    top: 8%;
-    width: 238px;
-    padding: 19px 23px;
-    border-radius: 21px 21px 5px 21px;
-    background: rgba(241,250,255,.97);
-    color: #062e62;
-    font-size: 1rem;
-    line-height: 1.45;
-    box-shadow: 0 15px 40px rgba(0,0,0,.18);
-    z-index: 9;
+    position:absolute; right:0; top:15%; background:#eaf6ff;
+    color:#073579; padding:18px 23px; border-radius:22px 22px 5px 22px;
+    font-size:1.05rem; line-height:1.35; box-shadow:0 15px 35px rgba(0,0,0,.2);
 }
-
-.dly-chat-bubble strong {
-    display: block;
-    font-size: 1.22rem;
-    margin-bottom: 5px;
-}
-
-.dly-chat-bubble::after {
-    content: "";
-    position: absolute;
-    bottom: -16px;
-    left: 42px;
-    border-left: 18px solid transparent;
-    border-right: 18px solid transparent;
-    border-top: 22px solid rgba(241,250,255,.97);
-}
-
-/* Bottom feature strip */
+.dly-chat-bubble strong { font-size:1.2rem; }
 .dly-landing-stats {
-    display: flex;
-    gap: 0;
-    margin-top: 3.2rem;
-    color: #e4f6ff;
+    display:flex; gap:35px; margin-top:48px; color:#dff4ff;
 }
-
-.dly-stat {
-    display: flex;
-    align-items: center;
-    gap: 11px;
-    padding-right: 28px;
-    margin-right: 28px;
-    border-right: 1px solid rgba(255,255,255,.20);
-}
-
-.dly-stat:last-child {
-    border-right: none;
-}
-
-.dly-stat-icon {
-    width: 45px;
-    height: 45px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    font-size: 1.2rem;
-    background: rgba(0, 174, 255, .16);
-}
-
-.dly-stat:nth-child(2) .dly-stat-icon {
-    background: rgba(20, 218, 161, .16);
-}
-
-.dly-stat:nth-child(3) .dly-stat-icon {
-    background: rgba(255, 195, 50, .16);
-}
-
-.dly-stat-text {
-    font-size: .82rem;
-    line-height: 1.2;
-}
-
-.dly-stat-text b {
-    display: block;
-    color: #fff;
-    font-size: .94rem;
-    margin-bottom: 2px;
-}
-
-/* Streamlit controls used by the existing landing-page logic */
-.dly-landing-controls {
-    position: relative;
-    z-index: 20;
-    margin-top: -7.2rem;
-    margin-left: 5vw;
-    width: min(650px, 48%);
-}
-
-.dly-landing-controls [data-testid="stTextInput"] input {
-    background: rgba(5, 23, 52, .78) !important;
-    color: #fff !important;
-    border: 1px solid rgba(71, 211, 255, .35) !important;
-    border-radius: 15px !important;
-}
-
-.dly-landing-controls [data-testid="stButton"] > button {
-    border-radius: 28px !important;
-    min-height: 48px !important;
-    font-weight: 750 !important;
-}
-
-.dly-landing-controls [data-testid="stButton"] button[kind="secondary"] {
-    background: rgba(5, 30, 64, .45) !important;
-    color: #fff !important;
-    border: 1px solid rgba(111, 221, 255, .45) !important;
-}
-
-.dly-landing-controls [data-testid="stButton"] button[kind="primary"] {
-    background: linear-gradient(90deg, #0daaff, #20d7a3) !important;
-    color: #fff !important;
-    border: 0 !important;
-}
-
-@media (max-width: 1000px) {
-    .dly-landing-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .dly-landing-visual {
-        min-height: 430px;
-    }
-
-    .dly-landing-controls {
-        margin: 0 5vw;
-        width: auto;
-    }
-}
-
-@media (max-width: 650px) {
-    .dly-landing-powered {
-        display: none;
-    }
-
-    .dly-landing-copy h1 {
-        font-size: 3.2rem;
-    }
-
-    .dly-landing-visual {
-        transform: scale(.78);
-        margin-top: -45px;
-        margin-bottom: -45px;
-    }
-
-    .dly-landing-stats {
-        display: none;
-    }
-
-    .dly-landing-controls {
-        margin-top: 0;
-    }
+.dly-stat { display:flex; gap:10px; align-items:center; }
+.dly-stat-icon { font-size:1.4rem; }
+.dly-stat-text { font-size:.9rem; line-height:1.2; }
+.dly-stat-text b { display:block; color:#fff; font-size:1rem; }
+@media (max-width: 900px) {
+    .dly-landing-grid { grid-template-columns:1fr; gap:1rem; }
+    .dly-landing-visual { min-height:300px; }
+    .dly-robot-orb { width:280px; height:280px; font-size:8rem; }
+    .dly-chat-bubble { right:3%; }
+    .dly-landing-wrap { margin-left:-1rem; margin-right:-1rem; }
 }
 </style>
 """, unsafe_allow_html=True)
-
 
 
 # ===================================================================
@@ -710,208 +327,92 @@ if "authenticated" not in st.session_state:
     st.session_state.password = ""
     st.session_state.snowpark_session = None
     st.session_state.snowflake_conn = None
+    st.session_state.app_page = "home"
+
+if "captcha_a" not in st.session_state:
+    import random
+    st.session_state.captcha_a = random.randint(2, 9)
+    st.session_state.captcha_b = random.randint(1, 9)
+
+def _new_captcha():
+    import random
+    st.session_state.captcha_a = random.randint(2, 9)
+    st.session_state.captcha_b = random.randint(1, 9)
+
+
+def _login_page():
+    st.markdown("""
+    <style>
+      .login-wrap{min-height:78vh;display:grid;grid-template-columns:1fr 1fr;gap:0;background:#fff;border-radius:28px;overflow:hidden;box-shadow:0 20px 60px rgba(14,70,140,.12);border:1px solid #dcecff;margin-top:1rem}
+      .login-left{padding:64px 70px;background:linear-gradient(145deg,#ffffff,#eef7ff)}
+      .login-right{position:relative;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 45%,#e9f6ff 0,#d8efff 28%,#f7fbff 65%,#fff 100%);overflow:hidden}
+      .login-logo{display:inline-block;background:#e51f2b;color:#fff;font-weight:900;font-size:1.4rem;padding:10px 18px;border-radius:4px;letter-spacing:.5px}
+      .login-eyebrow{color:#1769d2;font-weight:800;letter-spacing:2px;text-transform:uppercase;font-size:.78rem;margin-top:42px}
+      .login-title{font-size:3rem;line-height:1.05;font-weight:850;color:#09295f;margin:.45rem 0 1rem}
+      .login-title span{color:#1769d2}
+      .login-sub{color:#55708f;font-size:1rem;line-height:1.6;max-width:480px}
+      .login-orbit{width:360px;height:360px;border-radius:50%;border:1px solid #b8dcff;box-shadow:0 0 0 28px rgba(35,137,230,.05),0 0 0 58px rgba(35,137,230,.035);position:relative;animation:orbitPulse 4s ease-in-out infinite}
+      .login-robot{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:190px;height:145px;border-radius:55px;background:linear-gradient(180deg,#fff,#d9ecff);border:5px solid #1976db;box-shadow:0 22px 45px rgba(20,94,170,.2);animation:robotFloat 3.4s ease-in-out infinite}
+      .login-face{position:absolute;inset:20px 20px 25px;background:#062454;border-radius:38px;box-shadow:inset 0 0 20px #1889ee;display:flex;align-items:center;justify-content:center;gap:32px}
+      .login-eye{width:22px;height:30px;border-radius:50%;background:#24d7ff;box-shadow:0 0 14px #24d7ff}
+      .login-mouth{position:absolute;width:42px;height:20px;border-bottom:4px solid #24d7ff;border-radius:50%;bottom:22px}
+      .login-antenna{position:absolute;width:7px;height:40px;background:#1976db;left:50%;top:-43px;transform:translateX(-50%)}
+      .login-ball{position:absolute;width:22px;height:22px;border-radius:50%;background:#28cfff;left:50%;top:-65px;transform:translateX(-50%);box-shadow:0 0 20px #28cfff}
+      .login-float{position:absolute;padding:10px 14px;background:#fff;border:1px solid #d7eaff;border-radius:14px;color:#15519b;font-weight:700;box-shadow:0 10px 25px rgba(22,91,164,.1);animation:floatCard 4s ease-in-out infinite}
+      .login-float.one{top:18%;left:8%}.login-float.two{right:8%;top:25%;animation-delay:1s}.login-float.three{bottom:17%;left:12%;animation-delay:2s}
+      @keyframes robotFloat{50%{transform:translate(-50%,-56%)}}
+      @keyframes orbitPulse{50%{transform:scale(1.03)}}
+      @keyframes floatCard{50%{transform:translateY(-10px)}}
+      @media(max-width:900px){.login-wrap{grid-template-columns:1fr}.login-right{min-height:420px}.login-left{padding:40px 28px}.login-title{font-size:2.2rem}}
+    </style>
+    <div class="login-wrap">
+      <div class="login-left">
+        <div class="login-logo">DILYTICS</div>
+        <div class="login-eyebrow">Enterprise AI Workspace</div>
+        <div class="login-title">Turn your data into <span>answers.</span></div>
+        <div class="login-sub">Sign in securely to explore Inventory, Sales, Supply Chain and Document AI with natural-language conversations powered by Snowflake.</div>
+      </div>
+      <div class="login-right">
+        <div class="login-float one">📊 Live insights</div><div class="login-float two">🔐 Secure access</div><div class="login-float three">🤖 AI ready</div>
+        <div class="login-orbit"><div class="login-robot"><div class="login-antenna"></div><div class="login-ball"></div><div class="login-face"><div class="login-eye"></div><div class="login-eye"></div><div class="login-mouth"></div></div></div></div>
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("### Sign in")
+    c1,c2=st.columns(2)
+    with c1:
+        st.session_state.username=st.text_input("Username",value=st.session_state.username)
+    with c2:
+        st.session_state.password=st.text_input("Password",type="password")
+    captcha=f"{st.session_state.captcha_a} + {st.session_state.captcha_b} = ?"
+    cc1,cc2=st.columns([1,1])
+    with cc1: st.text_input("Security check",value=captcha,disabled=True)
+    with cc2: captcha_answer=st.text_input("Enter answer")
+    b1,b2=st.columns([3,1])
+    with b1: login_clicked=st.button("Sign in to Dilytics",use_container_width=True,type="primary")
+    with b2:
+        if st.button("↻",help="New CAPTCHA",use_container_width=True): _new_captcha(); st.rerun()
+    if login_clicked:
+        try:
+            if int(captcha_answer.strip()) != st.session_state.captcha_a + st.session_state.captcha_b:
+                st.error("Incorrect security check. Please try again.")
+            else:
+                with st.spinner("Connecting securely to Snowflake..."):
+                    conn=snowflake.connector.connect(user=st.session_state.username,password=st.session_state.password,account=ACCOUNT,host=HOST,port=443,warehouse=WAREHOUSE,role=ROLE,database=DATABASE,schema=SCHEMA)
+                    st.session_state.snowflake_conn=conn
+                    st.session_state.snowpark_session=Session.builder.configs({"connection":conn}).create()
+                    st.session_state.authenticated=True
+                    st.session_state.app_page="home"
+                    st.rerun()
+        except Exception as e: st.error(f"Authentication failed: {e}")
+    st.stop()
 
 if not st.session_state.authenticated:
-    st.title("Welcome to Dilytics Enterprise AI")
-    st.markdown("Please login to connect to your Snowflake Data Warehouse.")
-
-    st.session_state.username = st.text_input(
-        "Enter Snowflake Username:", value=st.session_state.username
-    )
-    st.session_state.password = st.text_input(
-        "Enter Password:", type="password"
-    )
-
-    if st.button("Login"):
-        try:
-            with st.spinner("Connecting to Snowflake..."):
-                conn = snowflake.connector.connect(
-                    user=st.session_state.username,
-                    password=st.session_state.password,
-                    account=ACCOUNT,
-                    host=HOST,
-                    port=443,
-                    warehouse=WAREHOUSE,
-                    role=ROLE,
-                    database=DATABASE,
-                    schema=SCHEMA,
-                )
-                st.session_state.snowflake_conn = conn
-                st.session_state.snowpark_session = (
-                    Session.builder.configs({"connection": conn}).create()
-                )
-                st.session_state.authenticated = True
-                st.rerun()
-        except Exception as e:
-            st.error(f"Authentication failed: {e}")
-    st.stop()
+    _login_page()
 
 session = st.session_state.snowpark_session
 conn = st.session_state.snowflake_conn
-
-# ===================================================================
-# LANDING PAGE NAVIGATION
-# ===================================================================
-if "show_landing_page" not in st.session_state:
-    st.session_state.show_landing_page = True
-if "landing_prompt" not in st.session_state:
-    st.session_state.landing_prompt = None
-
-if st.session_state.show_landing_page:
-    st.markdown("""
-<style>
-    section[data-testid="stSidebar"] { display:none; }
-    .main .block-container { max-width: 1450px; padding-top: 0; }
-</style>
-""", unsafe_allow_html=True)
-
-    st.markdown("""
-<div class="dly-landing-wrap">
-
-    <div class="dly-landing-top">
-        <div class="dly-landing-logo">DILYTICS</div>
-        <div class="dly-landing-powered">Powered by Snowflake Cortex AI</div>
-    </div>
-
-    <div class="dly-landing-grid">
-
-        <div class="dly-landing-copy">
-
-            <div class="dly-eyebrow">Dilytics Enterprise AI</div>
-
-            <h1>
-                Let's find your<br>
-                <span>answers</span>
-            </h1>
-
-            <p>
-                A friendly AI chatbot, always here for you.
-                Ask questions in natural language and get intelligent
-                insights from your business data.
-            </p>
-
-            <div class="dly-landing-stats">
-
-                <div class="dly-stat">
-                    <span class="dly-stat-icon">📊</span>
-                    <span class="dly-stat-text">
-                        <b>Insights</b>
-                        made simple
-                    </span>
-                </div>
-
-                <div class="dly-stat">
-                    <span class="dly-stat-icon">⚡</span>
-                    <span class="dly-stat-text">
-                        <b>Faster</b>
-                        decisions
-                    </span>
-                </div>
-
-                <div class="dly-stat">
-                    <span class="dly-stat-icon">🛡</span>
-                    <span class="dly-stat-text">
-                        <b>Reliable</b>
-                        support
-                    </span>
-                </div>
-
-            </div>
-        </div>
-
-
-        <div class="dly-landing-visual">
-
-            <div class="dly-robot-orb"></div>
-
-            <div class="dly-chat-bubble">
-                <strong>Hi! 👋</strong>
-                How can I help you today?
-            </div>
-
-            <div class="dly-robot">
-
-                <div class="dly-antenna"></div>
-
-                <div class="dly-robot-head">
-                    <div class="dly-robot-face">
-                        <div class="dly-eye"></div>
-                        <div class="dly-eye"></div>
-                        <div class="dly-smile"></div>
-                    </div>
-                </div>
-
-                <div class="dly-robot-body">
-
-                    <div class="dly-arm dly-arm-left">
-                        <div class="dly-hand"></div>
-                    </div>
-
-                    <div class="dly-arm dly-arm-right">
-                        <div class="dly-hand"></div>
-                    </div>
-
-                    <div class="dly-body-logo">DILYTICS</div>
-
-                </div>
-            </div>
-
-            <div class="dly-laptop"></div>
-            <div class="dly-desk"></div>
-
-            <div class="dly-plant">
-                <div class="dly-leaf dly-leaf-1"></div>
-                <div class="dly-leaf dly-leaf-2"></div>
-                <div class="dly-leaf dly-leaf-3"></div>
-                <div class="dly-pot"></div>
-            </div>
-
-        </div>
-
-    </div>
-</div>
-""", unsafe_allow_html=True)
-
-    # Existing landing-page controls retained so functionality is unchanged.
-    st.markdown('<div class="dly-landing-controls">', unsafe_allow_html=True)
-
-    landing_question = st.text_input(
-        "Ask Me Anything",
-        placeholder="Ask me anything about your data...",
-        label_visibility="collapsed",
-        key="landing_question",
-    )
-
-    search_cols = st.columns([1, 1, 3])
-
-    with search_cols[0]:
-        explore_clicked = st.button(
-            "Explore Data  →",
-            use_container_width=True,
-            key="landing_explore_btn",
-        )
-
-    with search_cols[1]:
-        ask_clicked = st.button(
-            "🤖  Ask Me Anything",
-            use_container_width=True,
-            key="landing_ask_btn",
-        )
-
-    st.markdown('</div>', unsafe_allow_html=True)
-
-    if explore_clicked:
-        st.session_state.show_landing_page = False
-        st.rerun()
-
-    if ask_clicked and landing_question.strip():
-        st.session_state.landing_prompt = landing_question.strip()
-        st.session_state.show_landing_page = False
-        st.rerun()
-
-    st.stop()
-
-
 
 # ===================================================================
 # 2. CORTEX ANALYST
@@ -938,6 +439,7 @@ def call_cortex_analyst(prompt: str) -> Dict[str, Any]:
         "semantic_models": [
             {"semantic_model_file": INVENTORY_YAML_STAGE_PATH},
             {"semantic_model_file": SALES_YAML_STAGE_PATH},
+            {"semantic_model_file": SUPPLY_CHAIN_YAML_STAGE_PATH},
         ],
         "stream": False,
     }
@@ -1798,6 +1300,196 @@ def render_uploaded_document_preview():
 
 
 # ===================================================================
+# 2B. PROFESSIONAL APPLICATION PAGES
+# ===================================================================
+
+def _set_page(page: str):
+    st.session_state.app_page = page
+    st.rerun()
+
+
+def _logout():
+    try:
+        if st.session_state.get("snowflake_conn"):
+            st.session_state.snowflake_conn.close()
+    except Exception:
+        pass
+    st.session_state.authenticated = False
+    st.session_state.password = ""
+    st.session_state.app_page = "home"
+    _new_captcha()
+    st.rerun()
+
+
+def _top_nav():
+    st.markdown("""
+    <style>
+      .app-header{background:rgba(255,255,255,.96);border:1px solid #e1efff;border-radius:0 0 24px 24px;padding:12px 24px;box-shadow:0 8px 28px rgba(23,91,160,.07);margin:-1rem -1rem 1.2rem}
+      .brand-logo{display:inline-block;background:#e51f2b;color:#fff;font-size:1.55rem;font-weight:900;padding:8px 15px;letter-spacing:.4px;border-radius:3px}
+      .brand-tag{color:#37628f;font-size:.9rem;margin-left:12px}
+      .nav-title{color:#0b3f8f;font-weight:700;font-size:.86rem;text-align:center}
+      .profile-pill{background:#1769d2;color:white;border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center;font-weight:800}
+    </style>
+    <div class="app-header"><span class="brand-logo">DILYTICS</span><span class="brand-tag">Data. Insights. Impact.</span></div>
+    """, unsafe_allow_html=True)
+    cols=st.columns([4.2,1.1,1.3,1.45,1.25])
+    with cols[1]:
+        if st.button("⌂  Home",use_container_width=True): _set_page("home")
+    with cols[2]:
+        if st.button("▣  Document AI",use_container_width=True): _set_page("document_ai")
+    with cols[3]:
+        if st.button("ⓘ  About Dilytics",use_container_width=True): _set_page("about")
+    with cols[4]:
+        username=st.session_state.get("username","User")
+        if st.button(f"◯  {username}",use_container_width=True): st.session_state.show_profile_menu=not st.session_state.get("show_profile_menu",False)
+    if st.session_state.get("show_profile_menu"):
+        pc=st.columns([7,1.2])
+        with pc[1]:
+            if st.button("Logout",use_container_width=True): _logout()
+
+
+def _module_page(module: str):
+    inventory = module == "inventory"
+    title = "Inventory Intelligence" if inventory else "Sales Intelligence"
+    subtitle = "Turn inventory data into clear, actionable decisions across products, warehouses and stock levels." if inventory else "Turn sales data into clear, actionable decisions across revenue, products, customers, regions and channels."
+    points = ([
+        "Track total inventory quantity, availability and inventory value.",
+        "Compare inventory value across warehouses and product categories.",
+        "Identify excess, overstocked, quarantined and out-of-stock inventory.",
+        "Find products that need urgent replenishment or reorder attention.",
+        "Analyze days of supply and inventory health using the latest snapshot.",
+    ] if inventory else [
+        "Analyze total sales, orders, discounts, taxes and shipping costs.",
+        "Identify top products and understand product-level revenue performance.",
+        "Compare sales across customer regions and order channels.",
+        "Analyze monthly sales trends and average order value.",
+        "Explore completed and cancelled orders to understand sales performance.",
+    ])
+    icon="▦" if inventory else "▥"
+    st.markdown(f"""
+    <style>
+      .module-hero{{padding:48px 55px;background:linear-gradient(135deg,#fff,#edf7ff);border:1px solid #cfe6ff;border-radius:28px;box-shadow:0 18px 45px rgba(23,91,160,.08)}}
+      .module-icon{{font-size:3rem;color:#1769d2}} .module-title{{font-size:3rem;font-weight:900;color:#082d69;margin:.3rem 0}} .module-sub{{font-size:1.1rem;color:#587291;max-width:820px;line-height:1.65}}
+      .point{{padding:15px 18px;margin:10px 0;background:#fff;border:1px solid #deedff;border-radius:15px;color:#153f76;box-shadow:0 7px 20px rgba(23,91,160,.05)}}
+      .point b{{color:#1769d2;margin-right:10px}}
+    </style>
+    <div class="module-hero"><div class="module-icon">{icon}</div><div class="module-title">{title}</div><div class="module-sub">{subtitle}</div></div>
+    """,unsafe_allow_html=True)
+    st.markdown("### What you can analyze")
+    for p in points: st.markdown(f'<div class="point"><b>✓</b>{p}</div>',unsafe_allow_html=True)
+    st.markdown("### Start exploring")
+    a,b=st.columns(2)
+    with a:
+        if st.button(f"💬 Chat with {title}",use_container_width=True,type="primary"): _set_page("chatbot")
+    with b:
+        if st.button("⌂  Back to Home",use_container_width=True): _set_page("home")
+
+
+def _document_ai_page():
+    st.markdown("""
+    <style>
+      .doc-hero{background:linear-gradient(135deg,#f8fcff,#e8f4ff);border:1px solid #cce5ff;border-radius:28px;padding:42px;display:grid;grid-template-columns:1.1fr .9fr;gap:30px;align-items:center}
+      .doc-title{font-size:2.8rem;font-weight:900;color:#082d69}.doc-sub{font-size:1.05rem;line-height:1.65;color:#587291}.doc-list{color:#173e73;line-height:2}
+      .doc-animation{height:300px;border-radius:28px;background:radial-gradient(circle,#fff,#dff1ff);position:relative;overflow:hidden;border:1px solid #c5e3ff}
+      .doc-sheet{position:absolute;width:155px;height:205px;background:#fff;border:4px solid #1769d2;border-radius:12px;left:50%;top:50%;transform:translate(-50%,-50%) rotate(-7deg);box-shadow:0 20px 35px rgba(23,91,160,.15);animation:docFloat 3s ease-in-out infinite}
+      .doc-line{height:7px;background:#78b9ef;border-radius:10px;margin:18px 15px 0}.doc-line.short{width:55%}.doc-scan{position:absolute;height:4px;background:#15a9ff;left:20px;right:20px;top:105px;box-shadow:0 0 15px #15a9ff;animation:scan 2.3s linear infinite}
+      @keyframes docFloat{50%{transform:translate(-50%,-54%) rotate(7deg)}} @keyframes scan{0%{top:45px}100%{top:220px}}
+      @media(max-width:850px){.doc-hero{grid-template-columns:1fr}}
+    </style>
+    <div class="doc-hero"><div><div class="doc-title">Document AI</div><div class="doc-sub">Upload a business document and move directly into a document-focused conversation. Use the assistant to explore spreadsheets and Word documents, extract relevant content, and ask natural-language questions.</div><div class="doc-list">✓ Excel / CSV analysis<br>✓ Word document content search<br>✓ Data questions and summaries<br>✓ Results displayed inside the familiar chat workspace</div></div><div class="doc-animation"><div class="doc-sheet"><div class="doc-line"></div><div class="doc-line"></div><div class="doc-line short"></div><div class="doc-line"></div><div class="doc-scan"></div></div></div></div>
+    """,unsafe_allow_html=True)
+    st.markdown("### Analyze your document")
+    uploaded=st.file_uploader("Upload CSV, Excel or Word",type=["csv","xlsx","xls","docx"],key="document_ai_uploader")
+    c1,c2=st.columns([2,1])
+    with c1:
+        analyze=st.button("📄 Analyze Your Document",use_container_width=True,type="primary",disabled=uploaded is None)
+    with c2:
+        if st.button("⌂ Home",use_container_width=True): _set_page("home")
+    if analyze and uploaded:
+        try:
+            with st.spinner("Analyzing document..."):
+                doc_type,doc_df,doc_text,doc_message=process_uploaded_document(uploaded)
+                _drop_uploaded_table()
+                st.session_state.uploaded_document_name=uploaded.name
+                st.session_state.uploaded_document_type=doc_type
+                st.session_state.uploaded_document_df=doc_df
+                st.session_state.uploaded_document_text=doc_text
+                st.session_state.uploaded_document=uploaded.name
+                st.session_state.uploaded_document_table=None
+                st.session_state.uploaded_document_semantic_model=None
+                if doc_type=="table": prepare_uploaded_table(doc_df)
+            st.session_state.answer_source="Uploaded Document"
+            st.session_state.app_page="chatbot"
+            st.success(doc_message)
+            st.rerun()
+        except Exception as e: st.error(f"Document analysis failed: {e}")
+
+
+def _about_page():
+    st.markdown("""
+    <style>
+      .about-hero{padding:45px;background:linear-gradient(135deg,#fff,#edf7ff);border:1px solid #cfe6ff;border-radius:28px}.about-title{font-size:3rem;font-weight:900;color:#082d69}.about-sub{font-size:1.1rem;color:#587291;line-height:1.7;max-width:900px}.about-card{padding:24px;background:#fff;border:1px solid #dbeeff;border-radius:18px;height:100%;box-shadow:0 10px 28px rgba(23,91,160,.06)}.about-card h3{color:#1769d2}
+    </style>
+    <div class="about-hero"><div class="about-title">About DiLytics</div><div class="about-sub">DiLytics helps organizations turn complex data into actionable insights through analytics, AI, data engineering and modern cloud platforms. Its mission is to create competitive advantage through outstanding insights using the latest developments in analytics.</div></div>
+    """,unsafe_allow_html=True)
+    c1,c2,c3=st.columns(3)
+    cards=[("Mission","Deliver outstanding insights that create competitive advantage for customers."),("Vision","Be a trusted analytics solution partner that brings immense value to customers and their analytics journeys."),("Insight Solutions","Prebuilt and customizable analytics solutions combine data models, pipelines, dashboards, reports and metrics to accelerate data-driven decisions.")]
+    for col,(h,t) in zip([c1,c2,c3],cards):
+        with col: st.markdown(f'<div class="about-card"><h3>{h}</h3><p>{t}</p></div>',unsafe_allow_html=True)
+    st.markdown("### Why Dilytics for modern analytics")
+    points=["End-to-end analytics, data engineering and AI capabilities.","Natural-language access to insights through conversational interfaces.","Modular solutions that can be customized to business processes.","Snowflake, Power BI, Tableau and other modern data-platform expertise."]
+    for p in points: st.markdown(f"✓ **{p}**")
+    st.markdown("### Key milestones")
+    milestones=[("2011","DiLytics was founded in California to deliver enterprise analytics solutions."),("2012","Delivered a complex supply-chain planning analytics solution for a leading biopharmaceutical organization."),("2023–2024","Expanded strategic engagements and implemented DiLytics Insight Solutions for major organizations."),("2025","Delivered Sales, Finance and Planning Analytics solutions for a leading global medical-device manufacturer."),("2026","Expanded analytics delivery across nonprofit behavioral health and other data-driven organizations.")]
+    for year,desc in milestones:
+        st.markdown(f"**{year}**  —  {desc}")
+    if st.button("⌂ Home",use_container_width=False): _set_page("home")
+
+
+def _home_page():
+    st.markdown("""
+    <style>
+      .home-wrap{background:#fff;color:#09295f}.home-hero{display:grid;grid-template-columns:1fr 1fr;gap:35px;align-items:center;padding:35px 20px 28px}.home-eyebrow{letter-spacing:4px;color:#1769d2;font-weight:800}.home-title{font-size:4rem;line-height:1.02;font-weight:900;color:#082d69}.home-title span{color:#1769d2}.home-sub{font-size:1.12rem;color:#587291;line-height:1.6;max-width:600px}.home-robot{height:370px;position:relative;display:flex;align-items:center;justify-content:center}.orb{width:330px;height:330px;border-radius:50%;background:radial-gradient(circle,#eaf7ff,#d9efff);display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 25px rgba(31,129,225,.05);animation:pulse 4s ease-in-out infinite}.bot{width:190px;height:145px;border:5px solid #1769d2;border-radius:55px;background:linear-gradient(#fff,#d9ecff);position:relative;box-shadow:0 25px 40px rgba(23,91,160,.18);animation:float 3.5s ease-in-out infinite}.face{position:absolute;inset:20px;background:#062454;border-radius:38px;display:flex;justify-content:center;align-items:center;gap:32px}.eye{width:22px;height:30px;border-radius:50%;background:#23d5ff;box-shadow:0 0 15px #23d5ff}.bot:after{content:'DILYTICS';position:absolute;bottom:-37px;left:50%;transform:translateX(-50%);background:#e51f2b;color:#fff;font-weight:900;padding:5px 11px;border-radius:3px}.bubble{position:absolute;right:5%;top:5%;padding:18px 22px;background:#fff;border:1px solid #d4e8ff;border-radius:20px;color:#1769d2;box-shadow:0 12px 30px rgba(23,91,160,.12);font-weight:700}.home-stats{display:flex;gap:35px;margin-top:25px;color:#315a88}.module-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:15px}.module-card{background:#fff;border:1px solid #d5eaff;border-radius:22px;padding:28px;box-shadow:0 15px 40px rgba(23,91,160,.07)}.module-card h2{color:#082d69}.module-card p{color:#587291;line-height:1.55}.module-card li{margin:9px 0;color:#183e70}.module-actions{display:flex;gap:12px;margin-top:22px}.module-actions .stButton>button{border-radius:12px!important}.home-footer{border-top:1px solid #dcecff;margin-top:35px;padding:20px 0;color:#5a7392;text-align:center}@keyframes float{50%{transform:translateY(-12px)}}@keyframes pulse{50%{transform:scale(1.03)}}@media(max-width:850px){.home-hero,.module-grid{grid-template-columns:1fr}.home-title{font-size:2.8rem}}
+    </style>
+    <div class="home-hero"><div><div class="home-eyebrow">WELCOME TO DILYTICS</div><div class="home-title">Your AI-Powered<br><span>Data Companion</span></div><div class="home-sub">Ask questions, explore insights, and make smarter decisions with the power of your data.</div><div class="home-stats"><span>▮ Insights Made Simple</span><span>⚡ Faster Decisions</span><span>✓ Secure & Compliant</span></div></div><div class="home-robot"><div class="orb"><div class="bot"><div class="face"><div class="eye"></div><div class="eye"></div></div></div></div><div class="bubble"><b>Hi!</b><br>How can I help you<br>today?</div></div></div>
+    """,unsafe_allow_html=True)
+    st.markdown('<div class="module-grid">',unsafe_allow_html=True)
+    c1,c2=st.columns(2)
+    with c1:
+        st.markdown("""<div class="module-card"><h2>▦ &nbsp; Inventory Intelligence</h2><p>Get real-time insights into stock levels, warehouse capacity and product performance.</p><ul><li>Track inventory levels and availability</li><li>Analyze stock value by warehouse and category</li><li>Identify excess and out-of-stock items</li><li>Find products that need to be reordered</li></ul></div>""",unsafe_allow_html=True)
+        a,b=st.columns(2)
+        with a:
+            if st.button("⌁ Explore Inventory",use_container_width=True,key="home_inv_explore"): _set_page("inventory")
+        with b:
+            if st.button("◯ Chat with AI",use_container_width=True,key="home_inv_chat"): _set_page("chatbot")
+    with c2:
+        st.markdown("""<div class="module-card"><h2>▥ &nbsp; Sales Intelligence</h2><p>Uncover sales trends, customer insights and revenue opportunities across products, regions and channels.</p><ul><li>Analyze total sales and revenue</li><li>Identify top products and customer segments</li><li>Track sales by region and channel</li><li>Monitor monthly and quarterly trends</li></ul></div>""",unsafe_allow_html=True)
+        a,b=st.columns(2)
+        with a:
+            if st.button("⌁ Explore Sales",use_container_width=True,key="home_sales_explore"): _set_page("sales")
+        with b:
+            if st.button("◯ Chat with AI",use_container_width=True,key="home_sales_chat"): _set_page("chatbot")
+    st.markdown('</div>',unsafe_allow_html=True)
+    st.markdown('<div class="home-footer">© 2026 DiLytics. All rights reserved. &nbsp; | &nbsp; Powered by Snowflake &nbsp; | &nbsp; Secure & Compliant &nbsp; | &nbsp; Insights Made Simple</div>',unsafe_allow_html=True)
+
+
+# Initialize route state and render non-chat pages.
+if "app_page" not in st.session_state:
+    st.session_state.app_page = "home"
+
+if st.session_state.app_page != "chatbot":
+    _top_nav()
+    page=st.session_state.app_page
+    if page=="home": _home_page()
+    elif page=="inventory": _module_page("inventory")
+    elif page=="sales": _module_page("sales")
+    elif page=="document_ai": _document_ai_page()
+    elif page=="about": _about_page()
+    st.stop()
+
+# Chatbot page keeps the existing working Cortex Analyst/document code below.
+
+# ===================================================================
 # 3. CHAT SESSION STATE
 # ===================================================================
 if "chat_sessions" not in st.session_state:
@@ -2021,31 +1713,16 @@ with st.sidebar:
             st.rerun()
 # 6. MAIN HEADER
 # ===================================================================
-head_col1, head_col2 = st.columns([4.5, 1.2])
+st.markdown("""<style>.chat-top{background:#fff;border:1px solid #dcecff;border-radius:18px;padding:10px 15px;box-shadow:0 8px 25px rgba(23,91,160,.06)}.chat-brand{font-size:1.35rem;font-weight:900;color:#082d69}.chat-brand span{color:#1769d2}</style><div class="chat-top"><span class="chat-brand">DILYTICS <span>Enterprise AI</span></span></div>""",unsafe_allow_html=True)
+cc1,cc2,cc3,cc4=st.columns([5,1.1,1.1,1.3])
+with cc1: st.caption("Ask natural-language questions across Inventory, Sales, Supply Chain, and uploaded documents.")
+with cc2:
+    if st.button("⌂ Home",use_container_width=True,key="chat_home"): _set_page("home")
+with cc3:
+    if st.button("▣ Docs",use_container_width=True,key="chat_docs"): _set_page("document_ai")
+with cc4:
+    if st.button("Logout",use_container_width=True,key="chat_logout"): _logout()
 
-with head_col1:
-    st.markdown(
-        """
-        <div class="dly-topbar">
-            <div class="dly-brand"><span class="dly-logo">DLY</span> Dilytics Enterprise AI</div>
-            <div class="dly-nav"><span>Solutions</span><span>Data Intelligence</span><span>Cortex AI</span><span>Analytics</span></div>
-            <div class="dly-status">● Cortex Analyst Live</div>
-        </div>
-        <div class="dly-hero">
-            <div class="dly-eyebrow">Powered by Snowflake Cortex AI</div>
-            <h1>Chat with your <span>business data</span></h1>
-            <p>Ask questions in natural language and get intelligent insights from Inventory, Sales, Supply Chain, and your connected data sources.</p>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-with head_col2:
-    st.write("")
-    st.write("")
-
-
-# ===================================================================
 # 7. EXAMPLE QUESTIONS
 # These buttons are only examples. They do NOT contain SQL.
 # ===================================================================
@@ -2054,8 +1731,8 @@ quick_prompt = None
 st.markdown("### Explore your data")
 st.caption("Choose a question below or type your own question in the chat.")
 
-tab_inv, tab_sales = st.tabs(
-    ["📦 Inventory Intelligence", "💰 Sales Intelligence"]
+tab_inv, tab_sales, tab_supply = st.tabs(
+    ["📦 Inventory Intelligence", "💰 Sales Intelligence", "🚚 Supply Chain Intelligence"]
 )
 
 with tab_inv:
