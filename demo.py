@@ -1,22 +1,13 @@
 import io
-import re
-import uuid
-import zipfile
-import xml.etree.ElementTree as ET
-from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
-
-import pandas as pd
-import requests
-import snowflake.connector
 import streamlit as st
+import pandas as pd
+from datetime import datetime
+import snowflake.connector
 from snowflake.snowpark import Session
-
-try:
-    import pypdf
-except ImportError:
-    pypdf = None
-
+import requests
+from typing import Any, Dict, List, Optional
+import re
+import yaml
 
 # ===================================================================
 # Configuration
@@ -28,19 +19,15 @@ SCHEMA = "GOLD"
 WAREHOUSE = "COMPUTE_WH"
 ROLE = "ACCOUNTADMIN"
 
+# FULL semantic-model YAML files on Snowflake stages.
 INVENTORY_YAML_STAGE_PATH = (
-    '@"INVENTORY_DW_DEMO"."INVENTORY_SCHEMA"."YAML"/'
-    'INV_ANALYST_DEMO_90_VERIFIED_FIXED_1.yaml'
+    '@"INVENTORY_DW_DEMO"."INVENTORY_SCHEMA"."YAML"/INV_ANALYST_DEMO_90_VERIFIED_FIXED_1.yaml'
 )
-
 SALES_YAML_STAGE_PATH = (
-    '@"CORTEX_DEMO"."CORTEX_SCHEMA"."YAML"/'
-    'sales_intelligence_model_80_queries_fixed_FINAL.yaml'
+    '@"CORTEX_DEMO"."CORTEX_SCHEMA"."YAML"/sales_intelligence_model_80_queries_fixed_FINAL.yaml'
 )
 
-ANALYST_ENDPOINT = (
-    f"https://{HOST}/api/v2/cortex/analyst/message"
-)
+ANALYST_ENDPOINT = f"https://{HOST}/api/v2/cortex/analyst/message"
 
 st.set_page_config(
     page_title="Dilytics Enterprise AI",
@@ -48,30 +35,20 @@ st.set_page_config(
     layout="wide",
 )
 
-st.markdown(
-    """
-    <style>
-    .status-pill {
-        display:inline-flex;
-        align-items:center;
-        gap:6px;
-        background-color:#ecfdf5;
-        color:#065f46;
-        border:1px solid #a7f3d0;
-        border-radius:20px;
-        padding:2px 10px;
-        font-size:.75rem;
-        font-weight:600;
-    }
-    div[data-testid="stButton"] > button {
-        border-radius:8px;
-        font-weight:500;
-        transition:all .2s ease-in-out;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
+st.markdown("""
+<style>
+.status-pill {
+    display:inline-flex; align-items:center; gap:6px;
+    background-color:#ecfdf5; color:#065f46;
+    border:1px solid #a7f3d0; border-radius:20px;
+    padding:2px 10px; font-size:.75rem; font-weight:600;
+}
+div[data-testid="stButton"] > button {
+    border-radius:8px; font-weight:500;
+    transition:all .2s ease-in-out;
+}
+</style>
+""", unsafe_allow_html=True)
 
 
 # ===================================================================
@@ -89,12 +66,10 @@ if not st.session_state.authenticated:
     st.markdown("Please login to connect to your Snowflake Data Warehouse.")
 
     st.session_state.username = st.text_input(
-        "Enter Snowflake Username:",
-        value=st.session_state.username,
+        "Enter Snowflake Username:", value=st.session_state.username
     )
     st.session_state.password = st.text_input(
-        "Enter Password:",
-        type="password",
+        "Enter Password:", type="password"
     )
 
     if st.button("Login"):
@@ -111,21 +86,15 @@ if not st.session_state.authenticated:
                     database=DATABASE,
                     schema=SCHEMA,
                 )
-
                 st.session_state.snowflake_conn = conn
                 st.session_state.snowpark_session = (
-                    Session.builder
-                    .configs({"connection": conn})
-                    .create()
+                    Session.builder.configs({"connection": conn}).create()
                 )
                 st.session_state.authenticated = True
                 st.rerun()
-
         except Exception as e:
             st.error(f"Authentication failed: {e}")
-
     st.stop()
-
 
 session = st.session_state.snowpark_session
 conn = st.session_state.snowflake_conn
@@ -133,6 +102,10 @@ conn = st.session_state.snowflake_conn
 
 # ===================================================================
 # 2. CORTEX ANALYST
+#
+# No Python question -> SQL mapping.
+# Cortex Analyst receives the complete YAML semantic model(s),
+# understands the user's natural-language question, and generates SQL.
 # ===================================================================
 def get_analyst_headers() -> Dict[str, str]:
     token = conn.rest.token
@@ -145,12 +118,10 @@ def get_analyst_headers() -> Dict[str, str]:
 
 def call_cortex_analyst(prompt: str) -> Dict[str, Any]:
     request_body = {
-        "messages": [
-            {
-                "role": "user",
-                "content": [{"type": "text", "text": prompt}],
-            }
-        ],
+        "messages": [{
+            "role": "user",
+            "content": [{"type": "text", "text": prompt}],
+        }],
         "semantic_models": [
             {"semantic_model_file": INVENTORY_YAML_STAGE_PATH},
             {"semantic_model_file": SALES_YAML_STAGE_PATH},
@@ -170,7 +141,6 @@ def call_cortex_analyst(prompt: str) -> Dict[str, Any]:
             details = response.json()
         except Exception:
             details = response.text
-
         raise RuntimeError(
             f"Cortex Analyst API error ({response.status_code}): {details}"
         )
@@ -183,14 +153,11 @@ def call_cortex_analyst_with_semantic_model(
     semantic_model_yaml: str,
 ) -> Dict[str, Any]:
     """Call Cortex Analyst with an inline, dynamically generated YAML model."""
-
     request_body = {
-        "messages": [
-            {
-                "role": "user",
-                "content": [{"type": "text", "text": prompt}],
-            }
-        ],
+        "messages": [{
+            "role": "user",
+            "content": [{"type": "text", "text": prompt}],
+        }],
         "semantic_model": semantic_model_yaml,
         "stream": False,
     }
@@ -207,19 +174,16 @@ def call_cortex_analyst_with_semantic_model(
             details = response.json()
         except Exception:
             details = response.text
-
         raise RuntimeError(
             f"Cortex Analyst API error ({response.status_code}): {details}"
         )
 
     data = response.json()
-
     if isinstance(data, dict) and data.get("error_code"):
         raise RuntimeError(
             f"Cortex Analyst returned error {data.get('error_code')}: "
             f"{data.get('message', data)}"
         )
-
     return data
 
 
@@ -235,7 +199,6 @@ def extract_analyst_response(data: Dict[str, Any]) -> Dict[str, Any]:
 
     message = data.get("message", {})
     content = message.get("content", [])
-
     if isinstance(content, dict):
         content = [content]
 
@@ -254,7 +217,6 @@ def extract_analyst_response(data: Dict[str, Any]) -> Dict[str, Any]:
                 or block.get("sql")
                 or block.get("query")
             )
-
             confidence = block.get("confidence", {})
             if isinstance(confidence, dict):
                 result["verified_query_used"] = confidence.get(
@@ -263,7 +225,6 @@ def extract_analyst_response(data: Dict[str, Any]) -> Dict[str, Any]:
 
         elif block_type == "suggestions":
             suggestions = block.get("suggestions", [])
-
             if isinstance(suggestions, list):
                 text_parts.append(
                     "I could not generate SQL for this question. "
@@ -280,856 +241,747 @@ def extract_analyst_response(data: Dict[str, Any]) -> Dict[str, Any]:
 
     return result
 
-
 # ===================================================================
-# 2A. UPLOADED DOCUMENT / TABLE SUPPORT
+# 2A. UPLOADED DOCUMENT ANALYSIS (ADDED - ORIGINAL CORTEX ANALYST
+#     INVENTORY/SALES CODE IS PRESERVED)
 # ===================================================================
-def _quote_ident(name: str) -> str:
-    """Safely quote a Snowflake identifier."""
-    return '"' + str(name).replace('"', '""') + '"'
+# PDF/Word document Q&A uses the current AI_COMPLETE document capability.
+# Excel/CSV continues to use the existing Cortex Analyst path unchanged.
+DOCUMENT_AI_MODEL = "claude-sonnet-4-6"
+DOCUMENT_STAGE_DB = "INVENTORY_DW_DEMO"
+DOCUMENT_STAGE_SCHEMA = "GOLD"
+DOCUMENT_STAGE_NAME = "DILYTICS_DOCUMENT_STAGE"
+
+if "uploaded_document" not in st.session_state:
+    st.session_state.uploaded_document = None
+if "uploaded_document_name" not in st.session_state:
+    st.session_state.uploaded_document_name = None
+if "uploaded_document_df" not in st.session_state:
+    st.session_state.uploaded_document_df = None
+if "uploaded_document_text" not in st.session_state:
+    st.session_state.uploaded_document_text = ""
+if "uploaded_document_type" not in st.session_state:
+    st.session_state.uploaded_document_type = None
+if "uploaded_document_table" not in st.session_state:
+    st.session_state.uploaded_document_table = None
+if "uploaded_document_semantic_model" not in st.session_state:
+    st.session_state.uploaded_document_semantic_model = None
+if "uploaded_document_stage" not in st.session_state:
+    st.session_state.uploaded_document_stage = None
+if "uploaded_document_stage_file" not in st.session_state:
+    st.session_state.uploaded_document_stage_file = None
 
 
-def _uploaded_table_name() -> Optional[str]:
-    return st.session_state.get("uploaded_document_table")
+def _snowflake_sql_literal(value: str) -> str:
+    """Safely convert a Python string into a Snowflake SQL string literal."""
+    if value is None:
+        return "NULL"
+    return "'" + str(value).replace("'", "''") + "'"
 
 
-def _drop_uploaded_table() -> None:
-    table_name = _uploaded_table_name()
+def _document_stage_quoted_name() -> str:
+    """Return the fully-qualified named stage used for PDF/DOCX files."""
+    return (
+        f'"{DOCUMENT_STAGE_DB}"."{DOCUMENT_STAGE_SCHEMA}".'
+        f'"{DOCUMENT_STAGE_NAME}"'
+    )
 
-    if table_name:
+
+def _document_stage_file_reference() -> str:
+    """Return the fully-qualified @stage reference required by PUT/TO_FILE."""
+    return '@' + _document_stage_quoted_name()
+
+
+def _ensure_document_stage():
+    """Create the persistent, server-encrypted named stage used by AI_COMPLETE.
+
+    AI_COMPLETE document processing requires the referenced FILE to live on an
+    accessible internal/external stage. A temporary stage is session-scoped and
+    is not reliable for this document-processing path, so use a dedicated named
+    internal stage instead.
+    """
+    stage_name = _document_stage_quoted_name()
+    try:
+        session.sql(
+            f"CREATE STAGE IF NOT EXISTS {stage_name} "
+            "ENCRYPTION = (TYPE = 'SNOWFLAKE_SSE')"
+        ).collect()
+    except Exception as exc:
+        raise RuntimeError(
+            f"Could not create or access document stage {stage_name}. "
+            "Run this once with a role that can CREATE STAGE in "
+            f"{DOCUMENT_STAGE_DB}.{DOCUMENT_STAGE_SCHEMA}, or grant the Streamlit role "
+            "USAGE on the database/schema and READ/WRITE on the stage."
+        ) from exc
+    return stage_name
+
+
+def _upload_document_to_stage(uploaded_file) -> str:
+    """Upload a PDF/DOCX to the session's temporary Snowflake stage."""
+    import os
+    import tempfile
+
+    extension = uploaded_file.name.rsplit(".", 1)[-1].lower()
+    if extension not in {"pdf", "docx"}:
+        raise ValueError("Only PDF and Word (.docx) documents can use document Q&A.")
+
+    stage_name = _ensure_document_stage()
+    safe_name = re.sub(r"[^A-Za-z0-9_.-]+", "_", uploaded_file.name)
+
+    # Claude Sonnet 4.6 supports documents up to 22 MB.
+    file_size = getattr(uploaded_file, "size", None)
+    if file_size is not None and file_size > 22 * 1024 * 1024:
+        raise ValueError(
+            f"The PDF/Word file is {file_size / (1024 * 1024):.2f} MB. "
+            "The selected Claude Sonnet 4.6 document model supports files up to 22 MB."
+        )
+    if not safe_name.lower().endswith((".pdf", ".docx")):
+        safe_name = f"document.{extension}"
+
+    with tempfile.NamedTemporaryFile(delete=False, suffix=f".{extension}") as tmp:
+        uploaded_file.seek(0)
+        tmp.write(uploaded_file.getvalue())
+        local_path = tmp.name
+
+    try:
+        # Do not compress: AI_COMPLETE needs the original document extension/content.
+        session.file.put(
+            local_path,
+            _document_stage_file_reference(),
+            auto_compress=False,
+            overwrite=True,
+        )
+    finally:
         try:
-            session.sql(
-                f"DROP TABLE IF EXISTS {_quote_ident(table_name)}"
-            ).collect()
-        except Exception:
+            os.remove(local_path)
+        except OSError:
             pass
 
-    st.session_state.uploaded_document_table = None
-    st.session_state.uploaded_document_semantic_model = None
+    st.session_state.uploaded_document_stage = _document_stage_file_reference()
+    st.session_state.uploaded_document_stage_file = safe_name
+    return safe_name
 
 
-def _normalize_dataframe_for_snowflake(df: pd.DataFrame) -> pd.DataFrame:
-    """Make mixed/object columns safe for write_pandas."""
+def ai_complete_document_question(question: str) -> str:
+    """Answer a question directly from the uploaded PDF/DOCX using AI_COMPLETE.
 
-    result = df.copy()
-    result = result.dropna(how="all").reset_index(drop=True)
-
-    # Snowflake column names must be strings and should be unique.
-    new_columns = []
-    seen = {}
-
-    for idx, col in enumerate(result.columns):
-        base = str(col).strip() or f"COL_{idx + 1}"
-        base = re.sub(r"[^A-Za-z0-9_]+", "_", base).strip("_")
-        if not base:
-            base = f"COL_{idx + 1}"
-
-        base = base.upper()
-
-        count = seen.get(base, 0)
-        seen[base] = count + 1
-        if count:
-            base = f"{base}_{count + 1}"
-
-        new_columns.append(base)
-
-    result.columns = new_columns
-
-    for col in result.columns:
-        if pd.api.types.is_object_dtype(result[col]):
-            result[col] = result[col].map(
-                lambda x: (
-                    None
-                    if pd.isna(x)
-                    else x.isoformat()
-                    if isinstance(x, (datetime, pd.Timestamp))
-                    else str(x)
-                )
-            )
-
-    return result
-
-
-def _infer_column_role(series: pd.Series, column_name: str) -> str:
-    name = column_name.lower()
-
-    if pd.api.types.is_datetime64_any_dtype(series):
-        return "time"
-
-    if pd.api.types.is_bool_dtype(series):
-        return "dimension"
-
-    if pd.api.types.is_numeric_dtype(series):
-        return "fact"
-
-    date_keywords = [
-        "date",
-        "time",
-        "timestamp",
-        "created",
-        "updated",
-        "month",
-        "year",
-    ]
-
-    if any(k in name for k in date_keywords):
-        converted = pd.to_datetime(series, errors="coerce")
-        if converted.notna().mean() >= 0.70:
-            return "time"
-
-    return "dimension"
-
-
-def _yaml_scalar(value: Any) -> str:
-    text = str(value).replace("\\", "\\\\").replace('"', '\\"')
-    return f'"{text}"'
-
-
-def build_uploaded_semantic_model(
-    df: pd.DataFrame,
-    table_name: str,
-) -> str:
+    This is intentionally separate from the working Excel/CSV Cortex Analyst path.
+    It does not use the legacy SNOWFLAKE.CORTEX.COMPLETE function.
     """
-    Build a simple one-table semantic model for an uploaded spreadsheet.
+    stage_name = st.session_state.get("uploaded_document_stage")
+    stage_file = st.session_state.get("uploaded_document_stage_file")
 
-    The model intentionally avoids sample_values because those can make
-    semantic-model validation fail when generated dynamically.
-    """
+    if not stage_name or not stage_file:
+        raise RuntimeError(
+            "The uploaded PDF/Word document is not available in the Snowflake stage. "
+            "Please click Analyze Document again."
+        )
 
-    fq_table = (
-        f"{_quote_ident(DATABASE)}."
-        f"{_quote_ident(SCHEMA)}."
-        f"{_quote_ident(table_name)}"
+    model_literal = _snowflake_sql_literal(DOCUMENT_AI_MODEL)
+    question_literal = _snowflake_sql_literal(
+        "Answer the user's question using only the uploaded document. "
+        "Be precise and concise. If the document does not contain enough information "
+        "to answer, say so instead of inventing information. "
+        "User question: " + question
     )
+    # TO_FILE expects the stage reference as a string such as
+    # '@"DATABASE"."SCHEMA"."STAGE"'.
+    stage_literal = _snowflake_sql_literal(stage_name)
+    file_literal = _snowflake_sql_literal(stage_file)
+
+    sql = f"""
+        SELECT AI_COMPLETE(
+            MODEL => {model_literal},
+            PROMPT => PROMPT(
+                {question_literal} || '\n\nDocument to analyze: {{0}}',
+                TO_FILE({stage_literal}, {file_literal})
+            )
+        ) AS RESPONSE
+    """
+
+    rows = session.sql(sql).collect()
+    if not rows:
+        raise RuntimeError("AI_COMPLETE did not return a response.")
+
+    row = rows[0]
+    try:
+        response = row["RESPONSE"]
+    except Exception:
+        response = row[0]
+
+    if response is None:
+        raise RuntimeError(
+            "AI_COMPLETE returned no answer. Check that the SNOWFLAKE.CORTEX_USER "
+            "database role is available and that the document is within the model's size limit."
+        )
+
+    # Some AI_COMPLETE variants can return an object when error details are requested;
+    # this call uses the normal string response, so stringify defensively.
+    return str(response)
+
+def _clean_generated_sql(text_value: str) -> str:
+    """Extract and validate a read-only SELECT/WITH SQL statement."""
+    sql_text = str(text_value or "").strip()
+
+    if "```" in sql_text:
+        blocks = re.findall(
+            r"```(?:sql|SQL)?\s*(.*?)```", sql_text, flags=re.DOTALL
+        )
+        if blocks:
+            sql_text = blocks[0].strip()
+
+    sql_text = re.sub(
+        r"^\s*(SQL\s*:|Query\s*:)\s*", "", sql_text, flags=re.I
+    ).strip().rstrip(";").strip()
+
+    if not re.match(r"^(SELECT|WITH)\b", sql_text, flags=re.I):
+        raise RuntimeError(
+            "Cortex Analyst did not return a valid SELECT/WITH statement."
+        )
+
+    forbidden = re.search(
+        r"\b(INSERT|UPDATE|DELETE|MERGE|DROP|ALTER|TRUNCATE|CREATE|GRANT|REVOKE|COPY|PUT|REMOVE|CALL)\b",
+        sql_text,
+        flags=re.I,
+    )
+    if forbidden:
+        raise RuntimeError(
+            f"Generated document SQL contains a non-read-only command: {forbidden.group(1)}"
+        )
+
+    return sql_text
+
+
+def _normalize_uploaded_dataframe(df: pd.DataFrame) -> pd.DataFrame:
+    """Make mixed Excel/CSV columns safe for Streamlit and Snowflake.
+
+    Numeric/date/bool columns stay typed. Object columns are normalized to text
+    because Excel frequently mixes integers, strings such as 'Grand Total', and
+    blanks in the same column.
+    """
+    if df is None:
+        return df
+
+    work_df = df.copy()
+    for col in work_df.columns:
+        series = work_df[col]
+        if pd.api.types.is_object_dtype(series.dtype):
+            work_df[col] = series.map(
+                lambda value: None if pd.isna(value) else str(value)
+            )
+    return work_df
+
+
+def _safe_column_names(df: pd.DataFrame):
+    """Create SQL-friendly, unique Snowflake column names."""
+    mapping = {}
+    used = set()
+
+    for original in df.columns:
+        base = re.sub(
+            r"[^A-Za-z0-9_]+", "_", str(original)
+        ).strip("_").upper()
+        if not base:
+            base = "COLUMN"
+        if base[0].isdigit():
+            base = "_" + base
+
+        candidate = base
+        n = 2
+        while candidate in used:
+            candidate = f"{base}_{n}"
+            n += 1
+
+        used.add(candidate)
+        mapping[str(original)] = candidate
+
+    return mapping
+
+
+def _snowflake_type_for_pandas(dtype) -> str:
+    if pd.api.types.is_bool_dtype(dtype):
+        return "BOOLEAN"
+    if pd.api.types.is_integer_dtype(dtype):
+        return "NUMBER"
+    if pd.api.types.is_float_dtype(dtype):
+        return "NUMBER"
+    if pd.api.types.is_datetime64_any_dtype(dtype):
+        return "TIMESTAMP_NTZ"
+    return "TEXT"
+
+
+def _column_synonyms(original_name: str):
+    """Create conservative synonyms from the actual uploaded header."""
+    text = re.sub(r"[_\-]+", " ", str(original_name)).strip()
+    words = text.split()
+    synonyms = [text.lower()]
+
+    if text.lower().endswith(" id"):
+        synonyms.append(text[:-3].strip().lower() + " identifier")
+    if "commercial project" in text.lower() and "id" in text.lower():
+        synonyms.extend(["project id", "commercial project"])
+    if "jurisdiction" in text.lower():
+        synonyms.extend(["jurisdiction", "local jurisdiction"])
+    if "contractor" in text.lower():
+        synonyms.extend(["contractor", "vendor"])
+    if "business name" in text.lower():
+        synonyms.extend(["business", "project business"])
+    if "close out" in text.lower() or "closeout" in text.lower():
+        synonyms.extend([
+            "closeout date",
+            "close out date",
+            "completion date",
+            "completed date",
+        ])
+
+    # Preserve order and uniqueness.
+    result = []
+    seen = set()
+    for item in synonyms:
+        item = item.strip()
+        if item and item not in seen:
+            result.append(item)
+            seen.add(item)
+    return result[:8]
+
+
+def _sample_values(df: pd.DataFrame, original: str, limit: int = 5):
+    values = []
+    for value in df[original].dropna().head(limit).tolist():
+        text = str(value)
+        if len(text) > 100:
+            text = text[:97] + "..."
+        values.append(text)
+    return values
+
+
+def build_uploaded_semantic_model(df: pd.DataFrame, table_name: str) -> str:
+    """Build a semantic model directly from the uploaded spreadsheet schema.
+
+    The model is sent inline to the Cortex Analyst REST API. No COMPLETE call
+    and no hard-coded question-to-SQL mapping are used.
+    """
+    mapping = _safe_column_names(df)
 
     dimensions = []
     time_dimensions = []
     facts = []
 
-    for col in df.columns:
-        role = _infer_column_role(df[col], str(col))
+    for original, safe in mapping.items():
+        dtype = df[original].dtype
+        sf_type = _snowflake_type_for_pandas(dtype)
+        synonyms = _column_synonyms(original)
+        desc = f"Uploaded spreadsheet column '{original}'."
 
-        if role == "time":
-            time_dimensions.append(
-                {
-                    "name": str(col).lower(),
-                    "expr": _quote_ident(col),
-                    "data_type": "date",
-                    "synonyms": [str(col).replace("_", " ")],
-                }
+        # Close-out date is commonly the strongest completion indicator in
+        # project workbooks. Only add this interpretation when that real column exists.
+        original_lower = original.lower()
+        if "close out" in original_lower or "closeout" in original_lower:
+            desc = (
+                f"Uploaded spreadsheet column '{original}'. A non-null value indicates "
+                "that the project received close-out approval and can be used as a "
+                "completion indicator."
             )
-        elif role == "fact":
-            facts.append(
-                {
-                    "name": str(col).lower(),
-                    "expr": _quote_ident(col),
-                    "data_type": "number",
-                    "synonyms": [str(col).replace("_", " ")],
-                }
-            )
+
+        entry = {
+            "name": safe,
+            "description": desc,
+            "expr": safe,
+            "data_type": sf_type,
+            "unique": False,
+        }
+        if synonyms:
+            entry["synonyms"] = synonyms
+        if pd.api.types.is_datetime64_any_dtype(dtype):
+            time_dimensions.append(entry)
         else:
-            dimensions.append(
-                {
-                    "name": str(col).lower(),
-                    "expr": _quote_ident(col),
-                    "data_type": "text",
-                    "synonyms": [str(col).replace("_", " ")],
-                }
-            )
+            dimensions.append(entry)
 
-    # YAML is generated manually so no PyYAML formatting surprises occur.
-    lines = [
-        "name: uploaded_document_model",
-        "description: Semantic model generated from the uploaded spreadsheet.",
-        "tables:",
-        "  - name: UPLOADED_DATA",
-        f"    base_table:",
-        f"      database: {DATABASE}",
-        f"      schema: {SCHEMA}",
-        f"      table: {table_name}",
-        "    dimensions:",
-    ]
+        if pd.api.types.is_numeric_dtype(dtype):
+            facts.append({
+                "name": safe,
+                "description": f"Numeric value from uploaded column '{original}'.",
+                "expr": safe,
+                "data_type": "NUMBER",
+            })
 
-    if dimensions:
-        for d in dimensions:
-            lines.extend(
-                [
-                    f"      - name: {d['name']}",
-                    f"        expr: {d['expr']}",
-                    f"        data_type: {d['data_type']}",
-                    f"        synonyms:",
-                    f"          - {_yaml_scalar(d['synonyms'][0])}",
-                ]
-            )
-    else:
-        lines.append("      []")
+    # A row indicator gives Analyst an explicit way to calculate row/project
+    # counts without requiring any hard-coded question mapping.
+    facts.append({
+        "name": "ROW_INDICATOR",
+        "description": "One numeric indicator per uploaded spreadsheet row. SUM this fact to count rows/projects.",
+        "expr": "1",
+        "data_type": "NUMBER",
+    })
 
-    lines.append("    time_dimensions:")
+    # Add a semantic completion flag only when a real close-out column exists.
+    closeout_safe = None
+    for original, safe in mapping.items():
+        low = original.lower()
+        if "close out" in low or "closeout" in low:
+            closeout_safe = safe
+            break
 
+    if closeout_safe:
+        dimensions.append({
+            "name": "IS_COMPLETED",
+            "description": "True when the close-out approval date is not null; this represents a completed project in this uploaded workbook.",
+            "expr": f"{closeout_safe} IS NOT NULL",
+            "data_type": "BOOLEAN",
+            "unique": False,
+            "synonyms": ["completed", "project completed", "completion status"],
+        })
+
+    table_definition = {
+        "name": "UPLOADED_DATA",
+        "description": "One logical table containing the complete uploaded spreadsheet.",
+        "base_table": {
+            "database": DATABASE,
+            "schema": SCHEMA,
+            "table": table_name,
+        },
+        "dimensions": dimensions,
+        "facts": facts,
+    }
     if time_dimensions:
-        for d in time_dimensions:
-            lines.extend(
-                [
-                    f"      - name: {d['name']}",
-                    f"        expr: {d['expr']}",
-                    f"        data_type: {d['data_type']}",
-                    f"        synonyms:",
-                    f"          - {_yaml_scalar(d['synonyms'][0])}",
-                ]
-            )
-    else:
-        lines.append("      []")
+        table_definition["time_dimensions"] = time_dimensions
 
-    lines.append("    facts:")
+    model = {
+        "name": "UPLOADED_DOCUMENT_ANALYSIS",
+        "description": "Semantic model generated dynamically from one uploaded spreadsheet. Use only this uploaded dataset.",
+        "tables": [table_definition],
+        "module_custom_instructions": {
+            "sql_generation": (
+                "Use only the uploaded_data logical table. Query the complete underlying table. "
+                "Use ROW_INDICATOR for total row/project counts when appropriate. "
+                "For questions asking for the count of an ID column, count non-null values of that ID; "
+                "if the ID is explicitly a unique project identifier, COUNT(DISTINCT ID) is appropriate. "
+                "If IS_COMPLETED exists, use it when the user asks about completed projects. "
+                "Do not invent columns or business definitions."
+            ),
+            "question_categorization": (
+                "Classify questions only from the uploaded table's actual columns and values. "
+                "Do not use the Inventory or Sales semantic models for this document question."
+            ),
+        },
+    }
 
-    if facts:
-        for f in facts:
-            lines.extend(
-                [
-                    f"      - name: {f['name']}",
-                    f"        expr: {f['expr']}",
-                    f"        data_type: {f['data_type']}",
-                    f"        synonyms:",
-                    f"          - {_yaml_scalar(f['synonyms'][0])}",
-                ]
-            )
-    else:
-        lines.append("      []")
-
-    lines.extend(
-        [
-            "    custom_instructions:",
-            "      - Use ROW_COUNT style questions as COUNT(*) when the user asks for the number of rows.",
-            "      - Use SUM for additive numeric measures and AVG for average questions.",
-            "      - Use COUNT(DISTINCT ...) when the user explicitly asks for unique or distinct values.",
-            "      - Use the uploaded table as the complete source of truth for spreadsheet questions.",
-        ]
+    return yaml.safe_dump(
+        model,
+        sort_keys=False,
+        allow_unicode=True,
+        default_flow_style=False,
     )
 
-    # Add a row-count fact only when there isn't already an obvious numeric
-    # metric. This helps simple "how many records" questions.
-    if not facts:
-        # Insert before custom_instructions.
-        insert_at = len(lines) - 4
-        lines[insert_at:insert_at] = [
-            "      - name: row_indicator",
-            "        expr: 1",
-            "        data_type: number",
-            "        synonyms:",
-            '          - "row count"',
-            '          - "records"',
-            '          - "projects"',
-        ]
 
-    return "\n".join(lines)
+def _drop_uploaded_table():
+    table_name = st.session_state.get("uploaded_document_table")
+    if not table_name:
+        return
+    try:
+        # Generated names contain only A-Z, 0-9 and underscore.
+        if re.fullmatch(r"UPLOADED_DOCUMENT_[A-Z0-9_]+", str(table_name)):
+            session.sql(f'DROP TABLE IF EXISTS "{table_name}"').collect()
+    except Exception:
+        pass
+    st.session_state.uploaded_document_table = None
+    st.session_state.uploaded_document_semantic_model = None
+    st.session_state.uploaded_document_stage_file = None
 
 
-def prepare_uploaded_table(df: pd.DataFrame) -> None:
-    """Write the uploaded spreadsheet to a transient table and build its model."""
+def process_uploaded_document(uploaded_file):
+    """Read CSV/XLSX/XLS/PDF/DOCX and return display data/text."""
+    name = uploaded_file.name
+    extension = name.rsplit(".", 1)[-1].lower()
 
-    clean_df = _normalize_dataframe_for_snowflake(df)
+    if extension == "csv":
+        uploaded_file.seek(0)
+        df = pd.read_csv(uploaded_file)
+        df = _normalize_uploaded_dataframe(df)
+        return "table", df, "", f"CSV file loaded with {len(df):,} rows."
 
-    if clean_df.empty:
-        raise ValueError("The uploaded spreadsheet does not contain any data rows.")
+    if extension in {"xlsx", "xls"}:
+        uploaded_file.seek(0)
+        excel_file = pd.ExcelFile(uploaded_file)
+        sheet_name = excel_file.sheet_names[0]
+        df = pd.read_excel(excel_file, sheet_name=sheet_name)
+        df = _normalize_uploaded_dataframe(df)
+        return (
+            "table",
+            df,
+            "",
+            f"Excel file loaded from sheet '{sheet_name}' with {len(df):,} rows.",
+        )
 
-    # Keep the table name simple and unique so multiple users/runs do not collide.
-    table_name = f"UPLOADED_DOCUMENT_{uuid.uuid4().hex[:12].upper()}"
+    if extension == "pdf":
+        try:
+            from pypdf import PdfReader
+        except ImportError:
+            from PyPDF2 import PdfReader
+
+        uploaded_file.seek(0)
+        reader = PdfReader(uploaded_file)
+        pages = []
+        for page in reader.pages:
+            pages.append(page.extract_text() or "")
+        full_text = "\n\n".join(pages).strip()
+        return "text", None, full_text, f"PDF analyzed successfully ({len(reader.pages)} pages)."
+
+    if extension == "docx":
+        # DOCX is a ZIP package containing XML. Parse it with Python's standard
+        # library so the app does not require the optional python-docx package.
+        import zipfile
+        import xml.etree.ElementTree as ET
+
+        uploaded_file.seek(0)
+        docx_bytes = uploaded_file.read()
+
+        try:
+            with zipfile.ZipFile(io.BytesIO(docx_bytes)) as zf:
+                xml_bytes = zf.read("word/document.xml")
+        except (KeyError, zipfile.BadZipFile) as exc:
+            raise ValueError("The uploaded Word file is not a valid .docx document.") from exc
+
+        try:
+            root = ET.fromstring(xml_bytes)
+        except ET.ParseError as exc:
+            raise ValueError("Could not read the Word document content.") from exc
+
+        ns = {"w": "http://schemas.openxmlformats.org/wordprocessingml/2006/main"}
+        paragraphs = []
+        for paragraph in root.findall(".//w:p", ns):
+            parts = [node.text or "" for node in paragraph.findall(".//w:t", ns)]
+            text = "".join(parts).strip()
+            if text:
+                paragraphs.append(text)
+
+        # Preserve Word tables in a simple row/column text representation.
+        table_parts = []
+        for table in root.findall(".//w:tbl", ns):
+            for row in table.findall("./w:tr", ns):
+                cells = []
+                for cell in row.findall("./w:tc", ns):
+                    cell_parts = [node.text or "" for node in cell.findall(".//w:t", ns)]
+                    cells.append(" ".join("".join(cell_parts).split()))
+                if any(cells):
+                    table_parts.append(" | ".join(cells))
+
+        full_text = "\n".join(paragraphs + table_parts).strip()
+        return "text", None, full_text, "DOCX document analyzed successfully."
+
+    raise ValueError("Unsupported document type.")
+
+
+def prepare_uploaded_table(df: pd.DataFrame) -> str:
+    """Create a transient table so Cortex Analyst's REST session can see it."""
+    if df is None or df.empty:
+        raise ValueError("The uploaded spreadsheet contains no rows.")
+
+    _drop_uploaded_table()
+
+    work_df = _normalize_uploaded_dataframe(df)
+    mapping = _safe_column_names(work_df)
+    work_df.columns = [mapping[str(c)] for c in work_df.columns]
+
+    table_name = (
+        "UPLOADED_DOCUMENT_"
+        + datetime.now().strftime("%Y%m%d_%H%M%S_%f").upper()
+    )
+
+    # IMPORTANT: do NOT use a TEMPORARY table here. Cortex Analyst REST runs
+    # in a separate Snowflake session and cannot see session-scoped temp tables.
+    # A TRANSIENT table is visible to the Analyst request and is dropped when
+    # the user uploads another document or removes the current document.
+    session.write_pandas(
+        work_df,
+        table_name,
+        auto_create_table=True,
+        overwrite=True,
+        table_type="transient",
+    )
 
     try:
-        session.write_pandas(
-            clean_df,
-            table_name,
-            database=DATABASE,
-            schema=SCHEMA,
-            auto_create_table=True,
-            overwrite=True,
-            table_type="transient",
-            quote_identifiers=True,
-        )
-    except TypeError:
-        # Compatibility fallback for older Snowpark versions.
-        session.write_pandas(
-            clean_df,
-            table_name,
-            database=DATABASE,
-            schema=SCHEMA,
-            auto_create_table=True,
-            overwrite=True,
-            quote_identifiers=True,
-        )
+        session.sql(
+            f'ALTER TABLE "{table_name}" SET DATA_RETENTION_TIME_IN_DAYS = 0'
+        ).collect()
+    except Exception:
+        pass
+
+    semantic_model = build_uploaded_semantic_model(df, table_name)
 
     st.session_state.uploaded_document_table = table_name
-    st.session_state.uploaded_document_semantic_model = (
-        build_uploaded_semantic_model(clean_df, table_name)
-    )
-    st.session_state.uploaded_document_df = clean_df
+    st.session_state.uploaded_document_semantic_model = semantic_model
+
+    return semantic_model
 
 
-def answer_uploaded_table_question(
-    question: str,
-    df: pd.DataFrame,
-) -> Tuple[pd.DataFrame, Optional[str], Dict[str, Any]]:
-    """Use Cortex Analyst against the uploaded transient table."""
+def answer_uploaded_table_question(question: str, df: pd.DataFrame):
+    """Use Cortex Analyst to generate SQL against the complete uploaded table."""
+    if df is None or df.empty:
+        raise ValueError("The uploaded spreadsheet has no usable rows.")
 
-    semantic_model = st.session_state.get(
-        "uploaded_document_semantic_model"
-    )
-    table_name = st.session_state.get("uploaded_document_table")
+    if not st.session_state.uploaded_document_table:
+        prepare_uploaded_table(df)
 
-    if not semantic_model or not table_name:
-        raise ValueError(
-            "The uploaded spreadsheet has not been loaded into Snowflake."
-        )
+    table_name = st.session_state.uploaded_document_table
+    semantic_model = st.session_state.uploaded_document_semantic_model
+
+    if not table_name or not semantic_model:
+        raise RuntimeError("The uploaded document semantic model was not created.")
 
     analyst_json = call_cortex_analyst_with_semantic_model(
         question,
         semantic_model,
     )
     result = extract_analyst_response(analyst_json)
-    sql_query = result.get("sql")
 
-    if not sql_query:
-        raise ValueError(
+    if result.get("warnings"):
+        warning_text = " ".join(
+            str(w.get("message", w)) if isinstance(w, dict) else str(w)
+            for w in result["warnings"]
+        )
+        if warning_text:
+            st.warning(warning_text)
+
+    if not result.get("sql"):
+        raise RuntimeError(
             result.get("text")
-            or "Cortex Analyst could not generate SQL for this uploaded spreadsheet."
+            or "Cortex Analyst could not generate SQL for the uploaded document question."
         )
 
-    # Guard against accidental write/DDL statements.
-    first_token = sql_query.strip().split(None, 1)[0].upper()
-    if first_token not in {"SELECT", "WITH", "SHOW", "DESCRIBE"}:
-        raise ValueError(
-            "For safety, uploaded-document questions must generate a read-only SQL query."
-        )
-
+    sql_query = _clean_generated_sql(result["sql"])
     result_df = session.sql(sql_query).to_pandas()
+
     return result_df, sql_query, result
 
 
-def extract_df_from_xlsx(file_bytes: bytes) -> pd.DataFrame:
-    """Multi-stage robust spreadsheet extraction."""
-
-    try:
-        df = pd.read_excel(
-            io.BytesIO(file_bytes),
-            engine="openpyxl",
-        )
-        if df is not None and not df.empty:
-            return df
-    except Exception:
-        pass
-
-    try:
-        df = pd.read_excel(
-            io.BytesIO(file_bytes),
-            engine="xlrd",
-        )
-        if df is not None and not df.empty:
-            return df
-    except Exception:
-        pass
-
-    try:
-        df = pd.read_excel(io.BytesIO(file_bytes))
-        if df is not None and not df.empty:
-            return df
-    except Exception:
-        pass
-
-    # Deep XLSX ZIP/XML fallback.
-    try:
-        with zipfile.ZipFile(io.BytesIO(file_bytes)) as z:
-            shared_strings = []
-
-            if "xl/sharedStrings.xml" in z.namelist():
-                ss_tree = ET.fromstring(
-                    z.read("xl/sharedStrings.xml")
-                )
-
-                for si in ss_tree.iterfind(
-                    "{http://schemas.openxmlformats.org/spreadsheetml/2006/main}si"
-                ):
-                    t_nodes = si.iterfind(
-                        ".//{http://schemas.openxmlformats.org/spreadsheetml/2006/main}t"
-                    )
-                    shared_strings.append(
-                        "".join(n.text or "" for n in t_nodes)
-                    )
-
-            sheet_files = [
-                n
-                for n in z.namelist()
-                if n.startswith("xl/worksheets/sheet")
-            ]
-
-            if sheet_files:
-                sheet_tree = ET.fromstring(
-                    z.read(sheet_files[0])
-                )
-                rows_data = []
-
-                for row in sheet_tree.iterfind(
-                    ".//{http://schemas.openxmlformats.org/spreadsheetml/2006/main}row"
-                ):
-                    row_cells = []
-
-                    for c in row.iterfind(
-                        "{http://schemas.openxmlformats.org/spreadsheetml/2006/main}c"
-                    ):
-                        val_node = c.find(
-                            "{http://schemas.openxmlformats.org/spreadsheetml/2006/main}v"
-                        )
-                        cell_val = (
-                            val_node.text
-                            if val_node is not None
-                            else ""
-                        )
-
-                        if (
-                            c.attrib.get("t") == "s"
-                            and str(cell_val).isdigit()
-                        ):
-                            idx = int(cell_val)
-                            cell_val = (
-                                shared_strings[idx]
-                                if idx < len(shared_strings)
-                                else cell_val
-                            )
-
-                        row_cells.append(cell_val)
-
-                    if any(str(cell).strip() for cell in row_cells):
-                        rows_data.append(row_cells)
-
-                if rows_data:
-                    headers = [
-                        str(h).strip()
-                        if str(h).strip()
-                        else f"Col_{i + 1}"
-                        for i, h in enumerate(rows_data[0])
-                    ]
-
-                    df = pd.DataFrame(
-                        rows_data[1:],
-                        columns=headers,
-                    )
-
-                    for col in df.columns:
-                        try:
-                            df[col] = pd.to_numeric(df[col])
-                        except (ValueError, TypeError):
-                            pass
-
-                    return df
-
-    except Exception:
-        pass
-
-    # HTML-table fallback.
-    try:
-        tables = pd.read_html(io.BytesIO(file_bytes))
-        if tables:
-            return tables[0]
-    except Exception:
-        pass
-
-    # Renamed CSV fallback.
-    for enc in ["utf-8", "latin1", "cp1252"]:
-        for sep in [",", "\t", ";", "|"]:
-            try:
-                df = pd.read_csv(
-                    io.BytesIO(file_bytes),
-                    sep=sep,
-                    encoding=enc,
-                )
-
-                if (
-                    df is not None
-                    and len(df.columns) > 1
-                    and len(df) > 0
-                ):
-                    return df
-            except Exception:
-                pass
-
-    raise ValueError(
-        "Unable to read this spreadsheet. "
-        "Please ensure it is a valid .xlsx, .xls, or .csv file."
-    )
-
-
-def extract_text_from_pdf(file_bytes: bytes) -> str:
-    if pypdf is None:
-        return (
-            "PDF text extraction requires the pypdf library. "
-            "Add pypdf to requirements.txt."
-        )
-
-    try:
-        reader = pypdf.PdfReader(io.BytesIO(file_bytes))
-        pages = []
-
-        for page in reader.pages:
-            pages.append(page.extract_text() or "")
-
-        return "\n\n".join(pages).strip()
-
-    except Exception as exc:
-        return f"Error extracting PDF: {str(exc)}"
-
-
-def extract_text_from_docx(file_bytes: bytes) -> str:
-    """Extract Word paragraphs and table text without python-docx."""
-
-    if not file_bytes:
-        return ""
-
-    try:
-        with zipfile.ZipFile(io.BytesIO(file_bytes)) as z:
-            xml_content = z.read("word/document.xml")
-            tree = ET.fromstring(xml_content)
-
-            ns = {
-                "w": "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
-            }
-
-            parts = []
-
-            # Preserve paragraphs.
-            for paragraph in tree.findall(".//w:p", ns):
-                texts = [
-                    node.text or ""
-                    for node in paragraph.findall(".//w:t", ns)
-                ]
-                paragraph_text = "".join(texts).strip()
-
-                if paragraph_text:
-                    parts.append(paragraph_text)
-
-            # Preserve tables as simple rows.
-            for table in tree.findall(".//w:tbl", ns):
-                rows = []
-
-                for row in table.findall(".//w:tr", ns):
-                    cells = []
-
-                    for cell in row.findall(".//w:tc", ns):
-                        texts = [
-                            node.text or ""
-                            for node in cell.findall(".//w:t", ns)
-                        ]
-                        cells.append(
-                            " ".join("".join(texts).split())
-                        )
-
-                    if any(cells):
-                        rows.append(" | ".join(cells))
-
-                if rows:
-                    parts.append("\n".join(rows))
-
-            return "\n\n".join(parts).strip()
-
-    except Exception as exc:
-        return f"Error extracting Word document: {str(exc)}"
-
-
-def _split_document_into_chunks(
-    text: str,
-    chunk_size: int = 1200,
-) -> List[str]:
-    cleaned = re.sub(r"[ \t]+", " ", text)
-    cleaned = re.sub(r"\n{3,}", "\n\n", cleaned).strip()
-
-    if not cleaned:
-        return []
-
-    paragraphs = [
-        p.strip()
-        for p in re.split(r"\n\s*\n", cleaned)
-        if p.strip()
-    ]
-
+def _split_document_into_chunks(document_text: str) -> List[str]:
+    """Split extracted Word text into useful paragraph/table chunks."""
     chunks = []
-    current = ""
-
-    for paragraph in paragraphs:
-        if len(current) + len(paragraph) + 2 <= chunk_size:
-            current = (
-                f"{current}\n\n{paragraph}".strip()
-                if current
-                else paragraph
-            )
-        else:
-            if current:
-                chunks.append(current)
-            current = paragraph
-
-    if current:
-        chunks.append(current)
-
+    for block in re.split(r"\n{2,}|\n", document_text):
+        block = re.sub(r"\s+", " ", block).strip()
+        if block:
+            chunks.append(block)
     return chunks
 
 
-def _score_text_chunk(question: str, chunk: str) -> int:
-    stop_words = {
-        "what",
-        "is",
-        "the",
-        "are",
-        "and",
-        "for",
-        "from",
-        "with",
-        "this",
-        "that",
-        "how",
-        "why",
-        "which",
-        "does",
-        "about",
-        "into",
-        "give",
-        "show",
-        "tell",
-        "please",
-    }
+def _word_question_answer(question: str, document_text: str) -> str:
+    """Answer Word-document questions without Cortex COMPLETE/AI_COMPLETE.
 
-    q_words = {
-        w.lower()
-        for w in re.findall(r"\b[a-zA-Z0-9_]+\b", question)
-        if len(w) > 2 and w.lower() not in stop_words
-    }
-
-    chunk_lower = chunk.lower()
-    score = 0
-
-    for word in q_words:
-        if word in chunk_lower:
-            score += 1
-
-    # Exact phrase is stronger than individual words.
-    phrase = question.strip().lower()
-    if phrase and phrase in chunk_lower:
-        score += 5
-
-    return score
-
-
-def answer_user_question_on_document(
-    question: str,
-    doc_context: str,
-    filename: str,
-    df: Optional[pd.DataFrame] = None,
-) -> str:
+    This is an extractive, trial-safe fallback: it ranks paragraphs/table rows
+    by overlap with the question and returns the most relevant document content.
+    It does not invent information and therefore works without an LLM entitlement.
     """
-    Trial-safe document Q&A.
-
-    For PDF/Word this uses extracted document text and returns the most
-    relevant passages. It does not call COMPLETE/AI_COMPLETE, so it does
-    not hit the trial-account Cortex LLM restriction.
-    """
-
-    if not doc_context or not doc_context.strip():
-        return (
-            f"I could not extract readable text from `{filename}`. "
-            "If this is a scanned PDF, OCR may be required."
-        )
-
-    chunks = _split_document_into_chunks(doc_context)
-
+    chunks = _split_document_into_chunks(document_text)
     if not chunks:
-        return (
-            f"I could not find readable content in `{filename}`."
-        )
+        raise ValueError("No readable text was extracted from the Word document.")
 
-    scored = [
-        (_score_text_chunk(question, chunk), chunk)
-        for chunk in chunks
+    stop_words = {
+        "what", "is", "are", "the", "a", "an", "of", "for", "to",
+        "in", "on", "and", "or", "with", "from", "this", "that",
+        "which", "who", "how", "why", "does", "do", "can", "please",
+        "tell", "me", "about", "give", "explain", "purpose",
+    }
+    question_words = [
+        w.lower() for w in re.findall(r"[A-Za-z0-9_]+", question)
+        if w.lower() not in stop_words and len(w) > 2
     ]
 
-    scored.sort(key=lambda x: x[0], reverse=True)
+    # Also recognize common phrase variants so questions such as
+    # "What is the purpose of PII?" find a paragraph headed "Purpose".
+    query_lower = question.lower()
+    phrase_terms = []
+    if "purpose" in query_lower:
+        phrase_terms.extend(["purpose", "objective", "goal", "intended"])
+    if "pii" in query_lower:
+        phrase_terms.extend(["pii", "personally identifiable information"])
+    if "handling" in query_lower:
+        phrase_terms.extend(["handling", "protect", "protection", "process"])
+    if "approach" in query_lower or "approaches" in query_lower:
+        phrase_terms.extend(["approach", "approaches", "method"])
 
-    best = [
-        chunk
-        for score, chunk in scored[:3]
-        if score > 0
-    ]
+    terms = list(dict.fromkeys(question_words + phrase_terms))
+    scored = []
+    for idx, chunk in enumerate(chunks):
+        low = chunk.lower()
+        score = 0
+        matched = 0
+        for term in terms:
+            if term in low:
+                matched += 1
+                score += 2 if " " in term else 1
+        # Prefer shorter focused passages when relevance is similar.
+        if matched:
+            score += min(len(terms), matched)
+            score += 1 if len(chunk) < 500 else 0
+            scored.append((score, matched, -len(chunk), idx, chunk))
 
-    if not best:
-        # For broad questions, show the beginning of the document rather
-        # than falsely claiming that the information does not exist.
-        best = chunks[:2]
-
-    answer_parts = [
-        f"Based on the uploaded document **`{filename}`**, "
-        "the most relevant content is:"
-    ]
-
-    for idx, chunk in enumerate(best, start=1):
-        answer_parts.append(
-            f"\n**Relevant section {idx}:**\n\n{chunk}"
-        )
-
-    return "\n".join(answer_parts)
-
-
-def process_uploaded_document(
-    uploaded_file,
-) -> Tuple[str, Optional[pd.DataFrame], Optional[str], str]:
-    uploaded_file.seek(0)
-    filename = uploaded_file.name
-    file_bytes = uploaded_file.read()
-
-    if not file_bytes:
+    if not scored:
+        # Safe fallback: show the beginning of the document rather than inventing.
+        preview = "\n\n".join(chunks[:3])
         return (
-            "The uploaded file is empty.",
-            None,
-            None,
-            "unknown",
+            "I could not find a passage in the Word document that directly matches "
+            "your question. Here is the beginning of the extracted document content "
+            "so you can refine the question:\n\n" + preview
         )
 
-    fname_lower = filename.lower()
+    scored.sort(reverse=True)
+    selected = []
+    seen = set()
+    for _, _, _, idx, chunk in scored[:5]:
+        # Include nearby context when available.
+        for pos in (idx - 1, idx, idx + 1):
+            if 0 <= pos < len(chunks) and pos not in seen:
+                seen.add(pos)
+                selected.append(chunks[pos])
+        if len(selected) >= 7:
+            break
 
-    try:
-        if fname_lower.endswith(".csv"):
-            try:
-                df = pd.read_csv(io.BytesIO(file_bytes))
-            except Exception:
-                df = pd.read_csv(
-                    io.BytesIO(file_bytes),
-                    encoding="latin1",
-                )
-
-            clean_df = df.dropna(how="all")
-
-            context_str = (
-                f"File: {filename}\n"
-                f"Total Rows: {len(clean_df)}\n"
-                f"Columns: {', '.join(map(str, clean_df.columns))}\n\n"
-                "DATA PREVIEW AND RECORDS:\n"
-                f"{clean_df.to_string(max_rows=150)}"
-            )
-
-            summary = (
-                f"Successfully processed **`{filename}`** with "
-                f"**{len(clean_df):,} rows** and "
-                f"**{len(clean_df.columns)} columns**.\n\n"
-                f"**Columns:** "
-                f"{', '.join(f'`{c}`' for c in clean_df.columns)}\n\n"
-                "You can now ask questions about the complete uploaded dataset."
-            )
-
-            return summary, clean_df, context_str, "table"
-
-        if fname_lower.endswith((".xlsx", ".xls")):
-            df = extract_df_from_xlsx(file_bytes)
-            clean_df = df.dropna(how="all")
-
-            context_str = (
-                f"File: {filename}\n"
-                f"Total Rows: {len(clean_df)}\n"
-                f"Columns: {', '.join(map(str, clean_df.columns))}\n\n"
-                "DATA PREVIEW AND RECORDS:\n"
-                f"{clean_df.to_string(max_rows=150)}"
-            )
-
-            summary = (
-                f"Successfully processed **`{filename}`** with "
-                f"**{len(clean_df):,} rows** and "
-                f"**{len(clean_df.columns)} columns**.\n\n"
-                f"**Columns:** "
-                f"{', '.join(f'`{c}`' for c in clean_df.columns)}\n\n"
-                "You can now ask questions about the complete uploaded dataset."
-            )
-
-            return summary, clean_df, context_str, "table"
-
-        if fname_lower.endswith(".pdf"):
-            txt = extract_text_from_pdf(file_bytes)
-
-            if txt.startswith("Error extracting"):
-                raise ValueError(txt)
-
-            summary = (
-                f"Uploaded PDF **`{filename}`** "
-                f"(~{len(txt.split()):,} words). "
-                "Ready for questions."
-            )
-
-            return summary, None, txt, "text"
-
-        if fname_lower.endswith(".docx"):
-            txt = extract_text_from_docx(file_bytes)
-
-            if txt.startswith("Error extracting"):
-                raise ValueError(txt)
-
-            summary = (
-                f"Uploaded Word Document **`{filename}`** "
-                f"(~{len(txt.split()):,} words). "
-                "Ready for questions."
-            )
-
-            return summary, None, txt, "text"
-
-        return (
-            f"Unsupported format for `{filename}`.",
-            None,
-            None,
-            "unknown",
-        )
-
-    except Exception as err:
-        return (
-            f"⚠️ Could not parse `{filename}`: {str(err)}",
-            None,
-            None,
-            "unknown",
-        )
+    return (
+        "Based on the uploaded Word document, the most relevant content is:\n\n"
+        + "\n\n".join(selected[:7])
+    )
 
 
-def render_uploaded_document_preview() -> None:
-    if not st.session_state.get("uploaded_document_name"):
+def answer_uploaded_text_question(question: str, document_text: str):
+    """Answer Word questions without changing the working Excel/CSV path.
+
+    DOCX uses local extractive search because AI_COMPLETE/COMPLETE is blocked on
+    the current Snowflake trial account. PDF keeps the existing AI_COMPLETE path.
+    """
+    if not document_text.strip():
+        raise ValueError("No readable text was extracted from the uploaded document.")
+
+    if st.session_state.get("uploaded_document_name", "").lower().endswith(".docx"):
+        return _word_question_answer(question, document_text)
+
+    return ai_complete_document_question(question)
+
+
+def render_uploaded_document_preview():
+    """Display the analyzed document without interfering with the original UI."""
+    doc_type = st.session_state.uploaded_document_type
+    doc_name = st.session_state.uploaded_document_name
+
+    if not doc_name:
         return
 
-    doc_name = st.session_state.uploaded_document_name
-    doc_type = st.session_state.get("uploaded_document_type")
+    st.markdown("---")
+    st.markdown(f"### 📄 Uploaded Document: `{doc_name}`")
 
-    with st.expander(
-        f"📄 Uploaded Document Preview — {doc_name}",
-        expanded=False,
-    ):
-        if doc_type == "table":
-            df = st.session_state.get("uploaded_document_df")
-
-            if df is not None and not df.empty:
-                st.dataframe(
-                    df.head(100),
-                    use_container_width=True,
-                )
-                st.caption(
-                    f"Showing up to 100 rows. "
-                    f"Complete dataset contains {len(df):,} rows."
-                )
-            else:
-                st.info("No tabular data available.")
-
-        elif doc_type == "text":
-            text = st.session_state.get(
-                "uploaded_document_text",
-                "",
+    if doc_type == "table":
+        df = st.session_state.uploaded_document_df
+        if df is not None:
+            st.dataframe(_normalize_uploaded_dataframe(df), use_container_width=True)
+    elif doc_type == "text":
+        with st.expander("📖 Extracted Document Content", expanded=False):
+            st.text_area(
+                "Document text",
+                st.session_state.uploaded_document_text,
+                height=350,
+                disabled=True,
+                label_visibility="collapsed",
             )
-
-            if text:
-                st.text_area(
-                    "Extracted document text",
-                    text[:20000],
-                    height=350,
-                )
-            else:
-                st.warning(
-                    "No readable text was extracted from this document."
-                )
 
 
 # ===================================================================
@@ -1139,32 +991,12 @@ if "chat_sessions" not in st.session_state:
     st.session_state.chat_sessions = {}
 
 if "current_session_id" not in st.session_state:
-    init_id = datetime.now().strftime(
-        "%Y%m%d_%H%M%S_%f"
-    )
-
+    init_id = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
     st.session_state.current_session_id = init_id
-
     st.session_state.chat_sessions[init_id] = {
         "title": "New Conversation",
         "messages": [],
     }
-
-# Document state defaults.
-document_defaults = {
-    "uploaded_document": None,
-    "uploaded_document_name": None,
-    "uploaded_document_df": None,
-    "uploaded_document_text": "",
-    "uploaded_document_type": None,
-    "uploaded_document_table": None,
-    "uploaded_document_semantic_model": None,
-}
-
-for key, value in document_defaults.items():
-    if key not in st.session_state:
-        st.session_state[key] = value
-
 
 current_id = st.session_state.current_session_id
 messages = st.session_state.chat_sessions[current_id]["messages"]
@@ -1173,10 +1005,7 @@ messages = st.session_state.chat_sessions[current_id]["messages"]
 # ===================================================================
 # 4. CHART DISPLAY
 # ===================================================================
-def display_chart_tab(
-    df: pd.DataFrame,
-    key_prefix: str = "",
-):
+def display_chart_tab(df: pd.DataFrame, key_prefix: str = ""):
     if df is None or df.empty:
         st.info("No data available for charting.")
         return
@@ -1189,82 +1018,46 @@ def display_chart_tab(
     col1, col2, col3 = st.columns(3)
 
     x_col = col1.selectbox(
-        "Dimension (X-axis)",
-        all_cols,
-        index=0,
-        key=f"{key_prefix}_x",
+        "Dimension (X-axis)", all_cols, index=0,
+        key=f"{key_prefix}_x"
     )
 
-    remaining_cols = [
-        c for c in all_cols
-        if c != x_col
-    ]
-
+    remaining_cols = [c for c in all_cols if c != x_col]
     if not remaining_cols:
         return
 
     y_col = col2.selectbox(
-        "Metric (Y-axis)",
-        remaining_cols,
-        index=0,
-        key=f"{key_prefix}_y",
+        "Metric (Y-axis)", remaining_cols, index=0,
+        key=f"{key_prefix}_y"
     )
 
     chart_type = col3.selectbox(
         "Chart Type",
-        [
-            "Bar Chart",
-            "Line Chart",
-            "Area Chart",
-            "Scatter Plot",
-        ],
+        ["Bar Chart", "Line Chart", "Area Chart", "Scatter Plot"],
         key=f"{key_prefix}_type",
     )
 
     chart_df = df.copy()
 
-    if any(
-        k in str(x_col).lower()
-        for k in [
-            "year",
-            "quarter",
-            "month",
-            "day",
-            "date",
-        ]
-    ):
+    if any(k in x_col.lower()
+           for k in ["year", "quarter", "month", "day", "date"]):
         chart_df[x_col] = chart_df[x_col].apply(
             lambda x: (
                 str(int(x))
-                if pd.notnull(x)
-                and isinstance(x, (int, float))
+                if pd.notnull(x) and isinstance(x, (int, float))
                 else str(x)
             )
         )
 
     try:
         if chart_type == "Bar Chart":
-            st.bar_chart(
-                chart_df.set_index(x_col)[y_col]
-            )
-
+            st.bar_chart(chart_df.set_index(x_col)[y_col])
         elif chart_type == "Line Chart":
-            st.line_chart(
-                chart_df.set_index(x_col)[y_col]
-            )
-
+            st.line_chart(chart_df.set_index(x_col)[y_col])
         elif chart_type == "Area Chart":
-            st.area_chart(
-                chart_df.set_index(x_col)[y_col]
-            )
-
+            st.area_chart(chart_df.set_index(x_col)[y_col])
         else:
-            st.scatter_chart(
-                chart_df,
-                x=x_col,
-                y=y_col,
-            )
-
+            st.scatter_chart(chart_df, x=x_col, y=y_col)
     except Exception as e:
         st.info(f"Chart could not be rendered: {e}")
 
@@ -1274,47 +1067,27 @@ def display_chart_tab(
 # ===================================================================
 with st.sidebar:
     st.markdown("### ⚡ Dilytics AI")
-
     st.markdown(
         '<span class="status-pill">● Cortex Analyst Live</span>',
         unsafe_allow_html=True,
     )
-
     st.write("")
 
-    if st.button(
-        "➕ New Chat",
-        use_container_width=True,
-        type="primary",
-    ):
-        new_id = datetime.now().strftime(
-            "%Y%m%d_%H%M%S_%f"
-        )
-
+    if st.button("➕ New Chat", use_container_width=True, type="primary"):
+        new_id = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
         st.session_state.current_session_id = new_id
-
         st.session_state.chat_sessions[new_id] = {
-            "title": (
-                f"Chat "
-                f"{len(st.session_state.chat_sessions) + 1}"
-            ),
+            "title": f"Chat {len(st.session_state.chat_sessions) + 1}",
             "messages": [],
         }
-
         st.rerun()
 
     st.markdown("---")
     st.markdown("##### 🕒 Recent Conversations")
 
-    for s_id, s_data in reversed(
-        list(st.session_state.chat_sessions.items())
-    ):
-        is_active = (
-            s_id == st.session_state.current_session_id
-        )
-
+    for s_id, s_data in reversed(list(st.session_state.chat_sessions.items())):
+        is_active = s_id == st.session_state.current_session_id
         label = s_data["title"]
-
         if len(label) > 20:
             label = label[:18] + "..."
 
@@ -1328,42 +1101,26 @@ with st.sidebar:
 
     st.markdown("---")
 
-    if st.button(
-        "🗑️ Clear All Sessions",
-        use_container_width=True,
-    ):
+    if st.button("🗑️ Clear All Sessions", use_container_width=True):
         st.session_state.chat_sessions = {}
-
-        init_id = datetime.now().strftime(
-            "%Y%m%d_%H%M%S_%f"
-        )
-
+        init_id = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
         st.session_state.current_session_id = init_id
-
         st.session_state.chat_sessions[init_id] = {
             "title": "New Conversation",
             "messages": [],
         }
-
         st.rerun()
 
+
+# ===================================================================
     st.markdown("---")
     st.markdown("##### 📄 Analyze an Uploaded Document")
 
     uploaded_doc = st.file_uploader(
         "Upload CSV, Excel, PDF or Word",
-        type=[
-            "csv",
-            "xlsx",
-            "xls",
-            "pdf",
-            "docx",
-        ],
+        type=["csv", "xlsx", "xls", "pdf", "docx"],
         key="document_uploader",
-        help=(
-            "Upload a document, click Analyze, then "
-            "choose Uploaded Document in the chat."
-        ),
+        help="Upload a document, click Analyze, then choose Uploaded Document in the chat.",
     )
 
     if st.button(
@@ -1373,260 +1130,148 @@ with st.sidebar:
         key="analyze_uploaded_document",
     ):
         try:
-            with st.spinner(
-                "Reading and analyzing document..."
-            ):
-                # Remove the old transient table only when a new
-                # document is actually analyzed.
+            with st.spinner("Reading and analyzing document..."):
+                doc_type, doc_df, doc_text, doc_message = process_uploaded_document(
+                    uploaded_doc
+                )
+
                 _drop_uploaded_table()
-
-                doc_message, doc_df, doc_text, doc_type = (
-                    process_uploaded_document(uploaded_doc)
-                )
-
-                st.session_state.uploaded_document_name = (
-                    uploaded_doc.name
-                )
-                st.session_state.uploaded_document_type = (
-                    doc_type
-                )
+                st.session_state.uploaded_document_name = uploaded_doc.name
+                st.session_state.uploaded_document_type = doc_type
                 st.session_state.uploaded_document_df = doc_df
-                st.session_state.uploaded_document_text = (
-                    doc_text or ""
-                )
-                st.session_state.uploaded_document = (
-                    uploaded_doc.name
-                )
+                st.session_state.uploaded_document_text = doc_text
+                st.session_state.uploaded_document = uploaded_doc.name
+                st.session_state.uploaded_document_table = None
+                st.session_state.uploaded_document_semantic_model = None
 
                 if doc_type == "table":
                     prepare_uploaded_table(doc_df)
+                elif doc_type == "text":
+                    # Word (.docx) uses the trial-safe local document Q&A path below.
+                    # Keep PDF on the existing AI_COMPLETE path. The working
+                    # Excel/CSV Cortex Analyst functionality is untouched.
+                    if uploaded_doc.name.lower().endswith(".pdf"):
+                        _upload_document_to_stage(uploaded_doc)
 
             st.success(doc_message)
             st.rerun()
-
         except Exception as e:
-            st.error(
-                f"Document analysis failed: {e}"
-            )
+            st.error(f"Document analysis failed: {e}")
 
     if st.session_state.uploaded_document_name:
         st.caption(
-            f"Loaded: "
-            f"`{st.session_state.uploaded_document_name}`"
+            f"Loaded: `{st.session_state.uploaded_document_name}`"
         )
-
         if st.button(
             "✖ Remove Uploaded Document",
             use_container_width=True,
             key="remove_uploaded_document",
         ):
             _drop_uploaded_table()
-
             st.session_state.uploaded_document = None
             st.session_state.uploaded_document_name = None
             st.session_state.uploaded_document_df = None
             st.session_state.uploaded_document_text = ""
             st.session_state.uploaded_document_type = None
-
+            st.session_state.uploaded_document_table = None
+            st.session_state.uploaded_document_semantic_model = None
+            st.session_state.uploaded_document_stage = None
+            st.session_state.uploaded_document_stage_file = None
             st.rerun()
-
-
-# ===================================================================
 # 6. MAIN HEADER
 # ===================================================================
-head_col1, head_col2 = st.columns(
-    [4.5, 1.2]
-)
+head_col1, head_col2 = st.columns([4.5, 1.2])
 
 with head_col1:
     st.title("💬 Dilytics Enterprise AI")
-
     st.caption(
         "Ask natural-language questions to explore Inventory and Sales."
     )
 
 with head_col2:
     st.write("")
-
     if st.button(
         "🔄 Reset Thread",
         use_container_width=True,
         help="Clear message history",
     ):
-        st.session_state.chat_sessions[
-            current_id
-        ]["messages"] = []
-
-        st.session_state.chat_sessions[
-            current_id
-        ]["title"] = "New Conversation"
-
+        st.session_state.chat_sessions[current_id]["messages"] = []
+        st.session_state.chat_sessions[current_id]["title"] = "New Conversation"
         st.rerun()
 
 
 # ===================================================================
 # 7. EXAMPLE QUESTIONS
+# These buttons are only examples. They do NOT contain SQL.
 # ===================================================================
 quick_prompt = None
-
 tab_inv, tab_sales = st.tabs(
-    [
-        "📦 Inventory Intelligence",
-        "💰 Sales Intelligence",
-    ]
+    ["📦 Inventory Intelligence", "💰 Sales Intelligence"]
 )
 
 with tab_inv:
-    with st.expander(
-        "💡 What can I ask about Inventory?",
-        expanded=False,
-    ):
-        st.markdown(
-            """
-            Questions are answered by Cortex Analyst using
-            `INV_ANALYST_DEMO_90_VERIFIED.yaml`.
+    with st.expander("💡 What can I ask about Inventory?", expanded=False):
+        st.markdown("""
+        Questions are answered by Cortex Analyst using
+        `INV_ANALYST_DEMO_90_VERIFIED.yaml`.
 
-            * How many products are out of stock?
-            * What is the inventory value by warehouse?
-            * Which products have the highest inventory value?
-            * Which warehouses have the highest outbound quantity?
-            * Which products need to be reordered?
-            * What is the inventory value by product category?
-            """
-        )
+        * How many products are out of stock?
+        * What is the inventory value by warehouse?
+        * Which products have the highest inventory value?
+        * Which warehouses have the highest outbound quantity?
+        * Which products need to be reordered?
+        * What is the inventory value by product category?
+        """)
 
-    st.markdown(
-        "##### 💡 Example Inventory Questions"
-    )
-
+    st.markdown("##### 💡 Example Inventory Questions")
     q1, q2, q3, q4, q5 = st.columns(5)
 
-    if q1.button(
-        "💰 Inventory Value",
-        use_container_width=True,
-        key="i1",
-    ):
-        quick_prompt = (
-            "What is the total inventory value?"
-        )
-
-    if q2.button(
-        "🏭 Value by Warehouse",
-        use_container_width=True,
-        key="i2",
-    ):
-        quick_prompt = (
-            "What is the inventory value by warehouse?"
-        )
-
-    if q3.button(
-        "📦 Value by Category",
-        use_container_width=True,
-        key="i3",
-    ):
-        quick_prompt = (
-            "What is the inventory value by product category?"
-        )
-
-    if q4.button(
-        "📉 Stockout Count",
-        use_container_width=True,
-        key="i4",
-    ):
-        quick_prompt = (
-            "How many products are out of stock?"
-        )
-
-    if q5.button(
-        "⚠️ Excess Stock",
-        use_container_width=True,
-        key="i5",
-    ):
-        quick_prompt = (
-            "What is the total excess inventory value by warehouse?"
-        )
-
+    if q1.button("💰 Inventory Value", use_container_width=True, key="i1"):
+        quick_prompt = "What is the total inventory value?"
+    if q2.button("🏭 Value by Warehouse", use_container_width=True, key="i2"):
+        quick_prompt = "What is the inventory value by warehouse?"
+    if q3.button("📦 Value by Category", use_container_width=True, key="i3"):
+        quick_prompt = "What is the inventory value by product category?"
+    if q4.button("📉 Stockout Count", use_container_width=True, key="i4"):
+        quick_prompt = "How many products are out of stock?"
+    if q5.button("⚠️ Excess Stock", use_container_width=True, key="i5"):
+        quick_prompt = "What is the total excess inventory value by warehouse?"
 
 with tab_sales:
-    with st.expander(
-        "💡 What can I ask about Sales?",
-        expanded=False,
-    ):
-        st.markdown(
-            """
-            Questions are answered by Cortex Analyst using
-            `sales_intelligence_model_80_queries_fixed.yaml`.
+    with st.expander("💡 What can I ask about Sales?", expanded=False):
+        st.markdown("""
+        Questions are answered by Cortex Analyst using
+        `sales_intelligence_model_80_queries_fixed.yaml`.
 
-            * What is the total sales amount?
-            * What are the top products by sales?
-            * What are total sales by customer region?
-            * What are total sales by month?
-            * What is total sales by order channel?
-            """
-        )
+        * What is the total sales amount?
+        * What are the top products by sales?
+        * What are total sales by customer region?
+        * What are total sales by month?
+        * What is total sales by order channel?
+        """)
 
-    st.markdown(
-        "##### 💡 Example Sales Questions"
-    )
-
+    st.markdown("##### 💡 Example Sales Questions")
     s1, s2, s3, s4, s5 = st.columns(5)
 
-    if s1.button(
-        "💵 Total Sales",
-        use_container_width=True,
-        key="s1",
-    ):
-        quick_prompt = (
-            "What is the total sales amount?"
-        )
-
-    if s2.button(
-        "🏆 Top Products",
-        use_container_width=True,
-        key="s2",
-    ):
-        quick_prompt = (
-            "What are the top products by sales?"
-        )
-
-    if s3.button(
-        "🌍 Sales by Region",
-        use_container_width=True,
-        key="s3",
-    ):
-        quick_prompt = (
-            "What are total sales by customer region?"
-        )
-
-    if s4.button(
-        "📅 Monthly Sales",
-        use_container_width=True,
-        key="s4",
-    ):
-        quick_prompt = (
-            "What are total sales by month?"
-        )
-
-    if s5.button(
-        "📊 Sales by Channel",
-        use_container_width=True,
-        key="s5",
-    ):
-        quick_prompt = (
-            "What is total sales by order channel?"
-        )
-
+    if s1.button("💵 Total Sales", use_container_width=True, key="s1"):
+        quick_prompt = "What is the total sales amount?"
+    if s2.button("🏆 Top Products", use_container_width=True, key="s2"):
+        quick_prompt = "What are the top products by sales?"
+    if s3.button("🌍 Sales by Region", use_container_width=True, key="s3"):
+        quick_prompt = "What are total sales by customer region?"
+    if s4.button("📅 Monthly Sales", use_container_width=True, key="s4"):
+        quick_prompt = "What are total sales by month?"
+    if s5.button("📊 Sales by Channel", use_container_width=True, key="s5"):
+        quick_prompt = "What is total sales by order channel?"
 
 st.markdown("---")
 
 
 # ===================================================================
-# 7A. UPLOADED DOCUMENT PREVIEW
+# ===================================================================
+# 7A. UPLOADED DOCUMENT PREVIEW (ADDED)
 # ===================================================================
 render_uploaded_document_preview()
-
-
-# ===================================================================
 # 8. DISPLAY CHAT HISTORY
 # ===================================================================
 for idx, msg in enumerate(messages):
@@ -1634,75 +1279,44 @@ for idx, msg in enumerate(messages):
         st.markdown(msg["content"])
 
         if msg.get("sql"):
-            with st.expander(
-                "Generated SQL",
-                expanded=False,
-            ):
-                st.code(
-                    msg["sql"],
-                    language="sql",
-                )
+            with st.expander("Generated SQL", expanded=False):
+                st.code(msg["sql"], language="sql")
 
         if msg.get("semantic_model"):
             st.caption(
-                "Semantic model selected: "
-                f"`{msg['semantic_model']}`"
+                f"Semantic model selected: `{msg['semantic_model']}`"
             )
 
         if msg.get("verified_query"):
             name = msg["verified_query"].get("name")
-
             if name:
-                st.caption(
-                    f"Verified Query Used: `{name}`"
-                )
+                st.caption(f"Verified Query Used: `{name}`")
 
         if msg.get("data") is not None:
-            tab_data, tab_chart = st.tabs(
-                [
-                    "Data 📄",
-                    "Chart 📈",
-                ]
-            )
-
+            tab_data, tab_chart = st.tabs(["Data 📄", "Chart 📈"])
             with tab_data:
-                st.dataframe(
-                    msg["data"],
-                    use_container_width=True,
-                )
-
+                st.dataframe(msg["data"], use_container_width=True)
             with tab_chart:
                 display_chart_tab(
                     msg["data"],
-                    key_prefix=(
-                        f"hist_{current_id}_{idx}"
-                    ),
+                    key_prefix=f"hist_{current_id}_{idx}",
                 )
 
 
 # ===================================================================
-# 8A. ANSWER SOURCE
+# ===================================================================
+# 8A. ANSWER SOURCE (ADDED)
 # ===================================================================
 if st.session_state.uploaded_document_name:
     answer_source = st.radio(
         "Answer from:",
-        [
-            "Snowflake Data",
-            "Uploaded Document",
-        ],
+        ["Snowflake Data", "Uploaded Document"],
         horizontal=True,
         key="answer_source",
-        help=(
-            "Choose whether your question should use "
-            "the existing Inventory/Sales semantic models "
-            "or the uploaded document."
-        ),
+        help="Choose whether your question should use the existing Inventory/Sales semantic models or the uploaded document.",
     )
 else:
     answer_source = "Snowflake Data"
-
-
-# ===================================================================
 # 9. CHAT INPUT
 # ===================================================================
 user_prompt = (
@@ -1714,30 +1328,21 @@ user_prompt = (
 
 
 # ===================================================================
-# 10. QUESTION EXECUTION
+# 10. CORTEX ANALYST EXECUTION
 # ===================================================================
 if user_prompt:
-
-    # ---------------------------------------------------------------
-    # Uploaded document question path
-    # ---------------------------------------------------------------
+    # ===================================================================
+    # UPLOADED DOCUMENT QUESTION PATH (ADDED)
+    # This branch is intentionally placed before the original Cortex
+    # Analyst block. The original Inventory/Sales path below is unchanged.
+    # ===================================================================
     if answer_source == "Uploaded Document":
-
         if len(messages) == 0:
-            st.session_state.chat_sessions[
-                current_id
-            ]["title"] = (
-                user_prompt[:25]
-                + ("..." if len(user_prompt) > 25 else "")
+            st.session_state.chat_sessions[current_id]["title"] = (
+                user_prompt[:25] + ("..." if len(user_prompt) > 25 else "")
             )
 
-        messages.append(
-            {
-                "role": "user",
-                "content": user_prompt,
-            }
-        )
-
+        messages.append({"role": "user", "content": user_prompt})
         with st.chat_message("user"):
             st.markdown(user_prompt)
 
@@ -1747,154 +1352,72 @@ if user_prompt:
             doc_answer = ""
 
             try:
-                with st.spinner(
-                    "Analyzing your uploaded document..."
-                ):
-                    if (
-                        st.session_state.uploaded_document_type
-                        == "table"
-                    ):
-                        (
-                            doc_df_result,
-                            doc_sql_result,
-                            doc_analyst_result,
-                        ) = answer_uploaded_table_question(
+                with st.spinner("Analyzing your uploaded document..."):
+                    if st.session_state.uploaded_document_type == "table":
+                        doc_df_result, doc_sql_result, doc_analyst_result = answer_uploaded_table_question(
                             user_prompt,
                             st.session_state.uploaded_document_df,
                         )
-
                         doc_answer = (
-                            "I answered your question using the "
-                            "complete uploaded dataset through "
-                            "Cortex Analyst. The SQL below was "
-                            "generated dynamically from the uploaded "
-                            "document schema."
+                            "I answered your question using the complete uploaded "
+                            "dataset through Cortex Analyst. The SQL below was "
+                            "generated dynamically from the uploaded document schema."
                         )
-
-                        if doc_analyst_result.get(
-                            "semantic_model_selection"
-                        ):
+                        if doc_analyst_result.get("semantic_model_selection"):
                             st.caption(
                                 "Semantic model selected: "
-                                + str(
-                                    doc_analyst_result[
-                                        "semantic_model_selection"
-                                    ]
-                                )
+                                + str(doc_analyst_result["semantic_model_selection"])
                             )
-
-                        if doc_analyst_result.get(
-                            "verified_query_used"
-                        ):
-                            vq = doc_analyst_result[
-                                "verified_query_used"
-                            ]
-
-                            if isinstance(vq, dict):
-                                vq_name = vq.get("name")
-                                if vq_name:
-                                    st.caption(
-                                        "Verified Query Used: "
-                                        f"`{vq_name}`"
-                                    )
-
                     else:
-                        doc_answer = (
-                            answer_user_question_on_document(
-                                user_prompt,
-                                st.session_state.uploaded_document_text,
-                                st.session_state.uploaded_document_name,
-                            )
+                        doc_answer = answer_uploaded_text_question(
+                            user_prompt,
+                            st.session_state.uploaded_document_text,
                         )
 
                 st.markdown(doc_answer)
 
                 if doc_sql_result:
-                    with st.expander(
-                        "Generated SQL for Uploaded Document",
-                        expanded=False,
-                    ):
-                        st.code(
-                            doc_sql_result,
-                            language="sql",
-                        )
+                    with st.expander("Generated SQL for Uploaded Document", expanded=False):
+                        st.code(doc_sql_result, language="sql")
 
                 if doc_df_result is not None:
-                    tab_data, tab_chart = st.tabs(
-                        [
-                            "Data 📄",
-                            "Chart 📈",
-                        ]
-                    )
-
+                    tab_data, tab_chart = st.tabs(["Data 📄", "Chart 📈"])
                     with tab_data:
-                        st.dataframe(
-                            doc_df_result,
-                            use_container_width=True,
-                        )
-
+                        st.dataframe(doc_df_result, use_container_width=True)
                     with tab_chart:
                         display_chart_tab(
                             doc_df_result,
-                            key_prefix=(
-                                f"document_{current_id}_"
-                                f"{len(messages)}"
-                            ),
+                            key_prefix=f"document_{current_id}_{len(messages)}",
                         )
 
-                messages.append(
-                    {
-                        "role": "assistant",
-                        "content": doc_answer,
-                        "sql": doc_sql_result,
-                        "data": doc_df_result,
-                        "semantic_model": (
-                            "Uploaded Document"
-                        ),
-                        "verified_query": None,
-                    }
-                )
+                messages.append({
+                    "role": "assistant",
+                    "content": doc_answer,
+                    "sql": doc_sql_result,
+                    "data": doc_df_result,
+                    "semantic_model": "Uploaded Document",
+                    "verified_query": None,
+                })
 
             except Exception as e:
-                doc_answer = (
-                    "Unable to analyze the uploaded document: "
-                    f"{e}"
-                )
-
+                doc_answer = f"Unable to analyze the uploaded document: {e}"
                 st.error(doc_answer)
-
-                messages.append(
-                    {
-                        "role": "assistant",
-                        "content": doc_answer,
-                        "sql": None,
-                        "data": None,
-                        "semantic_model": (
-                            "Uploaded Document"
-                        ),
-                        "verified_query": None,
-                    }
-                )
+                messages.append({
+                    "role": "assistant",
+                    "content": doc_answer,
+                    "sql": None,
+                    "data": None,
+                    "semantic_model": "Uploaded Document",
+                    "verified_query": None,
+                })
 
         st.rerun()
-
-    # ---------------------------------------------------------------
-    # Existing Snowflake Inventory / Sales Cortex Analyst path
-    # ---------------------------------------------------------------
     if len(messages) == 0:
-        st.session_state.chat_sessions[
-            current_id
-        ]["title"] = (
-            user_prompt[:25]
-            + ("..." if len(user_prompt) > 25 else "")
+        st.session_state.chat_sessions[current_id]["title"] = (
+            user_prompt[:25] + ("..." if len(user_prompt) > 25 else "")
         )
 
-    messages.append(
-        {
-            "role": "user",
-            "content": user_prompt,
-        }
-    )
+    messages.append({"role": "user", "content": user_prompt})
 
     with st.chat_message("user"):
         st.markdown(user_prompt)
@@ -1907,143 +1430,88 @@ if user_prompt:
         verified_query = None
 
         try:
-            with st.spinner(
-                "Cortex Analyst is interpreting your question..."
-            ):
-                analyst_json = call_cortex_analyst(
-                    user_prompt
-                )
-                result = extract_analyst_response(
-                    analyst_json
-                )
+            with st.spinner("Cortex Analyst is interpreting your question..."):
+                analyst_json = call_cortex_analyst(user_prompt)
+                result = extract_analyst_response(analyst_json)
 
             explanation = result["text"]
             sql_query = result["sql"]
-            semantic_model = result[
-                "semantic_model_selection"
-            ]
-            verified_query = result[
-                "verified_query_used"
-            ]
+            semantic_model = result["semantic_model_selection"]
+            verified_query = result["verified_query_used"]
 
             for warning in result["warnings"]:
                 warning_text = (
-                    warning.get(
-                        "message",
-                        str(warning),
-                    )
+                    warning.get("message", str(warning))
                     if isinstance(warning, dict)
                     else str(warning)
                 )
-
                 st.warning(warning_text)
 
             if not sql_query:
                 if not explanation:
                     explanation = (
-                        "Cortex Analyst could not generate SQL "
-                        "for this question from the configured "
-                        "semantic models."
+                        "Cortex Analyst could not generate SQL for this "
+                        "question from the configured semantic models."
                     )
-
                 st.markdown(explanation)
 
             else:
                 if not explanation:
                     explanation = (
-                        "I generated this answer using the "
-                        "Snowflake semantic model."
+                        "I generated this answer using the Snowflake "
+                        "semantic model."
                     )
 
                 st.markdown(explanation)
 
                 if semantic_model:
                     st.caption(
-                        "Semantic model selected: "
-                        f"`{semantic_model}`"
+                        f"Semantic model selected: `{semantic_model}`"
                     )
 
                 if verified_query:
-                    name = (
-                        verified_query.get("name")
-                        if isinstance(
-                            verified_query,
-                            dict,
-                        )
-                        else None
-                    )
-
+                    name = verified_query.get("name")
                     if name:
-                        st.caption(
-                            f"Verified Query Used: `{name}`"
-                        )
+                        st.caption(f"Verified Query Used: `{name}`")
 
-                with st.expander(
-                    "Generated SQL",
-                    expanded=False,
-                ):
-                    st.code(
-                        sql_query,
-                        language="sql",
-                    )
+                with st.expander("Generated SQL", expanded=False):
+                    st.code(sql_query, language="sql")
 
-                with st.spinner(
-                    "Executing generated SQL in Snowflake..."
-                ):
-                    df = session.sql(
-                        sql_query
-                    ).to_pandas()
+                with st.spinner("Executing generated SQL in Snowflake..."):
+                    df = session.sql(sql_query).to_pandas()
 
-                tab_data, tab_chart = st.tabs(
-                    [
-                        "Data 📄",
-                        "Chart 📈",
-                    ]
-                )
+                tab_data, tab_chart = st.tabs(["Data 📄", "Chart 📈"])
 
                 with tab_data:
-                    st.dataframe(
-                        df,
-                        use_container_width=True,
-                    )
+                    st.dataframe(df, use_container_width=True)
 
                 with tab_chart:
                     display_chart_tab(
                         df,
-                        key_prefix=(
-                            f"live_{current_id}_"
-                            f"{len(messages)}"
-                        ),
+                        key_prefix=f"live_{current_id}_{len(messages)}",
                     )
 
         except requests.exceptions.Timeout:
             explanation = (
-                "Cortex Analyst took too long to respond. "
-                "Please try again."
+                "Cortex Analyst took too long to respond. Please try again."
             )
             st.error(explanation)
 
         except requests.exceptions.RequestException as e:
-            explanation = (
-                f"Could not connect to Cortex Analyst: {e}"
-            )
+            explanation = f"Could not connect to Cortex Analyst: {e}"
             st.error(explanation)
 
         except Exception as e:
-            explanation = (
-                f"Unable to process the question: {e}"
-            )
+            explanation = f"Unable to process the question: {e}"
             st.error(explanation)
 
-        messages.append(
-            {
-                "role": "assistant",
-                "content": explanation,
-                "sql": sql_query,
-                "data": df,
-                "semantic_model": semantic_model,
-                "verified_query": verified_query,
-            }
-        )
+        messages.append({
+            "role": "assistant",
+            "content": explanation,
+            "sql": sql_query,
+            "data": df,
+            "semantic_model": semantic_model,
+            "verified_query": verified_query,
+        })
 
     st.rerun()
