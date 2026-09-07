@@ -1992,8 +1992,8 @@ st.markdown("""
     background: #dff1ff !important;
     border: 1px solid #b9dcf7 !important;
     border-radius: 14px !important;
-    padding: 10px 12px !important;
-    margin: 0 0 18px 0 !important;
+    padding: 14px 14px !important;
+    margin: -8px 0 18px 0 !important;
     box-shadow: 0 6px 20px rgba(35,111,177,.10) !important;
 }
 
@@ -2050,6 +2050,10 @@ st.markdown("""
     font-size: .68rem !important;
     font-weight: 700 !important;
     line-height: 1 !important;
+    text-align: center !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
     box-shadow: 0 2px 5px rgba(8,120,200,.18) !important;
     white-space: nowrap !important;
 }
