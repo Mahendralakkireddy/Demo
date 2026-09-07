@@ -244,7 +244,10 @@ def extract_analyst_response(data: Dict[str, Any]) -> Dict[str, Any]:
 # 2A. UPLOADED DOCUMENT ANALYSIS (ADDED - ORIGINAL CORTEX ANALYST
 #     INVENTORY/SALES CODE IS PRESERVED)
 # ===================================================================
-DOCUMENT_CORTEX_MODEL = "claude-3-5-sonnet"  # retained only for legacy PDF/DOCX path
+# PDF/Word document Q&A uses the current AI_COMPLETE document capability.
+# Excel/CSV continues to use the existing Cortex Analyst path unchanged.
+DOCUMENT_AI_MODEL = "claude-sonnet-4-6"
+DOCUMENT_STAGE_NAME = "DILYtics_DOCUMENT_STAGE"
 
 if "uploaded_document" not in st.session_state:
     st.session_state.uploaded_document = None
@@ -260,6 +263,10 @@ if "uploaded_document_table" not in st.session_state:
     st.session_state.uploaded_document_table = None
 if "uploaded_document_semantic_model" not in st.session_state:
     st.session_state.uploaded_document_semantic_model = None
+if "uploaded_document_stage" not in st.session_state:
+    st.session_state.uploaded_document_stage = None
+if "uploaded_document_stage_file" not in st.session_state:
+    st.session_state.uploaded_document_stage_file = None
 
 
 def _snowflake_sql_literal(value: str) -> str:
@@ -269,32 +276,123 @@ def _snowflake_sql_literal(value: str) -> str:
     return "'" + str(value).replace("'", "''") + "'"
 
 
-def cortex_complete(prompt: str) -> str:
-    """Legacy PDF/DOCX helper.
+def _document_stage_quoted_name() -> str:
+    """Return the quoted temporary stage identifier used for PDF/DOCX files."""
+    return '"' + DOCUMENT_STAGE_NAME + '"'
 
-    Excel/CSV analysis does NOT use COMPLETE.  It uses Cortex Analyst below,
-    which is available in the user's current trial setup.
+
+def _document_stage_file_reference() -> str:
+    """Return the @stage reference required by TO_FILE()."""
+    return '@' + DOCUMENT_STAGE_NAME
+
+
+def _ensure_document_stage():
+    """Create a server-encrypted temporary stage for the current Streamlit session."""
+    stage_name = _document_stage_quoted_name()
+    session.sql(f"CREATE TEMP STAGE IF NOT EXISTS {stage_name}").collect()
+    return stage_name
+
+
+def _upload_document_to_stage(uploaded_file) -> str:
+    """Upload a PDF/DOCX to the session's temporary Snowflake stage."""
+    import os
+    import tempfile
+
+    extension = uploaded_file.name.rsplit(".", 1)[-1].lower()
+    if extension not in {"pdf", "docx"}:
+        raise ValueError("Only PDF and Word (.docx) documents can use document Q&A.")
+
+    stage_name = _ensure_document_stage()
+    safe_name = re.sub(r"[^A-Za-z0-9_.-]+", "_", uploaded_file.name)
+
+    # Claude document processing supports documents up to 4.5 MB.
+    file_size = getattr(uploaded_file, "size", None)
+    if file_size is not None and file_size > 4.5 * 1024 * 1024:
+        raise ValueError(
+            f"The PDF/Word file is {file_size / (1024 * 1024):.2f} MB. "
+            "The selected Claude document model supports files up to 4.5 MB."
+        )
+    if not safe_name.lower().endswith((".pdf", ".docx")):
+        safe_name = f"document.{extension}"
+
+    with tempfile.NamedTemporaryFile(delete=False, suffix=f".{extension}") as tmp:
+        uploaded_file.seek(0)
+        tmp.write(uploaded_file.getvalue())
+        local_path = tmp.name
+
+    try:
+        # Do not compress: AI_COMPLETE needs the original document extension/content.
+        session.file.put(
+            local_path,
+            _document_stage_file_reference(),
+            auto_compress=False,
+            overwrite=True,
+        )
+    finally:
+        try:
+            os.remove(local_path)
+        except OSError:
+            pass
+
+    st.session_state.uploaded_document_stage = _document_stage_file_reference()
+    st.session_state.uploaded_document_stage_file = safe_name
+    return safe_name
+
+
+def ai_complete_document_question(question: str) -> str:
+    """Answer a question directly from the uploaded PDF/DOCX using AI_COMPLETE.
+
+    This is intentionally separate from the working Excel/CSV Cortex Analyst path.
+    It does not use the legacy SNOWFLAKE.CORTEX.COMPLETE function.
     """
-    model_literal = _snowflake_sql_literal(DOCUMENT_CORTEX_MODEL)
-    prompt_literal = _snowflake_sql_literal(prompt)
+    stage_name = st.session_state.get("uploaded_document_stage")
+    stage_file = st.session_state.get("uploaded_document_stage_file")
+
+    if not stage_name or not stage_file:
+        raise RuntimeError(
+            "The uploaded PDF/Word document is not available in the Snowflake stage. "
+            "Please click Analyze Document again."
+        )
+
+    model_literal = _snowflake_sql_literal(DOCUMENT_AI_MODEL)
+    question_literal = _snowflake_sql_literal(
+        "Answer the user's question using only the uploaded document. "
+        "Be precise and concise. If the document does not contain enough information "
+        "to answer, say so instead of inventing information. "
+        "User question: " + question
+    )
+    stage_literal = _snowflake_sql_literal(stage_name)
+    file_literal = _snowflake_sql_literal(stage_file)
+
     sql = f"""
-        SELECT SNOWFLAKE.CORTEX.COMPLETE(
-            {model_literal},
-            {prompt_literal}
+        SELECT AI_COMPLETE(
+            MODEL => {model_literal},
+            PROMPT => PROMPT(
+                {question_literal} || '\n\nDocument to analyze: {{0}}',
+                TO_FILE({stage_literal}, {file_literal})
+            )
         ) AS RESPONSE
     """
+
     rows = session.sql(sql).collect()
     if not rows:
-        raise RuntimeError("Cortex did not return a response.")
+        raise RuntimeError("AI_COMPLETE did not return a response.")
+
     row = rows[0]
     try:
         response = row["RESPONSE"]
     except Exception:
         response = row[0]
-    if response is None:
-        raise RuntimeError("Cortex returned an empty response.")
-    return str(response)
 
+    if response is None:
+        raise RuntimeError(
+            "AI_COMPLETE returned no answer. Check that the SNOWFLAKE.CORTEX_USER "
+            "database role is available and that the document is within the model's size limit."
+        )
+
+    # Some AI_COMPLETE variants can return an object when error details are requested;
+    # this call uses the normal string response, so stringify defensively.
+    return str(response)
 
 def _clean_generated_sql(text_value: str) -> str:
     """Extract and validate a read-only SELECT/WITH SQL statement."""
@@ -563,6 +661,7 @@ def _drop_uploaded_table():
         pass
     st.session_state.uploaded_document_table = None
     st.session_state.uploaded_document_semantic_model = None
+    st.session_state.uploaded_document_stage_file = None
 
 
 def process_uploaded_document(uploaded_file):
@@ -703,14 +802,10 @@ def answer_uploaded_table_question(question: str, df: pd.DataFrame):
 
 
 def answer_uploaded_text_question(question: str, document_text: str):
-    """Legacy PDF/DOCX path. Trial accounts without COMPLETE cannot use it."""
+    """Answer questions from a PDF/DOCX using AI_COMPLETE document understanding."""
     if not document_text.strip():
         raise ValueError("No readable text was extracted from the uploaded document.")
-    raise RuntimeError(
-        "PDF/DOCX question answering currently requires a Cortex text-generation "
-        "function that is not enabled for this Snowflake trial account. Excel/CSV "
-        "analysis uses Cortex Analyst and does not require COMPLETE."
-    )
+    return ai_complete_document_question(question)
 
 
 def render_uploaded_document_preview():
@@ -901,6 +996,11 @@ with st.sidebar:
 
                 if doc_type == "table":
                     prepare_uploaded_table(doc_df)
+                elif doc_type == "text":
+                    # Keep the existing preview/text extraction, and additionally
+                    # upload the original PDF/DOCX to a session stage so AI_COMPLETE
+                    # can reason over the actual document (including layout/tables).
+                    _upload_document_to_stage(uploaded_doc)
 
             st.success(doc_message)
             st.rerun()
@@ -924,6 +1024,8 @@ with st.sidebar:
             st.session_state.uploaded_document_type = None
             st.session_state.uploaded_document_table = None
             st.session_state.uploaded_document_semantic_model = None
+            st.session_state.uploaded_document_stage = None
+            st.session_state.uploaded_document_stage_file = None
             st.rerun()
 # 6. MAIN HEADER
 # ===================================================================
