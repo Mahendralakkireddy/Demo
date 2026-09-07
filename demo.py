@@ -26,6 +26,9 @@ INVENTORY_YAML_STAGE_PATH = (
 SALES_YAML_STAGE_PATH = (
     '@"CORTEX_DEMO"."CORTEX_SCHEMA"."YAML"/sales_intelligence_model_80_queries_fixed_FINAL.yaml'
 )
+SUPPLY_CHAIN_YAML_STAGE_PATH = (
+    '@"SUPPLY_CHAIN_DW_DEMO"."GOLD"."YAML"/SUPPLY_CHAIN.yml'
+)
 
 ANALYST_ENDPOINT = f"https://{HOST}/api/v2/cortex/analyst/message"
 
@@ -125,6 +128,7 @@ def call_cortex_analyst(prompt: str) -> Dict[str, Any]:
         "semantic_models": [
             {"semantic_model_file": INVENTORY_YAML_STAGE_PATH},
             {"semantic_model_file": SALES_YAML_STAGE_PATH},
+            {"semantic_model_file": SUPPLY_CHAIN_YAML_STAGE_PATH},
         ],
         "stream": False,
     }
