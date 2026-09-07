@@ -1638,11 +1638,13 @@ def _home_page():
       .st-key-home_sales_explore [data-testid="stButton"] > button{
           border:1px solid #0878c8 !important;
           background:#0878c8 !important;
+          color: #ffffff !important;
       }
       .st-key-home_inv_explore [data-testid="stButton"] > button:hover,
       .st-key-home_sales_explore [data-testid="stButton"] > button:hover{
           background:#066aae !important;
           border-color:#066aae !important;
+          color: #ffffff !important;
       }
       /* Chat with AI buttons = red */
       .st-key-home_inv_chat [data-testid="stButton"] > button,
@@ -1650,11 +1652,13 @@ def _home_page():
           border:1px solid #e51f2b !important;
           background:#e51f2b !important;
           box-shadow:0 4px 10px rgba(229,31,43,.14) !important;
+          color: #ffffff !important;
       }
       .st-key-home_inv_chat [data-testid="stButton"] > button:hover,
       .st-key-home_sales_chat [data-testid="stButton"] > button:hover{
           background:#c91823 !important;
           border-color:#c91823 !important;
+          color: #ffffff !important;
       }
       .home-footer{border-top:1px solid #dcecff;margin-top:35px;padding:20px 0;color:#5a7392;text-align:center}
       @keyframes float{50%{transform:translateY(-12px)}}
