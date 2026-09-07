@@ -10,6 +10,7 @@ import requests
 from typing import Any, Dict, List, Optional
 import re
 import yaml
+
 # ===================================================================
 # Configuration
 # ===================================================================
@@ -19,6 +20,7 @@ DATABASE = "INVENTORY_DW_DEMO"
 SCHEMA = "GOLD"
 WAREHOUSE = "COMPUTE_WH"
 ROLE = "ACCOUNTADMIN"
+
 # FULL semantic-model YAML files on Snowflake stages.
 INVENTORY_YAML_STAGE_PATH = (
     '@"INVENTORY_DW_DEMO"."INVENTORY_SCHEMA"."YAML"/INV_ANALYST_DEMO_90_VERIFIED_FIXED_1.yaml'
@@ -29,8 +31,10 @@ SALES_YAML_STAGE_PATH = (
 SUPPLY_CHAIN_YAML_STAGE_PATH = (
     '@"SUPPLY_CHAIN_DW_DEMO"."GOLD"."YAML"/SUPPLY_CHAIN.yml'
 )
+
 ANALYST_ENDPOINT = f"https://{HOST}/api/v2/cortex/analyst/message"
 ROBOT_IMAGE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dilytics_robot.png")
+
 def _robot_data_uri():
     """Return the bundled Dilytics robot image as a data URI."""
     try:
@@ -38,11 +42,14 @@ def _robot_data_uri():
             return "data:image/png;base64," + base64.b64encode(f.read()).decode("ascii")
     except Exception:
         return ""
+
+
 st.set_page_config(
     page_title="Dilytics Enterprise AI",
     page_icon="📦",
     layout="wide",
 )
+
 st.markdown("""
 <style>
 /* ================================================================
@@ -57,17 +64,20 @@ st.markdown("""
     --dly-text: #173f6f;
     --dly-muted: #6481a2;
 }
+
 .stApp {
     background:
         radial-gradient(circle at 88% 4%, rgba(37,207,255,.18), transparent 24%),
         radial-gradient(circle at 10% 92%, rgba(23,105,210,.08), transparent 28%),
         linear-gradient(180deg, #f7fbff 0%, #edf7ff 55%, #ffffff 100%);
 }
+
 .main .block-container {
     max-width: 1180px;
     padding-top: 0.75rem;
     padding-bottom: 3rem;
 }
+
 /* Header / brand */
 .dly-topbar {
     display:flex; align-items:center; justify-content:space-between;
@@ -117,6 +127,7 @@ st.markdown("""
 .dly-hero p {
     max-width:650px; color:#587291; font-size:.92rem; line-height:1.65;
 }
+
 /* Status pill used in sidebar */
 .status-pill {
     display:inline-flex; align-items:center; gap:6px;
@@ -124,6 +135,7 @@ st.markdown("""
     border:1px solid rgba(74,222,128,.28); border-radius:20px;
     padding:4px 10px; font-size:.72rem; font-weight:700;
 }
+
 /* Buttons */
 div[data-testid="stButton"] > button {
     border-radius:10px; font-weight:600;
@@ -140,6 +152,7 @@ div[data-testid="stButton"] > button {
     color:#1769d2; transform:translateY(-1px);
     box-shadow:0 7px 22px rgba(23,105,210,.12);
 }
+
 /* Intelligence tabs */
 .stTabs [data-baseweb="tab-list"] {
     gap:8px; background:transparent;
@@ -152,12 +165,14 @@ div[data-testid="stButton"] > button {
     color:#1769d2 !important;
     background:#eaf5ff;
 }
+
 /* Expander / cards */
 [data-testid="stExpander"] {
     background:rgba(255,255,255,.96);
     border:1px solid #dcecff;
     border-radius:14px;
 }
+
 /* Chat bubbles */
 [data-testid="stChatMessage"] {
     border:1px solid #dcecff;
@@ -166,6 +181,7 @@ div[data-testid="stButton"] > button {
     margin-bottom:10px;
 }
 [data-testid="stChatMessage"] p { line-height:1.6; }
+
 /* Chat input */
 [data-testid="stChatInput"] {
     background:rgba(255,255,255,.98);
@@ -175,28 +191,35 @@ div[data-testid="stButton"] > button {
     border-radius:15px !important;
     background:#ffffff !important;
 }
+
 /* Sidebar */
 section[data-testid="stSidebar"] {
     background:linear-gradient(180deg,#f3f9ff 0%,#ffffff 100%);
     border-right:1px solid #dcecff;
 }
 section[data-testid="stSidebar"] .stMarkdown { color:#173f6f; }
+
 /* File uploader */
 [data-testid="stFileUploader"] {
     background:#ffffff;
     border:1px solid #dcecff;
     border-radius:12px;
 }
+
 /* Dataframes */
 [data-testid="stDataFrame"] {
     border-radius:12px; overflow:hidden;
 }
+
 /* Remove excess Streamlit decoration */
 #MainMenu { visibility:hidden; }
 footer { visibility:hidden; }
 header { background:transparent !important; }
 </style>
 """, unsafe_allow_html=True)
+
+
+
 st.markdown("""
 <style>
 /* ================================================================
@@ -306,6 +329,8 @@ st.markdown("""
 }
 </style>
 """, unsafe_allow_html=True)
+
+
 # ===================================================================
 # 1. LOGIN / SNOWFLAKE SESSION
 # ===================================================================
@@ -316,14 +341,18 @@ if "authenticated" not in st.session_state:
     st.session_state.snowpark_session = None
     st.session_state.snowflake_conn = None
     st.session_state.app_page = "home"
+
 if "captcha_a" not in st.session_state:
     import random
     st.session_state.captcha_a = random.randint(2, 9)
     st.session_state.captcha_b = random.randint(1, 9)
+
 def _new_captcha():
     import random
     st.session_state.captcha_a = random.randint(2, 9)
     st.session_state.captcha_b = random.randint(1, 9)
+
+
 def _login_page():
     st.markdown("""
     <style>
@@ -360,6 +389,7 @@ def _login_page():
       <div class="login-orbit"><img class="login-robot-img" src="{robot_src}" alt="Dilytics AI assistant" /></div>
     </div></div></div>
     """.replace("{robot_src}", _robot_data_uri()), unsafe_allow_html=True)
+
     st.markdown('<div class="login-form">', unsafe_allow_html=True)
     st.markdown("### Sign in")
     c1, c2 = st.columns(2, gap="medium")
@@ -367,12 +397,14 @@ def _login_page():
         st.session_state.username = st.text_input("Username", value=st.session_state.username, key="login_username")
     with c2:
         st.session_state.password = st.text_input("Password", type="password", key="login_password")
+
     captcha = f"{st.session_state.captcha_a} + {st.session_state.captcha_b} = ?"
     cc1, cc2 = st.columns([1, 1], gap="medium")
     with cc1:
         st.text_input("Security check", value=captcha, disabled=True, key="login_captcha_question")
     with cc2:
         captcha_answer = st.text_input("Enter answer", key="login_captcha_answer")
+
     b1, b2 = st.columns([4, 1], gap="small")
     with b1:
         login_clicked = st.button("Sign in to Dilytics", use_container_width=True, type="primary", key="login_submit")
@@ -380,7 +412,9 @@ def _login_page():
         if st.button("↻", help="New CAPTCHA", use_container_width=True, key="login_refresh_captcha"):
             _new_captcha()
             st.rerun()
+
     st.markdown('</div>', unsafe_allow_html=True)
+
     if login_clicked:
         try:
             if int(captcha_answer.strip()) != st.session_state.captcha_a + st.session_state.captcha_b:
@@ -406,10 +440,13 @@ def _login_page():
         except Exception as e:
             st.error(f"Authentication failed: {e}")
     st.stop()
+
 if not st.session_state.authenticated:
     _login_page()
+
 session = st.session_state.snowpark_session
 conn = st.session_state.snowflake_conn
+
 # ===================================================================
 # 2. CORTEX ANALYST
 #
@@ -424,6 +461,8 @@ def get_analyst_headers() -> Dict[str, str]:
         "Content-Type": "application/json",
         "Accept": "application/json",
     }
+
+
 def call_cortex_analyst(prompt: str) -> Dict[str, Any]:
     request_body = {
         "messages": [{
@@ -437,12 +476,14 @@ def call_cortex_analyst(prompt: str) -> Dict[str, Any]:
         ],
         "stream": False,
     }
+
     response = requests.post(
         ANALYST_ENDPOINT,
         headers=get_analyst_headers(),
         json=request_body,
         timeout=120,
     )
+
     if response.status_code >= 400:
         try:
             details = response.json()
@@ -451,7 +492,10 @@ def call_cortex_analyst(prompt: str) -> Dict[str, Any]:
         raise RuntimeError(
             f"Cortex Analyst API error ({response.status_code}): {details}"
         )
+
     return response.json()
+
+
 def call_cortex_analyst_with_semantic_model(
     prompt: str,
     semantic_model_yaml: str,
@@ -465,12 +509,14 @@ def call_cortex_analyst_with_semantic_model(
         "semantic_model": semantic_model_yaml,
         "stream": False,
     }
+
     response = requests.post(
         ANALYST_ENDPOINT,
         headers=get_analyst_headers(),
         json=request_body,
         timeout=120,
     )
+
     if response.status_code >= 400:
         try:
             details = response.json()
@@ -479,6 +525,7 @@ def call_cortex_analyst_with_semantic_model(
         raise RuntimeError(
             f"Cortex Analyst API error ({response.status_code}): {details}"
         )
+
     data = response.json()
     if isinstance(data, dict) and data.get("error_code"):
         raise RuntimeError(
@@ -486,6 +533,8 @@ def call_cortex_analyst_with_semantic_model(
             f"{data.get('message', data)}"
         )
     return data
+
+
 def extract_analyst_response(data: Dict[str, Any]) -> Dict[str, Any]:
     result = {
         "text": "",
@@ -495,16 +544,21 @@ def extract_analyst_response(data: Dict[str, Any]) -> Dict[str, Any]:
         "verified_query_used": None,
         "request_id": data.get("request_id"),
     }
+
     message = data.get("message", {})
     content = message.get("content", [])
     if isinstance(content, dict):
         content = [content]
+
     text_parts = []
+
     for block in content:
         block_type = block.get("type")
+
         if block_type == "text":
             if block.get("text"):
                 text_parts.append(block["text"])
+
         elif block_type == "sql":
             result["sql"] = (
                 block.get("statement")
@@ -516,6 +570,7 @@ def extract_analyst_response(data: Dict[str, Any]) -> Dict[str, Any]:
                 result["verified_query_used"] = confidence.get(
                     "verified_query_used"
                 )
+
         elif block_type == "suggestions":
             suggestions = block.get("suggestions", [])
             if isinstance(suggestions, list):
@@ -526,10 +581,14 @@ def extract_analyst_response(data: Dict[str, Any]) -> Dict[str, Any]:
                 )
             elif suggestions:
                 text_parts.append(str(suggestions))
+
     result["text"] = "\n\n".join(text_parts).strip()
+
     if not result["sql"]:
         result["sql"] = message.get("statement")
+
     return result
+
 # ===================================================================
 # 2A. UPLOADED DOCUMENT ANALYSIS (ADDED - ORIGINAL CORTEX ANALYST
 #     INVENTORY/SALES CODE IS PRESERVED)
@@ -540,6 +599,7 @@ DOCUMENT_AI_MODEL = "claude-sonnet-4-6"
 DOCUMENT_STAGE_DB = "INVENTORY_DW_DEMO"
 DOCUMENT_STAGE_SCHEMA = "GOLD"
 DOCUMENT_STAGE_NAME = "DILYTICS_DOCUMENT_STAGE"
+
 if "uploaded_document" not in st.session_state:
     st.session_state.uploaded_document = None
 if "uploaded_document_name" not in st.session_state:
@@ -558,22 +618,31 @@ if "uploaded_document_stage" not in st.session_state:
     st.session_state.uploaded_document_stage = None
 if "uploaded_document_stage_file" not in st.session_state:
     st.session_state.uploaded_document_stage_file = None
+
+
 def _snowflake_sql_literal(value: str) -> str:
     """Safely convert a Python string into a Snowflake SQL string literal."""
     if value is None:
         return "NULL"
     return "'" + str(value).replace("'", "''") + "'"
+
+
 def _document_stage_quoted_name() -> str:
     """Return the fully-qualified named stage used for PDF/DOCX files."""
     return (
         f'"{DOCUMENT_STAGE_DB}"."{DOCUMENT_STAGE_SCHEMA}".'
         f'"{DOCUMENT_STAGE_NAME}"'
     )
+
+
 def _document_stage_file_reference() -> str:
     """Return the fully-qualified @stage reference required by PUT/TO_FILE."""
     return '@' + _document_stage_quoted_name()
+
+
 def _ensure_document_stage():
     """Create the persistent, server-encrypted named stage used by AI_COMPLETE.
+
     AI_COMPLETE document processing requires the referenced FILE to live on an
     accessible internal/external stage. A temporary stage is session-scoped and
     is not reliable for this document-processing path, so use a dedicated named
@@ -593,15 +662,20 @@ def _ensure_document_stage():
             "USAGE on the database/schema and READ/WRITE on the stage."
         ) from exc
     return stage_name
+
+
 def _upload_document_to_stage(uploaded_file) -> str:
     """Upload a PDF/DOCX to the session's temporary Snowflake stage."""
     import os
     import tempfile
+
     extension = uploaded_file.name.rsplit(".", 1)[-1].lower()
     if extension not in {"pdf", "docx"}:
         raise ValueError("Only PDF and Word (.docx) documents can use document Q&A.")
+
     stage_name = _ensure_document_stage()
     safe_name = re.sub(r"[^A-Za-z0-9_.-]+", "_", uploaded_file.name)
+
     # Claude Sonnet 4.6 supports documents up to 22 MB.
     file_size = getattr(uploaded_file, "size", None)
     if file_size is not None and file_size > 22 * 1024 * 1024:
@@ -611,10 +685,12 @@ def _upload_document_to_stage(uploaded_file) -> str:
         )
     if not safe_name.lower().endswith((".pdf", ".docx")):
         safe_name = f"document.{extension}"
+
     with tempfile.NamedTemporaryFile(delete=False, suffix=f".{extension}") as tmp:
         uploaded_file.seek(0)
         tmp.write(uploaded_file.getvalue())
         local_path = tmp.name
+
     try:
         # Do not compress: AI_COMPLETE needs the original document extension/content.
         session.file.put(
@@ -628,21 +704,27 @@ def _upload_document_to_stage(uploaded_file) -> str:
             os.remove(local_path)
         except OSError:
             pass
+
     st.session_state.uploaded_document_stage = _document_stage_file_reference()
     st.session_state.uploaded_document_stage_file = safe_name
     return safe_name
+
+
 def ai_complete_document_question(question: str) -> str:
     """Answer a question directly from the uploaded PDF/DOCX using AI_COMPLETE.
+
     This is intentionally separate from the working Excel/CSV Cortex Analyst path.
     It does not use the legacy SNOWFLAKE.CORTEX.COMPLETE function.
     """
     stage_name = st.session_state.get("uploaded_document_stage")
     stage_file = st.session_state.get("uploaded_document_stage_file")
+
     if not stage_name or not stage_file:
         raise RuntimeError(
             "The uploaded PDF/Word document is not available in the Snowflake stage. "
             "Please click Analyze Document again."
         )
+
     model_literal = _snowflake_sql_literal(DOCUMENT_AI_MODEL)
     question_literal = _snowflake_sql_literal(
         "Answer the user's question using only the uploaded document. "
@@ -654,6 +736,7 @@ def ai_complete_document_question(question: str) -> str:
     # '@"DATABASE"."SCHEMA"."STAGE"'.
     stage_literal = _snowflake_sql_literal(stage_name)
     file_literal = _snowflake_sql_literal(stage_file)
+
     sql = f"""
         SELECT AI_COMPLETE(
             MODEL => {model_literal},
@@ -663,38 +746,47 @@ def ai_complete_document_question(question: str) -> str:
             )
         ) AS RESPONSE
     """
+
     rows = session.sql(sql).collect()
     if not rows:
         raise RuntimeError("AI_COMPLETE did not return a response.")
+
     row = rows[0]
     try:
         response = row["RESPONSE"]
     except Exception:
         response = row[0]
+
     if response is None:
         raise RuntimeError(
             "AI_COMPLETE returned no answer. Check that the SNOWFLAKE.CORTEX_USER "
             "database role is available and that the document is within the model's size limit."
         )
+
     # Some AI_COMPLETE variants can return an object when error details are requested;
     # this call uses the normal string response, so stringify defensively.
     return str(response)
+
 def _clean_generated_sql(text_value: str) -> str:
     """Extract and validate a read-only SELECT/WITH SQL statement."""
     sql_text = str(text_value or "").strip()
+
     if "```" in sql_text:
         blocks = re.findall(
             r"```(?:sql|SQL)?\s*(.*?)```", sql_text, flags=re.DOTALL
         )
         if blocks:
             sql_text = blocks[0].strip()
+
     sql_text = re.sub(
         r"^\s*(SQL\s*:|Query\s*:)\s*", "", sql_text, flags=re.I
     ).strip().rstrip(";").strip()
+
     if not re.match(r"^(SELECT|WITH)\b", sql_text, flags=re.I):
         raise RuntimeError(
             "Cortex Analyst did not return a valid SELECT/WITH statement."
         )
+
     forbidden = re.search(
         r"\b(INSERT|UPDATE|DELETE|MERGE|DROP|ALTER|TRUNCATE|CREATE|GRANT|REVOKE|COPY|PUT|REMOVE|CALL)\b",
         sql_text,
@@ -704,15 +796,20 @@ def _clean_generated_sql(text_value: str) -> str:
         raise RuntimeError(
             f"Generated document SQL contains a non-read-only command: {forbidden.group(1)}"
         )
+
     return sql_text
+
+
 def _normalize_uploaded_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     """Make mixed Excel/CSV columns safe for Streamlit and Snowflake.
+
     Numeric/date/bool columns stay typed. Object columns are normalized to text
     because Excel frequently mixes integers, strings such as 'Grand Total', and
     blanks in the same column.
     """
     if df is None:
         return df
+
     work_df = df.copy()
     for col in work_df.columns:
         series = work_df[col]
@@ -721,10 +818,13 @@ def _normalize_uploaded_dataframe(df: pd.DataFrame) -> pd.DataFrame:
                 lambda value: None if pd.isna(value) else str(value)
             )
     return work_df
+
+
 def _safe_column_names(df: pd.DataFrame):
     """Create SQL-friendly, unique Snowflake column names."""
     mapping = {}
     used = set()
+
     for original in df.columns:
         base = re.sub(
             r"[^A-Za-z0-9_]+", "_", str(original)
@@ -733,14 +833,19 @@ def _safe_column_names(df: pd.DataFrame):
             base = "COLUMN"
         if base[0].isdigit():
             base = "_" + base
+
         candidate = base
         n = 2
         while candidate in used:
             candidate = f"{base}_{n}"
             n += 1
+
         used.add(candidate)
         mapping[str(original)] = candidate
+
     return mapping
+
+
 def _snowflake_type_for_pandas(dtype) -> str:
     if pd.api.types.is_bool_dtype(dtype):
         return "BOOLEAN"
@@ -751,11 +856,14 @@ def _snowflake_type_for_pandas(dtype) -> str:
     if pd.api.types.is_datetime64_any_dtype(dtype):
         return "TIMESTAMP_NTZ"
     return "TEXT"
+
+
 def _column_synonyms(original_name: str):
     """Create conservative synonyms from the actual uploaded header."""
     text = re.sub(r"[_\-]+", " ", str(original_name)).strip()
     words = text.split()
     synonyms = [text.lower()]
+
     if text.lower().endswith(" id"):
         synonyms.append(text[:-3].strip().lower() + " identifier")
     if "commercial project" in text.lower() and "id" in text.lower():
@@ -773,6 +881,7 @@ def _column_synonyms(original_name: str):
             "completion date",
             "completed date",
         ])
+
     # Preserve order and uniqueness.
     result = []
     seen = set()
@@ -782,6 +891,8 @@ def _column_synonyms(original_name: str):
             result.append(item)
             seen.add(item)
     return result[:8]
+
+
 def _sample_values(df: pd.DataFrame, original: str, limit: int = 5):
     values = []
     for value in df[original].dropna().head(limit).tolist():
@@ -790,20 +901,26 @@ def _sample_values(df: pd.DataFrame, original: str, limit: int = 5):
             text = text[:97] + "..."
         values.append(text)
     return values
+
+
 def build_uploaded_semantic_model(df: pd.DataFrame, table_name: str) -> str:
     """Build a semantic model directly from the uploaded spreadsheet schema.
+
     The model is sent inline to the Cortex Analyst REST API. No COMPLETE call
     and no hard-coded question-to-SQL mapping are used.
     """
     mapping = _safe_column_names(df)
+
     dimensions = []
     time_dimensions = []
     facts = []
+
     for original, safe in mapping.items():
         dtype = df[original].dtype
         sf_type = _snowflake_type_for_pandas(dtype)
         synonyms = _column_synonyms(original)
         desc = f"Uploaded spreadsheet column '{original}'."
+
         # Close-out date is commonly the strongest completion indicator in
         # project workbooks. Only add this interpretation when that real column exists.
         original_lower = original.lower()
@@ -813,6 +930,7 @@ def build_uploaded_semantic_model(df: pd.DataFrame, table_name: str) -> str:
                 "that the project received close-out approval and can be used as a "
                 "completion indicator."
             )
+
         entry = {
             "name": safe,
             "description": desc,
@@ -826,6 +944,7 @@ def build_uploaded_semantic_model(df: pd.DataFrame, table_name: str) -> str:
             time_dimensions.append(entry)
         else:
             dimensions.append(entry)
+
         if pd.api.types.is_numeric_dtype(dtype):
             facts.append({
                 "name": safe,
@@ -833,6 +952,7 @@ def build_uploaded_semantic_model(df: pd.DataFrame, table_name: str) -> str:
                 "expr": safe,
                 "data_type": "NUMBER",
             })
+
     # A row indicator gives Analyst an explicit way to calculate row/project
     # counts without requiring any hard-coded question mapping.
     facts.append({
@@ -841,6 +961,7 @@ def build_uploaded_semantic_model(df: pd.DataFrame, table_name: str) -> str:
         "expr": "1",
         "data_type": "NUMBER",
     })
+
     # Add a semantic completion flag only when a real close-out column exists.
     closeout_safe = None
     for original, safe in mapping.items():
@@ -848,6 +969,7 @@ def build_uploaded_semantic_model(df: pd.DataFrame, table_name: str) -> str:
         if "close out" in low or "closeout" in low:
             closeout_safe = safe
             break
+
     if closeout_safe:
         dimensions.append({
             "name": "IS_COMPLETED",
@@ -857,6 +979,7 @@ def build_uploaded_semantic_model(df: pd.DataFrame, table_name: str) -> str:
             "unique": False,
             "synonyms": ["completed", "project completed", "completion status"],
         })
+
     table_definition = {
         "name": "UPLOADED_DATA",
         "description": "One logical table containing the complete uploaded spreadsheet.",
@@ -870,6 +993,7 @@ def build_uploaded_semantic_model(df: pd.DataFrame, table_name: str) -> str:
     }
     if time_dimensions:
         table_definition["time_dimensions"] = time_dimensions
+
     model = {
         "name": "UPLOADED_DOCUMENT_ANALYSIS",
         "description": "Semantic model generated dynamically from one uploaded spreadsheet. Use only this uploaded dataset.",
@@ -889,12 +1013,15 @@ def build_uploaded_semantic_model(df: pd.DataFrame, table_name: str) -> str:
             ),
         },
     }
+
     return yaml.safe_dump(
         model,
         sort_keys=False,
         allow_unicode=True,
         default_flow_style=False,
     )
+
+
 def _drop_uploaded_table():
     table_name = st.session_state.get("uploaded_document_table")
     if not table_name:
@@ -908,15 +1035,19 @@ def _drop_uploaded_table():
     st.session_state.uploaded_document_table = None
     st.session_state.uploaded_document_semantic_model = None
     st.session_state.uploaded_document_stage_file = None
+
+
 def process_uploaded_document(uploaded_file):
     """Read CSV/XLSX/XLS/PDF/DOCX and return display data/text."""
     name = uploaded_file.name
     extension = name.rsplit(".", 1)[-1].lower()
+
     if extension == "csv":
         uploaded_file.seek(0)
         df = pd.read_csv(uploaded_file)
         df = _normalize_uploaded_dataframe(df)
         return "table", df, "", f"CSV file loaded with {len(df):,} rows."
+
     if extension in {"xlsx", "xls"}:
         uploaded_file.seek(0)
         excel_file = pd.ExcelFile(uploaded_file)
@@ -929,11 +1060,13 @@ def process_uploaded_document(uploaded_file):
             "",
             f"Excel file loaded from sheet '{sheet_name}' with {len(df):,} rows.",
         )
+
     if extension == "pdf":
         try:
             from pypdf import PdfReader
         except ImportError:
             from PyPDF2 import PdfReader
+
         uploaded_file.seek(0)
         reader = PdfReader(uploaded_file)
         pages = []
@@ -941,22 +1074,27 @@ def process_uploaded_document(uploaded_file):
             pages.append(page.extract_text() or "")
         full_text = "\n\n".join(pages).strip()
         return "text", None, full_text, f"PDF analyzed successfully ({len(reader.pages)} pages)."
+
     if extension == "docx":
         # DOCX is a ZIP package containing XML. Parse it with Python's standard
         # library so the app does not require the optional python-docx package.
         import zipfile
         import xml.etree.ElementTree as ET
+
         uploaded_file.seek(0)
         docx_bytes = uploaded_file.read()
+
         try:
             with zipfile.ZipFile(io.BytesIO(docx_bytes)) as zf:
                 xml_bytes = zf.read("word/document.xml")
         except (KeyError, zipfile.BadZipFile) as exc:
             raise ValueError("The uploaded Word file is not a valid .docx document.") from exc
+
         try:
             root = ET.fromstring(xml_bytes)
         except ET.ParseError as exc:
             raise ValueError("Could not read the Word document content.") from exc
+
         ns = {"w": "http://schemas.openxmlformats.org/wordprocessingml/2006/main"}
         paragraphs = []
         for paragraph in root.findall(".//w:p", ns):
@@ -964,6 +1102,7 @@ def process_uploaded_document(uploaded_file):
             text = "".join(parts).strip()
             if text:
                 paragraphs.append(text)
+
         # Preserve Word tables in a simple row/column text representation.
         table_parts = []
         for table in root.findall(".//w:tbl", ns):
@@ -974,21 +1113,29 @@ def process_uploaded_document(uploaded_file):
                     cells.append(" ".join("".join(cell_parts).split()))
                 if any(cells):
                     table_parts.append(" | ".join(cells))
+
         full_text = "\n".join(paragraphs + table_parts).strip()
         return "text", None, full_text, "DOCX document analyzed successfully."
+
     raise ValueError("Unsupported document type.")
+
+
 def prepare_uploaded_table(df: pd.DataFrame) -> str:
     """Create a transient table so Cortex Analyst's REST session can see it."""
     if df is None or df.empty:
         raise ValueError("The uploaded spreadsheet contains no rows.")
+
     _drop_uploaded_table()
+
     work_df = _normalize_uploaded_dataframe(df)
     mapping = _safe_column_names(work_df)
     work_df.columns = [mapping[str(c)] for c in work_df.columns]
+
     table_name = (
         "UPLOADED_DOCUMENT_"
         + datetime.now().strftime("%Y%m%d_%H%M%S_%f").upper()
     )
+
     # IMPORTANT: do NOT use a TEMPORARY table here. Cortex Analyst REST runs
     # in a separate Snowflake session and cannot see session-scoped temp tables.
     # A TRANSIENT table is visible to the Analyst request and is dropped when
@@ -1000,31 +1147,42 @@ def prepare_uploaded_table(df: pd.DataFrame) -> str:
         overwrite=True,
         table_type="transient",
     )
+
     try:
         session.sql(
             f'ALTER TABLE "{table_name}" SET DATA_RETENTION_TIME_IN_DAYS = 0'
         ).collect()
     except Exception:
         pass
+
     semantic_model = build_uploaded_semantic_model(df, table_name)
+
     st.session_state.uploaded_document_table = table_name
     st.session_state.uploaded_document_semantic_model = semantic_model
+
     return semantic_model
+
+
 def answer_uploaded_table_question(question: str, df: pd.DataFrame):
     """Use Cortex Analyst to generate SQL against the complete uploaded table."""
     if df is None or df.empty:
         raise ValueError("The uploaded spreadsheet has no usable rows.")
+
     if not st.session_state.uploaded_document_table:
         prepare_uploaded_table(df)
+
     table_name = st.session_state.uploaded_document_table
     semantic_model = st.session_state.uploaded_document_semantic_model
+
     if not table_name or not semantic_model:
         raise RuntimeError("The uploaded document semantic model was not created.")
+
     analyst_json = call_cortex_analyst_with_semantic_model(
         question,
         semantic_model,
     )
     result = extract_analyst_response(analyst_json)
+
     if result.get("warnings"):
         warning_text = " ".join(
             str(w.get("message", w)) if isinstance(w, dict) else str(w)
@@ -1032,14 +1190,19 @@ def answer_uploaded_table_question(question: str, df: pd.DataFrame):
         )
         if warning_text:
             st.warning(warning_text)
+
     if not result.get("sql"):
         raise RuntimeError(
             result.get("text")
             or "Cortex Analyst could not generate SQL for the uploaded document question."
         )
+
     sql_query = _clean_generated_sql(result["sql"])
     result_df = session.sql(sql_query).to_pandas()
+
     return result_df, sql_query, result
+
+
 def _split_document_into_chunks(document_text: str) -> List[str]:
     """Split extracted Word text into useful paragraph/table chunks."""
     chunks = []
@@ -1048,8 +1211,11 @@ def _split_document_into_chunks(document_text: str) -> List[str]:
         if block:
             chunks.append(block)
     return chunks
+
+
 def _word_question_answer(question: str, document_text: str) -> str:
     """Answer Word-document questions without Cortex COMPLETE/AI_COMPLETE.
+
     This is an extractive, trial-safe fallback: it ranks paragraphs/table rows
     by overlap with the question and returns the most relevant document content.
     It does not invent information and therefore works without an LLM entitlement.
@@ -1057,6 +1223,7 @@ def _word_question_answer(question: str, document_text: str) -> str:
     chunks = _split_document_into_chunks(document_text)
     if not chunks:
         raise ValueError("No readable text was extracted from the Word document.")
+
     stop_words = {
         "what", "is", "are", "the", "a", "an", "of", "for", "to",
         "in", "on", "and", "or", "with", "from", "this", "that",
@@ -1067,6 +1234,7 @@ def _word_question_answer(question: str, document_text: str) -> str:
         w.lower() for w in re.findall(r"[A-Za-z0-9_]+", question)
         if w.lower() not in stop_words and len(w) > 2
     ]
+
     # Also recognize common phrase variants so questions such as
     # "What is the purpose of PII?" find a paragraph headed "Purpose".
     query_lower = question.lower()
@@ -1079,6 +1247,7 @@ def _word_question_answer(question: str, document_text: str) -> str:
         phrase_terms.extend(["handling", "protect", "protection", "process"])
     if "approach" in query_lower or "approaches" in query_lower:
         phrase_terms.extend(["approach", "approaches", "method"])
+
     terms = list(dict.fromkeys(question_words + phrase_terms))
     scored = []
     for idx, chunk in enumerate(chunks):
@@ -1094,6 +1263,7 @@ def _word_question_answer(question: str, document_text: str) -> str:
             score += min(len(terms), matched)
             score += 1 if len(chunk) < 500 else 0
             scored.append((score, matched, -len(chunk), idx, chunk))
+
     if not scored:
         # Safe fallback: show the beginning of the document rather than inventing.
         preview = "\n\n".join(chunks[:3])
@@ -1102,6 +1272,7 @@ def _word_question_answer(question: str, document_text: str) -> str:
             "your question. Here is the beginning of the extracted document content "
             "so you can refine the question:\n\n" + preview
         )
+
     scored.sort(reverse=True)
     selected = []
     seen = set()
@@ -1113,28 +1284,39 @@ def _word_question_answer(question: str, document_text: str) -> str:
                 selected.append(chunks[pos])
         if len(selected) >= 7:
             break
+
     return (
         "Based on the uploaded Word document, the most relevant content is:\n\n"
         + "\n\n".join(selected[:7])
     )
+
+
 def answer_uploaded_text_question(question: str, document_text: str):
     """Answer Word questions without changing the working Excel/CSV path.
+
     DOCX uses local extractive search because AI_COMPLETE/COMPLETE is blocked on
     the current Snowflake trial account. PDF keeps the existing AI_COMPLETE path.
     """
     if not document_text.strip():
         raise ValueError("No readable text was extracted from the uploaded document.")
+
     if st.session_state.get("uploaded_document_name", "").lower().endswith(".docx"):
         return _word_question_answer(question, document_text)
+
     return ai_complete_document_question(question)
+
+
 def render_uploaded_document_preview():
     """Display the analyzed document without interfering with the original UI."""
     doc_type = st.session_state.uploaded_document_type
     doc_name = st.session_state.uploaded_document_name
+
     if not doc_name:
         return
+
     st.markdown("---")
     st.markdown(f"### 📄 Uploaded Document: `{doc_name}`")
+
     if doc_type == "table":
         df = st.session_state.uploaded_document_df
         if df is not None:
@@ -1148,12 +1330,17 @@ def render_uploaded_document_preview():
                 disabled=True,
                 label_visibility="collapsed",
             )
+
+
 # ===================================================================
 # 2B. PROFESSIONAL APPLICATION PAGES
 # ===================================================================
+
 def _set_page(page: str):
     st.session_state.app_page = page
     st.rerun()
+
+
 def _logout():
     try:
         if st.session_state.get("snowflake_conn"):
@@ -1165,119 +1352,120 @@ def _logout():
     st.session_state.app_page = "home"
     _new_captcha()
     st.rerun()
+
+
 def _top_nav():
-    """Single unified header bar: the DILYTICS brand and all navigation
-    buttons (Home, Document AI Demo, About DiLytics, profile) now live
-    inside ONE continuous container with a solid background color,
-    instead of the logo sitting in its own separate box next to
-    free-floating buttons.
-    """
+    """Compact single-row application navigation aligned with the DILYTICS brand."""
     st.markdown("""
     <style>
       /* ---------------------------------------------------------------
-         Unified header bar. Everything inside st.container(key="dly_top_header")
-         renders under this single class, so one CSS rule gives the whole
-         row (logo + buttons) one continuous solid-color background.
+         Compact header: brand + navigation stay on ONE horizontal row.
+         The Streamlit buttons are styled to match the light-blue theme.
          --------------------------------------------------------------- */
-      .st-key-dly_top_header {
-          background: #e7f4ff !important;
-          border: 1px solid #c7e2f8 !important;
-          border-radius: 16px !important;
-          padding: 10px 16px !important;
-          margin: 0 0 18px 0 !important;
-          box-shadow: 0 7px 22px rgba(23,91,160,.08) !important;
+      .app-header{
+          background:rgba(255,255,255,.97);
+          border:1px solid #d8eaff;
+          border-radius:0 0 22px 22px;
+          padding:10px 18px;
+          box-shadow:0 7px 24px rgba(23,91,160,.07);
+          margin:-1rem -1rem .75rem;
       }
-      .st-key-dly_top_header [data-testid="column"] {
-          display: flex;
-          align-items: center;
+      .brand-logo{
+          display:inline-flex;
+          align-items:center;
+          justify-content:center;
+          background:#e51f2b;
+          color:#fff;
+          font-size:1.18rem;
+          font-weight:900;
+          padding:7px 12px;
+          letter-spacing:.4px;
+          border-radius:3px;
+          white-space:nowrap;
       }
-      .dly-top-brandline {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          min-height: 34px;
-          white-space: nowrap;
+      .brand-tag{
+          color:#37628f;
+          font-size:.72rem;
+          margin-left:9px;
+          white-space:nowrap;
       }
-      .dly-top-brand {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          background: #e51f2b;
-          color: #fff;
-          font-size: 1.05rem;
-          font-weight: 900;
-          padding: 7px 12px;
-          letter-spacing: .4px;
-          border-radius: 3px;
-          white-space: nowrap;
+      .nav-row{
+          display:flex;
+          align-items:center;
       }
-      .dly-top-tagline {
-          color: #37628f;
-          font-size: .72rem;
-          white-space: nowrap;
+      .nav-row .stButton>button,
+      div[data-testid="column"] .nav-button button{
+          min-height:32px !important;
+          height:32px !important;
+          padding:3px 9px !important;
+          border-radius:8px !important;
+          border:1px solid #c9e0f7 !important;
+          background:#edf7ff !important;
+          color:#174f87 !important;
+          font-size:.68rem !important;
+          font-weight:700 !important;
+          line-height:1 !important;
+          box-shadow:none !important;
+          white-space:nowrap !important;
+          transition:all .15s ease-in-out !important;
       }
-      /* Nav buttons: solid blue pills sitting inside the same bar. */
-      .st-key-dly_top_header [data-testid="stButton"] > button {
-          min-height: 32px !important;
-          height: 32px !important;
-          padding: 0 11px !important;
-          border-radius: 8px !important;
-          border: 1px solid #0878c8 !important;
-          background: #0878c8 !important;
-          color: #ffffff !important;
-          font-size: .68rem !important;
-          font-weight: 700 !important;
-          line-height: 1 !important;
-          box-shadow: 0 2px 5px rgba(8,120,200,.18) !important;
-          white-space: nowrap !important;
-          transition: all .15s ease-in-out !important;
+      .nav-row .stButton>button:hover,
+      div[data-testid="column"] .nav-button button:hover{
+          background:#dcefff !important;
+          border-color:#a9d1f4 !important;
+          color:#0b5ca8 !important;
       }
-      .st-key-dly_top_header [data-testid="stButton"] > button:hover {
-          background: #075fa3 !important;
-          border-color: #075fa3 !important;
-          color: #ffffff !important;
+      .nav-row .stButton>button:focus:not(:active){
+          box-shadow:0 0 0 2px rgba(23,105,210,.12) !important;
       }
-      @media (max-width: 850px) {
-          .st-key-dly_top_header { padding: 9px 12px; }
-          .dly-top-tagline { display: none; }
-          .dly-top-brand { font-size: 1rem; padding: 6px 9px; }
-          .st-key-dly_top_header [data-testid="stButton"] > button {
-              font-size: .62rem !important;
-              padding: 0 5px !important;
-          }
+      .profile-nav button{
+          background:#f4f9ff !important;
+          color:#315f8f !important;
+      }
+      @media(max-width:850px){
+          .app-header{padding:9px 12px;margin-left:-.5rem;margin-right:-.5rem}
+          .brand-tag{display:none}
+          .brand-logo{font-size:1rem;padding:6px 9px}
+          .nav-row .stButton>button{font-size:.62rem !important;padding:3px 5px !important}
       }
     </style>
     """, unsafe_allow_html=True)
-    # Every widget below renders inside the SAME container, so it all
-    # shares the single solid-background bar defined above.
-    with st.container(key="dly_top_header"):
-        nav_cols = st.columns([3.15, 1.05, 1.55, 1.35, 1.10], gap="small", vertical_alignment="center")
-        with nav_cols[0]:
-            st.markdown(
-                '<div class="dly-top-brandline">'
-                '<span class="dly-top-brand">DILYTICS</span>'
-                '<span class="dly-top-tagline">Data. Insights. Impact.</span>'
-                '</div>',
-                unsafe_allow_html=True,
-            )
-        with nav_cols[1]:
-            if st.button("⌂  Home", use_container_width=True, key="top_home"):
-                _set_page("home")
-        with nav_cols[2]:
-            if st.button("▣  Document AI Demo", use_container_width=True, key="top_docs"):
-                _set_page("document_ai")
-        with nav_cols[3]:
-            if st.button("ⓘ  About DiLytics", use_container_width=True, key="top_about"):
-                _set_page("about")
-        with nav_cols[4]:
-            username = st.session_state.get("username", "User")
-            if st.button(f"◯  {username}", use_container_width=True, key="top_profile"):
-                st.session_state.show_profile_menu = not st.session_state.get("show_profile_menu", False)
-        if st.session_state.get("show_profile_menu"):
-            pc = st.columns([8.0, 1.10])
-            with pc[1]:
-                if st.button("Logout", use_container_width=True, key="top_logout"):
-                    _logout()
+
+    # Everything below is rendered in one Streamlit row so the navigation
+    # remains vertically aligned with the DILYTICS logo.
+    nav_cols = st.columns([3.15, 1.05, 1.55, 1.35, 1.10], gap="small")
+
+    with nav_cols[0]:
+        st.markdown(
+            '<div class="app-header"><span class="brand-logo">DILYTICS</span>'
+            '<span class="brand-tag">Data. Insights. Impact.</span></div>',
+            unsafe_allow_html=True,
+        )
+
+    with nav_cols[1]:
+        if st.button("⌂  Home", use_container_width=True, key="top_home"):
+            _set_page("home")
+
+    with nav_cols[2]:
+        if st.button("▣  Document AI Demo", use_container_width=True, key="top_docs"):
+            _set_page("document_ai")
+
+    with nav_cols[3]:
+        if st.button("ⓘ  About DiLytics", use_container_width=True, key="top_about"):
+            _set_page("about")
+
+    with nav_cols[4]:
+        username = st.session_state.get("username", "User")
+        if st.button(f"◯  {username}", use_container_width=True, key="top_profile"):
+            st.session_state.show_profile_menu = not st.session_state.get("show_profile_menu", False)
+
+    if st.session_state.get("show_profile_menu"):
+        pc = st.columns([8.0, 1.10])
+        with pc[1]:
+            if st.button("Logout", use_container_width=True, key="top_logout"):
+                _logout()
+
+
 def _module_page(module: str):
     inventory = module == "inventory"
     title = "Inventory Intelligence" if inventory else "Sales Intelligence"
@@ -1313,6 +1501,8 @@ def _module_page(module: str):
         if st.button(f"💬 Chat with {title}",use_container_width=True,type="primary"): _set_page("chatbot")
     with b:
         if st.button("⌂  Back to Home",use_container_width=True): _set_page("home")
+
+
 def _document_ai_page():
     st.markdown("""
     <style>
@@ -1351,6 +1541,8 @@ def _document_ai_page():
             st.success(doc_message)
             st.rerun()
         except Exception as e: st.error(f"Document analysis failed: {e}")
+
+
 def _about_page():
     st.markdown("""
     <style>
@@ -1370,6 +1562,8 @@ def _about_page():
     for year,desc in milestones:
         st.markdown(f"**{year}**  —  {desc}")
     if st.button("⌂ Home",use_container_width=False): _set_page("home")
+
+
 def _open_chat():
     """Open AI chat only after the authentication gate has been satisfied."""
     if not st.session_state.get("authenticated", False):
@@ -1377,6 +1571,8 @@ def _open_chat():
     else:
         st.session_state.app_page = "chatbot"
     st.rerun()
+
+
 def _home_page():
     st.markdown("""
     <style>
@@ -1402,9 +1598,12 @@ def _home_page():
             if st.button("◯ Chat with AI",use_container_width=True,key="home_sales_chat"): _open_chat()
     st.markdown('</div>',unsafe_allow_html=True)
     st.markdown('<div class="home-footer">© 2026 DiLytics. All rights reserved. &nbsp; | &nbsp; Powered by Snowflake &nbsp; | &nbsp; Secure & Compliant &nbsp; | &nbsp; Insights Made Simple</div>',unsafe_allow_html=True)
+
+
 # Initialize route state and render non-chat pages.
 if "app_page" not in st.session_state:
     st.session_state.app_page = "home"
+
 if st.session_state.app_page != "chatbot":
     _top_nav()
     page=st.session_state.app_page
@@ -1414,12 +1613,15 @@ if st.session_state.app_page != "chatbot":
     elif page=="document_ai": _document_ai_page()
     elif page=="about": _about_page()
     st.stop()
+
 # Chatbot page keeps the existing working Cortex Analyst/document code below.
+
 # ===================================================================
 # 3. CHAT SESSION STATE
 # ===================================================================
 if "chat_sessions" not in st.session_state:
     st.session_state.chat_sessions = {}
+
 if "current_session_id" not in st.session_state:
     init_id = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
     st.session_state.current_session_id = init_id
@@ -1427,8 +1629,11 @@ if "current_session_id" not in st.session_state:
         "title": "New Conversation",
         "messages": [],
     }
+
 current_id = st.session_state.current_session_id
 messages = st.session_state.chat_sessions[current_id]["messages"]
+
+
 # ===================================================================
 # 4. CHART DISPLAY
 # ===================================================================
@@ -1436,28 +1641,36 @@ def display_chart_tab(df: pd.DataFrame, key_prefix: str = ""):
     if df is None or df.empty:
         st.info("No data available for charting.")
         return
+
     if len(df.columns) < 2:
         st.info("Need at least 2 columns to render a chart.")
         return
+
     all_cols = list(df.columns)
     col1, col2, col3 = st.columns(3)
+
     x_col = col1.selectbox(
         "Dimension (X-axis)", all_cols, index=0,
         key=f"{key_prefix}_x"
     )
+
     remaining_cols = [c for c in all_cols if c != x_col]
     if not remaining_cols:
         return
+
     y_col = col2.selectbox(
         "Metric (Y-axis)", remaining_cols, index=0,
         key=f"{key_prefix}_y"
     )
+
     chart_type = col3.selectbox(
         "Chart Type",
         ["Bar Chart", "Line Chart", "Area Chart", "Scatter Plot"],
         key=f"{key_prefix}_type",
     )
+
     chart_df = df.copy()
+
     if any(k in x_col.lower()
            for k in ["year", "quarter", "month", "day", "date"]):
         chart_df[x_col] = chart_df[x_col].apply(
@@ -1467,6 +1680,7 @@ def display_chart_tab(df: pd.DataFrame, key_prefix: str = ""):
                 else str(x)
             )
         )
+
     try:
         if chart_type == "Bar Chart":
             st.bar_chart(chart_df.set_index(x_col)[y_col])
@@ -1478,6 +1692,8 @@ def display_chart_tab(df: pd.DataFrame, key_prefix: str = ""):
             st.scatter_chart(chart_df, x=x_col, y=y_col)
     except Exception as e:
         st.info(f"Chart could not be rendered: {e}")
+
+
 # ===================================================================
 # 5. SIDEBAR
 # ===================================================================
@@ -1488,6 +1704,7 @@ with st.sidebar:
         unsafe_allow_html=True,
     )
     st.write("")
+
     if st.button("➕ New Chat", use_container_width=True, type="primary"):
         new_id = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
         st.session_state.current_session_id = new_id
@@ -1496,13 +1713,16 @@ with st.sidebar:
             "messages": [],
         }
         st.rerun()
+
     st.markdown("---")
     st.markdown("##### 🕒 Recent Conversations")
+
     for s_id, s_data in reversed(list(st.session_state.chat_sessions.items())):
         is_active = s_id == st.session_state.current_session_id
         label = s_data["title"]
         if len(label) > 20:
             label = label[:18] + "..."
+
         if st.button(
             f"{'👉 ' if is_active else '🗨️ '}{label}",
             key=f"sess_{s_id}",
@@ -1510,7 +1730,9 @@ with st.sidebar:
         ):
             st.session_state.current_session_id = s_id
             st.rerun()
+
     st.markdown("---")
+
     if st.button("🗑️ Clear All Sessions", use_container_width=True):
         st.session_state.chat_sessions = {}
         init_id = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
@@ -1520,15 +1742,19 @@ with st.sidebar:
             "messages": [],
         }
         st.rerun()
+
+
 # ===================================================================
     st.markdown("---")
     st.markdown("##### 📄 Analyze an Uploaded Document")
+
     uploaded_doc = st.file_uploader(
         "Upload CSV, Excel, PDF or Word",
         type=["csv", "xlsx", "xls", "pdf", "docx"],
         key="document_uploader",
         help="Upload a document, click Analyze, then choose Uploaded Document in the chat.",
     )
+
     if st.button(
         "🔍 Analyze Document",
         use_container_width=True,
@@ -1540,6 +1766,7 @@ with st.sidebar:
                 doc_type, doc_df, doc_text, doc_message = process_uploaded_document(
                     uploaded_doc
                 )
+
                 _drop_uploaded_table()
                 st.session_state.uploaded_document_name = uploaded_doc.name
                 st.session_state.uploaded_document_type = doc_type
@@ -1548,6 +1775,7 @@ with st.sidebar:
                 st.session_state.uploaded_document = uploaded_doc.name
                 st.session_state.uploaded_document_table = None
                 st.session_state.uploaded_document_semantic_model = None
+
                 if doc_type == "table":
                     prepare_uploaded_table(doc_df)
                 elif doc_type == "text":
@@ -1556,6 +1784,7 @@ with st.sidebar:
                     # Excel/CSV Cortex Analyst functionality is untouched.
                     if uploaded_doc.name.lower().endswith(".pdf"):
                         _upload_document_to_stage(uploaded_doc)
+
             # Keep document analysis inside the current conversation timeline.
             # The upload is an event in the chat, so it appears exactly where
             # it happened instead of being rendered above the old messages.
@@ -1583,10 +1812,12 @@ with st.sidebar:
                 "document_name": uploaded_doc.name,
                 "document_type": doc_type,
             })
+
             st.success(doc_message)
             st.rerun()
         except Exception as e:
             st.error(f"Document analysis failed: {e}")
+
     if st.session_state.uploaded_document_name:
         st.caption(
             f"Loaded: `{st.session_state.uploaded_document_name}`"
@@ -1618,17 +1849,30 @@ st.markdown("""
    One continuous box containing brand + navigation.
    ================================================================ */
 .st-key-dly_chat_header {
-    background: #e7f4ff !important;
-    border: 1px solid #c7e2f8 !important;
+    width: 100% !important;
+    max-width: none !important;
+    box-sizing: border-box !important;
+    background: #dff1ff !important;
+    border: 1px solid #b9dcf7 !important;
     border-radius: 14px !important;
     padding: 10px 12px !important;
     margin: 0 0 18px 0 !important;
-    box-shadow: 0 5px 18px rgba(35,111,177,.08) !important;
+    box-shadow: 0 6px 20px rgba(35,111,177,.10) !important;
 }
+
+/* Streamlit may place the keyed block inside a wrapper; force the
+   highlighted header background to occupy the complete row. */
+.st-key-dly_chat_header,
+.st-key-dly_chat_header > div,
+.st-key-dly_chat_header > div > div {
+    box-sizing: border-box !important;
+}
+
 .st-key-dly_chat_header [data-testid="column"] {
     display: flex;
     align-items: center;
 }
+
 .dly-chat-brandline {
     display: flex;
     align-items: center;
@@ -1636,6 +1880,7 @@ st.markdown("""
     min-height: 34px;
     white-space: nowrap;
 }
+
 .dly-chat-brand {
     font-size: 1.02rem;
     font-weight: 900;
@@ -1643,9 +1888,11 @@ st.markdown("""
     line-height: 1;
     white-space: nowrap;
 }
+
 .dly-chat-brand span {
     color: #0a3b78;
 }
+
 .dly-chat-tagline {
     color: #52718f;
     font-size: .68rem;
@@ -1653,6 +1900,7 @@ st.markdown("""
     white-space: nowrap;
     padding-left: 1px;
 }
+
 /* Blue navigation button boxes */
 .st-key-dly_chat_header [data-testid="stButton"] > button {
     min-height: 32px !important;
@@ -1668,11 +1916,13 @@ st.markdown("""
     box-shadow: 0 2px 5px rgba(8,120,200,.18) !important;
     white-space: nowrap !important;
 }
+
 .st-key-dly_chat_header [data-testid="stButton"] > button:hover {
     background: #075fa3 !important;
     border-color: #075fa3 !important;
     color: #ffffff !important;
 }
+
 @media (max-width: 900px) {
     .dly-chat-brandline {
         gap: 6px;
@@ -1690,8 +1940,10 @@ st.markdown("""
 }
 </style>
 """, unsafe_allow_html=True)
+
 with st.container(key="dly_chat_header"):
-    h1, h2, h3, h4 = st.columns([2.7, .8, 1.15, .8], gap="small", vertical_alignment="center")
+    # Keep the brand on the left and all navigation inside the SAME highlighted header box.
+    h1, h2, h3, h4 = st.columns([2.25, .75, 1.05, .75], gap="small", vertical_alignment="center")
     with h1:
         st.markdown(
             '<div class="dly-chat-brandline">'
@@ -1709,15 +1961,19 @@ with st.container(key="dly_chat_header"):
     with h4:
         if st.button("↪  Logout", use_container_width=True, key="chat_logout"):
             _logout()
+
 # 7. EXAMPLE QUESTIONS
 # These buttons are only examples. They do NOT contain SQL.
 # ===================================================================
 quick_prompt = None
+
 st.markdown("### Explore your data")
 st.caption("Choose a question below or type your own question in the chat.")
+
 tab_inv, tab_sales, tab_supply = st.tabs(
     ["📦 Inventory Intelligence", "💰 Sales Intelligence", "🚚 Supply Chain Intelligence"]
 )
+
 with tab_inv:
     with st.expander("💡 What can I ask about Inventory?", expanded=False):
         if st.button(
@@ -1726,42 +1982,49 @@ with tab_inv:
             key="i1",
         ):
             quick_prompt = "What is the total inventory value?"
+
         if st.button(
             "🏭 What is the inventory value by warehouse?",
             use_container_width=True,
             key="i2",
         ):
             quick_prompt = "What is the inventory value by warehouse?"
+
         if st.button(
             "📦 Which products have the highest inventory value?",
             use_container_width=True,
             key="i3",
         ):
             quick_prompt = "Which products have the highest inventory value?"
+
         if st.button(
             "📉 How many products are out of stock?",
             use_container_width=True,
             key="i4",
         ):
             quick_prompt = "How many products are out of stock?"
+
         if st.button(
             "⚠️ What is the total excess inventory value by warehouse?",
             use_container_width=True,
             key="i5",
         ):
             quick_prompt = "What is the total excess inventory value by warehouse?"
+
         if st.button(
             "🔄 Which products need to be reordered?",
             use_container_width=True,
             key="i6",
         ):
             quick_prompt = "Which products need to be reordered?"
+
         if st.button(
             "🏷️ What is the inventory value by product category?",
             use_container_width=True,
             key="i7",
         ):
             quick_prompt = "What is the inventory value by product category?"
+
 with tab_sales:
     with st.expander("💡 What can I ask about Sales?", expanded=False):
         if st.button(
@@ -1770,43 +2033,52 @@ with tab_sales:
             key="s1",
         ):
             quick_prompt = "What is the total sales amount?"
+
         if st.button(
             "🏆 What are the top products by sales?",
             use_container_width=True,
             key="s2",
         ):
             quick_prompt = "What are the top products by sales?"
+
         if st.button(
             "🌍 What are total sales by customer region?",
             use_container_width=True,
             key="s3",
         ):
             quick_prompt = "What are total sales by customer region?"
+
         if st.button(
             "📅 What are total sales by month?",
             use_container_width=True,
             key="s4",
         ):
             quick_prompt = "What are total sales by month?"
+
         if st.button(
             "📊 What is total sales by order channel?",
             use_container_width=True,
             key="s5",
         ):
             quick_prompt = "What is total sales by order channel?"
+
         if st.button(
             "💳 What is the average order value?",
             use_container_width=True,
             key="s6",
         ):
             quick_prompt = "What is the average order value?"
+
         if st.button(
             "🎟️ What is the total discount?",
             use_container_width=True,
             key="s7",
         ):
             quick_prompt = "What is the total discount?"
+
 st.markdown("---")
+
+
 # ===================================================================
 # 8. DISPLAY CHAT HISTORY
 # ===================================================================
@@ -1816,9 +2088,11 @@ st.markdown("---")
 for idx, msg in enumerate(messages):
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
+
         if msg.get("document_event"):
             doc_type = msg.get("document_type")
             doc_name = msg.get("document_name")
+
             if doc_type == "table":
                 current_df = st.session_state.uploaded_document_df
                 # Show the preview only for the currently loaded document.
@@ -1840,17 +2114,21 @@ for idx, msg in enumerate(messages):
                             label_visibility="collapsed",
                             key=f"doc_preview_{current_id}_{idx}",
                         )
+
         if msg.get("sql"):
             with st.expander("Generated SQL", expanded=False):
                 st.code(msg["sql"], language="sql")
+
         if msg.get("semantic_model"):
             st.caption(
                 f"Semantic model selected: `{msg['semantic_model']}`"
             )
+
         if msg.get("verified_query"):
             name = msg["verified_query"].get("name")
             if name:
                 st.caption(f"Verified Query Used: `{name}`")
+
         if msg.get("data") is not None:
             tab_data, tab_chart = st.tabs(["Data 📄", "Chart 📈"])
             with tab_data:
@@ -1860,6 +2138,8 @@ for idx, msg in enumerate(messages):
                     msg["data"],
                     key_prefix=f"hist_{current_id}_{idx}",
                 )
+
+
 # ===================================================================
 # ===================================================================
 # 8A. ANSWER SOURCE (ADDED)
@@ -1883,9 +2163,12 @@ user_prompt = (
     or quick_prompt
     or st.session_state.get("landing_prompt")
 )
+
 # A question entered on the landing page is consumed once after navigation.
 if st.session_state.get("landing_prompt"):
     st.session_state.landing_prompt = None
+
+
 # ===================================================================
 # 10. CORTEX ANALYST EXECUTION
 # ===================================================================
@@ -1900,13 +2183,16 @@ if user_prompt:
             st.session_state.chat_sessions[current_id]["title"] = (
                 user_prompt[:25] + ("..." if len(user_prompt) > 25 else "")
             )
+
         messages.append({"role": "user", "content": user_prompt})
         with st.chat_message("user"):
             st.markdown(user_prompt)
+
         with st.chat_message("assistant"):
             doc_df_result = None
             doc_sql_result = None
             doc_answer = ""
+
             try:
                 with st.spinner("Analyzing your uploaded document..."):
                     if st.session_state.uploaded_document_type == "table":
@@ -1929,10 +2215,13 @@ if user_prompt:
                             user_prompt,
                             st.session_state.uploaded_document_text,
                         )
+
                 st.markdown(doc_answer)
+
                 if doc_sql_result:
                     with st.expander("Generated SQL for Uploaded Document", expanded=False):
                         st.code(doc_sql_result, language="sql")
+
                 if doc_df_result is not None:
                     tab_data, tab_chart = st.tabs(["Data 📄", "Chart 📈"])
                     with tab_data:
@@ -1942,6 +2231,7 @@ if user_prompt:
                             doc_df_result,
                             key_prefix=f"document_{current_id}_{len(messages)}",
                         )
+
                 messages.append({
                     "role": "assistant",
                     "content": doc_answer,
@@ -1950,6 +2240,7 @@ if user_prompt:
                     "semantic_model": "Uploaded Document",
                     "verified_query": None,
                 })
+
             except Exception as e:
                 doc_answer = f"Unable to analyze the uploaded document: {e}"
                 st.error(doc_answer)
@@ -1961,28 +2252,35 @@ if user_prompt:
                     "semantic_model": "Uploaded Document",
                     "verified_query": None,
                 })
+
         st.rerun()
     if len(messages) == 0:
         st.session_state.chat_sessions[current_id]["title"] = (
             user_prompt[:25] + ("..." if len(user_prompt) > 25 else "")
         )
+
     messages.append({"role": "user", "content": user_prompt})
+
     with st.chat_message("user"):
         st.markdown(user_prompt)
+
     with st.chat_message("assistant"):
         df = None
         sql_query = None
         explanation = ""
         semantic_model = None
         verified_query = None
+
         try:
             with st.spinner("Cortex Analyst is interpreting your question..."):
                 analyst_json = call_cortex_analyst(user_prompt)
                 result = extract_analyst_response(analyst_json)
+
             explanation = result["text"]
             sql_query = result["sql"]
             semantic_model = result["semantic_model_selection"]
             verified_query = result["verified_query_used"]
+
             for warning in result["warnings"]:
                 warning_text = (
                     warning.get("message", str(warning))
@@ -1990,6 +2288,7 @@ if user_prompt:
                     else str(warning)
                 )
                 st.warning(warning_text)
+
             if not sql_query:
                 if not explanation:
                     explanation = (
@@ -1997,44 +2296,57 @@ if user_prompt:
                         "question from the configured semantic models."
                     )
                 st.markdown(explanation)
+
             else:
                 if not explanation:
                     explanation = (
                         "I generated this answer using the Snowflake "
                         "semantic model."
                     )
+
                 st.markdown(explanation)
+
                 if semantic_model:
                     st.caption(
                         f"Semantic model selected: `{semantic_model}`"
                     )
+
                 if verified_query:
                     name = verified_query.get("name")
                     if name:
                         st.caption(f"Verified Query Used: `{name}`")
+
                 with st.expander("Generated SQL", expanded=False):
                     st.code(sql_query, language="sql")
+
                 with st.spinner("Executing generated SQL in Snowflake..."):
                     df = session.sql(sql_query).to_pandas()
+
                 tab_data, tab_chart = st.tabs(["Data 📄", "Chart 📈"])
+
                 with tab_data:
                     st.dataframe(df, use_container_width=True)
+
                 with tab_chart:
                     display_chart_tab(
                         df,
                         key_prefix=f"live_{current_id}_{len(messages)}",
                     )
+
         except requests.exceptions.Timeout:
             explanation = (
                 "Cortex Analyst took too long to respond. Please try again."
             )
             st.error(explanation)
+
         except requests.exceptions.RequestException as e:
             explanation = f"Could not connect to Cortex Analyst: {e}"
             st.error(explanation)
+
         except Exception as e:
             explanation = f"Unable to process the question: {e}"
             st.error(explanation)
+
         messages.append({
             "role": "assistant",
             "content": explanation,
@@ -2043,4 +2355,5 @@ if user_prompt:
             "semantic_model": semantic_model,
             "verified_query": verified_query,
         })
+
     st.rerun()
