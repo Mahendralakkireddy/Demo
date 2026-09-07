@@ -1591,27 +1591,127 @@ def _open_chat():
 def _home_page():
     st.markdown("""
     <style>
-      .home-wrap{background:#fff;color:#09295f}.home-hero{display:grid;grid-template-columns:1fr 1fr;gap:35px;align-items:center;padding:35px 20px 28px}.home-eyebrow{letter-spacing:4px;color:#1769d2;font-weight:800}.home-title{font-size:4rem;line-height:1.02;font-weight:900;color:#082d69}.home-title span{color:#1769d2}.home-sub{font-size:1.12rem;color:#587291;line-height:1.6;max-width:600px}.home-robot{height:430px;position:relative;display:flex;align-items:center;justify-content:center}.orb{width:430px;height:430px;border-radius:50%;background:radial-gradient(circle at 50% 42%,#ffffff,#e8f6ff 55%,#d6edff 100%);display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 25px rgba(31,129,225,.05),0 20px 55px rgba(23,91,160,.08);animation:pulse 4s ease-in-out infinite}.home-robot-img{width:390px;max-width:86%;height:auto;object-fit:contain;filter:drop-shadow(0 25px 35px rgba(20,94,170,.18));animation:float 3.5s ease-in-out infinite}.bubble{position:absolute;right:5%;top:5%;padding:18px 22px;background:#fff;border:1px solid #d4e8ff;border-radius:20px;color:#1769d2;box-shadow:0 12px 30px rgba(23,91,160,.12);font-weight:700}.home-stats{display:flex;gap:35px;margin-top:25px;color:#315a88}.module-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:15px}.module-card{background:#fff;border:1px solid #d5eaff;border-radius:22px;padding:28px;box-shadow:0 15px 40px rgba(23,91,160,.07)}.module-card h2{color:#082d69}.module-card p{color:#587291;line-height:1.55}.module-card li{margin:9px 0;color:#183e70}.module-actions{display:flex;gap:12px;margin-top:22px}.module-actions .stButton>button{border-radius:12px!important}.home-footer{border-top:1px solid #dcecff;margin-top:35px;padding:20px 0;color:#5a7392;text-align:center}@keyframes float{50%{transform:translateY(-12px)}}@keyframes pulse{50%{transform:scale(1.03)}}@media(max-width:850px){.home-hero,.module-grid{grid-template-columns:1fr}.home-title{font-size:2.8rem}.home-robot{height:360px}.orb{width:330px;height:330px}.home-robot-img{width:310px}.bubble{right:0}}
+      .home-wrap{background:#fff;color:#09295f}
+      .home-hero{display:grid;grid-template-columns:1fr 1fr;gap:35px;align-items:center;padding:35px 20px 28px}
+      .home-eyebrow{letter-spacing:4px;color:#1769d2;font-weight:800}
+      .home-title{font-size:4rem;line-height:1.02;font-weight:900;color:#082d69}
+      .home-title span{color:#1769d2}
+      .home-sub{font-size:1.12rem;color:#587291;line-height:1.6;max-width:600px}
+      .home-robot{height:430px;position:relative;display:flex;align-items:center;justify-content:center}
+      .orb{width:430px;height:430px;border-radius:50%;background:radial-gradient(circle at 50% 42%,#ffffff,#e8f6ff 55%,#d6edff 100%);display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 25px rgba(31,129,225,.05),0 20px 55px rgba(23,91,160,.08);animation:pulse 4s ease-in-out infinite}
+      .home-robot-img{width:390px;max-width:86%;height:auto;object-fit:contain;filter:drop-shadow(0 25px 35px rgba(20,94,170,.18));animation:float 3.5s ease-in-out infinite}
+      .bubble{position:absolute;right:5%;top:5%;padding:18px 22px;background:#fff;border:1px solid #d4e8ff;border-radius:20px;color:#1769d2;box-shadow:0 12px 30px rgba(23,91,160,.12);font-weight:700}
+      .home-stats{display:flex;gap:35px;margin-top:25px;color:#315a88}
+
+      /* Each intelligence card is ONE container: content + both buttons. */
+      .st-key-inventory_card, .st-key-sales_card{
+          background:#fff !important;
+          border:1px solid #d5eaff !important;
+          border-radius:22px !important;
+          padding:28px !important;
+          box-shadow:0 15px 40px rgba(23,91,160,.07) !important;
+          box-sizing:border-box !important;
+          height:100% !important;
+      }
+      .st-key-inventory_card > div, .st-key-sales_card > div{gap:0 !important;}
+      .module-card-container{box-sizing:border-box !important;}
+      .module-card-container h2{color:#082d69;margin-top:0;margin-bottom:12px}
+      .module-card-container p{color:#587291;line-height:1.55}
+      .module-card-container li{margin:9px 0;color:#183e70}
+      .module-card-actions{margin-top:24px}
+      .module-card-actions [data-testid="stButton"] > button{
+          border-radius:12px !important;
+          min-height:38px !important;
+          height:38px !important;
+          font-size:.82rem !important;
+          font-weight:600 !important;
+          border:1px solid #0878c8 !important;
+          background:#0878c8 !important;
+          color:#fff !important;
+          box-shadow:0 4px 10px rgba(8,120,200,.14) !important;
+      }
+      .module-card-actions [data-testid="stButton"] > button:hover{
+          background:#066aae !important;
+          border-color:#066aae !important;
+      }
+      .home-footer{border-top:1px solid #dcecff;margin-top:35px;padding:20px 0;color:#5a7392;text-align:center}
+      @keyframes float{50%{transform:translateY(-12px)}}
+      @keyframes pulse{50%{transform:scale(1.03)}}
+      @media(max-width:850px){
+          .home-hero,.module-grid{grid-template-columns:1fr}
+          .home-title{font-size:2.8rem}
+          .home-robot{height:360px}
+          .orb{width:330px;height:330px}
+          .home-robot-img{width:310px}
+          .bubble{right:0}
+      }
     </style>
-    <div class="home-hero"><div><div class="home-eyebrow">WELCOME TO DILYTICS</div><div class="home-title">Your AI-Powered<br><span>Data Companion</span></div><div class="home-sub">Ask questions, explore insights, and make smarter decisions with the power of your data.</div><div class="home-stats"><span>▮ Insights Made Simple</span><span>⚡ Faster Decisions</span><span>✓ Secure & Compliant</span></div></div><div class="home-robot"><div class="orb"><img class="home-robot-img" src="{robot_src}" alt="Dilytics AI assistant" /></div><div class="bubble"><b>Hi!</b><br>How can I help you<br>today?</div></div></div>
+    <div class="home-hero">
+      <div>
+        <div class="home-eyebrow">WELCOME TO DILYTICS</div>
+        <div class="home-title">Your AI-Powered<br><span>Data Companion</span></div>
+        <div class="home-sub">Ask questions, explore insights, and make smarter decisions with the power of your data.</div>
+        <div class="home-stats"><span>▮ Insights Made Simple</span><span>⚡ Faster Decisions</span><span>✓ Secure & Compliant</span></div>
+      </div>
+      <div class="home-robot">
+        <div class="orb"><img class="home-robot-img" src="{robot_src}" alt="Dilytics AI assistant" /></div>
+        <div class="bubble"><b>Hi!</b><br>How can I help you<br>today?</div>
+      </div>
+    </div>
     """.replace("{robot_src}", _robot_data_uri()),unsafe_allow_html=True)
-    st.markdown('<div class="module-grid">',unsafe_allow_html=True)
-    c1,c2=st.columns(2)
+
+    # Each card is a real Streamlit container. The content and both
+    # action buttons are rendered inside the same container.
+    c1,c2=st.columns(2, gap="medium")
+
     with c1:
-        st.markdown("""<div class="module-card"><h2>▦ &nbsp; Inventory Intelligence</h2><p>Get real-time insights into stock levels, warehouse capacity and product performance.</p><ul><li>Track inventory levels and availability</li><li>Analyze stock value by warehouse and category</li><li>Identify excess and out-of-stock items</li><li>Find products that need to be reordered</li></ul></div>""",unsafe_allow_html=True)
-        a,b=st.columns(2)
-        with a:
-            if st.button("⌁ Explore Inventory",use_container_width=True,key="home_inv_explore"): _set_page("inventory")
-        with b:
-            if st.button("◯ Chat with AI",use_container_width=True,key="home_inv_chat"): _open_chat()
+        with st.container(key="inventory_card"):
+            st.markdown("""
+            <div class="module-card-container">
+              <h2>▦ &nbsp; Inventory Intelligence</h2>
+              <p>Get real-time insights into stock levels, warehouse capacity and product performance.</p>
+              <ul>
+                <li>Track inventory levels and availability</li>
+                <li>Analyze stock value by warehouse and category</li>
+                <li>Identify excess and out-of-stock items</li>
+                <li>Find products that need to be reordered</li>
+              </ul>
+            </div>
+            """, unsafe_allow_html=True)
+            st.markdown('<div class="module-card-actions">', unsafe_allow_html=True)
+            a,b=st.columns(2, gap="small")
+            with a:
+                if st.button("⌁ Explore Inventory",use_container_width=True,key="home_inv_explore"):
+                    _set_page("inventory")
+            with b:
+                if st.button("◯ Chat with AI",use_container_width=True,key="home_inv_chat"):
+                    _open_chat()
+            st.markdown('</div>', unsafe_allow_html=True)
+
     with c2:
-        st.markdown("""<div class="module-card"><h2>▥ &nbsp; Sales Intelligence</h2><p>Uncover sales trends, customer insights and revenue opportunities across products, regions and channels.</p><ul><li>Analyze total sales and revenue</li><li>Identify top products and customer segments</li><li>Track sales by region and channel</li><li>Monitor monthly and quarterly trends</li></ul></div>""",unsafe_allow_html=True)
-        a,b=st.columns(2)
-        with a:
-            if st.button("⌁ Explore Sales",use_container_width=True,key="home_sales_explore"): _set_page("sales")
-        with b:
-            if st.button("◯ Chat with AI",use_container_width=True,key="home_sales_chat"): _open_chat()
-    st.markdown('</div>',unsafe_allow_html=True)
+        with st.container(key="sales_card"):
+            st.markdown("""
+            <div class="module-card-container">
+              <h2>▥ &nbsp; Sales Intelligence</h2>
+              <p>Uncover sales trends, customer insights and revenue opportunities across products, regions and channels.</p>
+              <ul>
+                <li>Analyze total sales and revenue</li>
+                <li>Identify top products and customer segments</li>
+                <li>Track sales by region and channel</li>
+                <li>Monitor monthly and quarterly trends</li>
+              </ul>
+            </div>
+            """, unsafe_allow_html=True)
+            st.markdown('<div class="module-card-actions">', unsafe_allow_html=True)
+            a,b=st.columns(2, gap="small")
+            with a:
+                if st.button("⌁ Explore Sales",use_container_width=True,key="home_sales_explore"):
+                    _set_page("sales")
+            with b:
+                if st.button("◯ Chat with AI",use_container_width=True,key="home_sales_chat"):
+                    _open_chat()
+            st.markdown('</div>', unsafe_allow_html=True)
+
     st.markdown('<div class="home-footer">© 2026 DiLytics. All rights reserved. &nbsp; | &nbsp; Powered by Snowflake &nbsp; | &nbsp; Secure & Compliant &nbsp; | &nbsp; Insights Made Simple</div>',unsafe_allow_html=True)
 
 
