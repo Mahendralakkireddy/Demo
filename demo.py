@@ -1,4 +1,6 @@
 import io
+import os
+import base64
 import streamlit as st
 import pandas as pd
 from datetime import datetime
@@ -31,6 +33,16 @@ SUPPLY_CHAIN_YAML_STAGE_PATH = (
 )
 
 ANALYST_ENDPOINT = f"https://{HOST}/api/v2/cortex/analyst/message"
+ROBOT_IMAGE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dilytics_robot.png")
+
+def _robot_data_uri():
+    """Return the bundled Dilytics robot image as a data URI."""
+    try:
+        with open(ROBOT_IMAGE_PATH, "rb") as f:
+            return "data:image/png;base64," + base64.b64encode(f.read()).decode("ascii")
+    except Exception:
+        return ""
+
 
 st.set_page_config(
     page_title="Dilytics Enterprise AI",
@@ -45,25 +57,25 @@ st.markdown("""
    Visual-only layer: backend/chat/document logic is unchanged.
    ================================================================ */
 :root {
-    --dly-navy: #10182d;
-    --dly-navy-2: #17213b;
-    --dly-blue: #1598e5;
-    --dly-cyan: #36c9ff;
-    --dly-text: #eef5ff;
-    --dly-muted: #9eabc2;
+    --dly-navy: #082d69;
+    --dly-navy-2: #0b3f8f;
+    --dly-blue: #1769d2;
+    --dly-cyan: #25cfff;
+    --dly-text: #173f6f;
+    --dly-muted: #6481a2;
 }
 
 .stApp {
     background:
-        radial-gradient(circle at 82% 7%, rgba(21,152,229,.16), transparent 27%),
-        radial-gradient(circle at 18% 100%, rgba(54,201,255,.08), transparent 30%),
-        #0b1222;
+        radial-gradient(circle at 88% 4%, rgba(37,207,255,.18), transparent 24%),
+        radial-gradient(circle at 10% 92%, rgba(23,105,210,.08), transparent 28%),
+        linear-gradient(180deg, #f7fbff 0%, #edf7ff 55%, #ffffff 100%);
 }
 
 .main .block-container {
     max-width: 1180px;
-    padding-top: 1.25rem;
-    padding-bottom: 4rem;
+    padding-top: 0.75rem;
+    padding-bottom: 3rem;
 }
 
 /* Header / brand */
@@ -71,11 +83,11 @@ st.markdown("""
     display:flex; align-items:center; justify-content:space-between;
     padding: 12px 18px;
     margin-bottom: 24px;
-    border: 1px solid rgba(255,255,255,.08);
+    border: 1px solid #dcecff;
     border-radius: 16px;
-    background: rgba(15,24,45,.78);
+    background: rgba(255,255,255,.94);
     backdrop-filter: blur(14px);
-    box-shadow: 0 10px 35px rgba(0,0,0,.20);
+    box-shadow: 0 10px 35px rgba(23,91,160,.08);
 }
 .dly-brand {
     display:flex; align-items:center; gap:10px;
@@ -89,9 +101,9 @@ st.markdown("""
     color:white; font-size:.78rem; font-weight:900;
 }
 .dly-nav {
-    display:flex; gap:22px; color:#b9c4d8; font-size:.78rem;
+    display:flex; gap:22px; color:#6481a2; font-size:.78rem;
 }
-.dly-nav span:first-child { color:#fff; }
+.dly-nav span:first-child { color:#1769d2; }
 .dly-status {
     display:inline-flex; align-items:center; gap:6px;
     padding:6px 10px; border-radius:999px;
@@ -103,17 +115,17 @@ st.markdown("""
     padding: 26px 8px 22px;
 }
 .dly-eyebrow {
-    color:#55c8ff; font-size:.78rem; font-weight:800;
+    color:#1769d2; font-size:.78rem; font-weight:800;
     text-transform:uppercase; letter-spacing:1.5px;
 }
 .dly-hero h1 {
-    margin: 7px 0 8px; color:#fff;
+    margin: 7px 0 8px; color:#082d69;
     font-size: clamp(2rem, 4vw, 3.35rem);
     line-height:1.06; letter-spacing:-1.8px;
 }
 .dly-hero h1 span { color:#159fe8; }
 .dly-hero p {
-    max-width:650px; color:#aebbd0; font-size:.92rem; line-height:1.65;
+    max-width:650px; color:#587291; font-size:.92rem; line-height:1.65;
 }
 
 /* Status pill used in sidebar */
@@ -131,65 +143,66 @@ div[data-testid="stButton"] > button {
     transition:all .18s ease-in-out;
 }
 .main div[data-testid="stButton"] > button {
-    background:rgba(19,31,56,.78);
-    border:1px solid rgba(120,150,190,.20);
-    color:#eaf4ff;
+    background:#ffffff;
+    border:1px solid #cfe5fb;
+    color:#164a82;
 }
 .main div[data-testid="stButton"] > button:hover {
-    border-color:rgba(54,201,255,.55);
-    color:#fff; transform:translateY(-1px);
-    box-shadow:0 7px 22px rgba(0,0,0,.20);
+    border-color:#1769d2;
+    color:#1769d2; transform:translateY(-1px);
+    box-shadow:0 7px 22px rgba(23,105,210,.12);
 }
 
 /* Intelligence tabs */
 .stTabs [data-baseweb="tab-list"] {
     gap:8px; background:transparent;
-    border-bottom:1px solid rgba(255,255,255,.08);
+    border-bottom:1px solid #dcecff;
 }
 .stTabs [data-baseweb="tab"] {
     color:#9eabc2; border-radius:10px 10px 0 0; padding:10px 18px;
 }
 .stTabs [aria-selected="true"] {
-    color:#fff !important;
-    background:rgba(21,152,229,.12);
+    color:#1769d2 !important;
+    background:#eaf5ff;
 }
 
 /* Expander / cards */
 [data-testid="stExpander"] {
-    background:rgba(17,28,50,.72);
-    border:1px solid rgba(120,150,190,.16);
+    background:rgba(255,255,255,.96);
+    border:1px solid #dcecff;
     border-radius:14px;
 }
 
 /* Chat bubbles */
 [data-testid="stChatMessage"] {
-    border:1px solid rgba(120,150,190,.13);
+    border:1px solid #dcecff;
     border-radius:15px;
-    background:rgba(17,28,50,.48);
+    background:#ffffff;
     margin-bottom:10px;
 }
 [data-testid="stChatMessage"] p { line-height:1.6; }
 
 /* Chat input */
 [data-testid="stChatInput"] {
-    background:rgba(15,24,45,.92);
+    background:rgba(255,255,255,.98);
 }
 [data-testid="stChatInput"] > div {
-    border:1px solid rgba(54,201,255,.24) !important;
+    border:1px solid #b9d9f5 !important;
     border-radius:15px !important;
-    background:#111c32 !important;
+    background:#ffffff !important;
 }
 
 /* Sidebar */
 section[data-testid="stSidebar"] {
-    background:linear-gradient(180deg,#0d1528 0%,#0a1120 100%);
-    border-right:1px solid rgba(255,255,255,.06);
+    background:linear-gradient(180deg,#f3f9ff 0%,#ffffff 100%);
+    border-right:1px solid #dcecff;
 }
-section[data-testid="stSidebar"] .stMarkdown { color:#d7e2f2; }
+section[data-testid="stSidebar"] .stMarkdown { color:#173f6f; }
 
 /* File uploader */
 [data-testid="stFileUploader"] {
-    background:rgba(17,28,50,.65);
+    background:#ffffff;
+    border:1px solid #dcecff;
     border-radius:12px;
 }
 
@@ -310,7 +323,7 @@ st.markdown("""
 @media (max-width: 900px) {
     .dly-landing-grid { grid-template-columns:1fr; gap:1rem; }
     .dly-landing-visual { min-height:300px; }
-    .dly-robot-orb { width:280px; height:280px; font-size:8rem; }
+    .dly-robot-orb { width:280px; height:280px; }
     .dly-chat-bubble { right:3%; }
     .dly-landing-wrap { margin-left:-1rem; margin-right:-1rem; }
 }
@@ -343,69 +356,89 @@ def _new_captcha():
 def _login_page():
     st.markdown("""
     <style>
-      .login-wrap{min-height:78vh;display:grid;grid-template-columns:1fr 1fr;gap:0;background:#fff;border-radius:28px;overflow:hidden;box-shadow:0 20px 60px rgba(14,70,140,.12);border:1px solid #dcecff;margin-top:1rem}
-      .login-left{padding:64px 70px;background:linear-gradient(145deg,#ffffff,#eef7ff)}
-      .login-right{position:relative;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 45%,#e9f6ff 0,#d8efff 28%,#f7fbff 65%,#fff 100%);overflow:hidden}
-      .login-logo{display:inline-block;background:#e51f2b;color:#fff;font-weight:900;font-size:1.4rem;padding:10px 18px;border-radius:4px;letter-spacing:.5px}
-      .login-eyebrow{color:#1769d2;font-weight:800;letter-spacing:2px;text-transform:uppercase;font-size:.78rem;margin-top:42px}
-      .login-title{font-size:3rem;line-height:1.05;font-weight:850;color:#09295f;margin:.45rem 0 1rem}
+      .login-shell{max-width:1180px;margin:2.2rem auto 0;background:#fff;border:1px solid #d8ebff;border-radius:28px;overflow:hidden;box-shadow:0 24px 70px rgba(19,82,145,.12)}
+      .login-grid{display:grid;grid-template-columns:1.02fr .98fr;min-height:650px}
+      .login-copy{padding:58px 64px;background:linear-gradient(145deg,#ffffff 0%,#f2f9ff 100%);display:flex;flex-direction:column;justify-content:center}
+      .login-visual{position:relative;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 45%,#e8f7ff 0,#d9efff 30%,#f7fbff 68%,#fff 100%);overflow:hidden}
+      .login-logo{display:inline-flex;width:max-content;background:#e51f2b;color:#fff;font-weight:900;font-size:1.35rem;padding:9px 17px;border-radius:4px;letter-spacing:.6px;box-shadow:0 8px 20px rgba(229,31,43,.12)}
+      .login-eyebrow{color:#1769d2;font-weight:800;letter-spacing:2px;text-transform:uppercase;font-size:.78rem;margin-top:38px}
+      .login-title{font-size:3.15rem;line-height:1.04;font-weight:900;color:#082d69;margin:.5rem 0 1rem;letter-spacing:-1.4px}
       .login-title span{color:#1769d2}
-      .login-sub{color:#55708f;font-size:1rem;line-height:1.6;max-width:480px}
-      .login-orbit{width:360px;height:360px;border-radius:50%;border:1px solid #b8dcff;box-shadow:0 0 0 28px rgba(35,137,230,.05),0 0 0 58px rgba(35,137,230,.035);position:relative;animation:orbitPulse 4s ease-in-out infinite}
-      .login-robot{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:190px;height:145px;border-radius:55px;background:linear-gradient(180deg,#fff,#d9ecff);border:5px solid #1976db;box-shadow:0 22px 45px rgba(20,94,170,.2);animation:robotFloat 3.4s ease-in-out infinite}
-      .login-face{position:absolute;inset:20px 20px 25px;background:#062454;border-radius:38px;box-shadow:inset 0 0 20px #1889ee;display:flex;align-items:center;justify-content:center;gap:32px}
-      .login-eye{width:22px;height:30px;border-radius:50%;background:#24d7ff;box-shadow:0 0 14px #24d7ff}
-      .login-mouth{position:absolute;width:42px;height:20px;border-bottom:4px solid #24d7ff;border-radius:50%;bottom:22px}
-      .login-antenna{position:absolute;width:7px;height:40px;background:#1976db;left:50%;top:-43px;transform:translateX(-50%)}
-      .login-ball{position:absolute;width:22px;height:22px;border-radius:50%;background:#28cfff;left:50%;top:-65px;transform:translateX(-50%);box-shadow:0 0 20px #28cfff}
-      .login-float{position:absolute;padding:10px 14px;background:#fff;border:1px solid #d7eaff;border-radius:14px;color:#15519b;font-weight:700;box-shadow:0 10px 25px rgba(22,91,164,.1);animation:floatCard 4s ease-in-out infinite}
-      .login-float.one{top:18%;left:8%}.login-float.two{right:8%;top:25%;animation-delay:1s}.login-float.three{bottom:17%;left:12%;animation-delay:2s}
-      @keyframes robotFloat{50%{transform:translate(-50%,-56%)}}
-      @keyframes orbitPulse{50%{transform:scale(1.03)}}
+      .login-sub{color:#55708f;font-size:1rem;line-height:1.7;max-width:510px;margin-bottom:26px}
+      .login-feature-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+      .login-feature{padding:9px 13px;background:#fff;border:1px solid #d7eaff;border-radius:999px;color:#245b91;font-size:.78rem;font-weight:700;box-shadow:0 7px 18px rgba(23,91,160,.05)}
+      .login-orbit{width:450px;height:450px;border-radius:50%;border:1px solid #b8dcff;box-shadow:0 0 0 28px rgba(35,137,230,.05),0 0 0 58px rgba(35,137,230,.035);position:relative;animation:orbitPulse 4s ease-in-out infinite;display:flex;align-items:center;justify-content:center}
+      .login-robot-img{width:410px;max-width:90%;height:auto;object-fit:contain;filter:drop-shadow(0 28px 40px rgba(20,94,170,.18));animation:robotFloat 3.4s ease-in-out infinite}
+      .login-float{position:absolute;padding:10px 14px;background:#fff;border:1px solid #d7eaff;border-radius:14px;color:#15519b;font-weight:700;box-shadow:0 10px 25px rgba(22,91,164,.1);animation:floatCard 4s ease-in-out infinite;z-index:2}
+      .login-float.one{top:16%;left:7%}.login-float.two{right:7%;top:23%;animation-delay:1s}.login-float.three{bottom:15%;left:11%;animation-delay:2s}
+      .login-form{max-width:560px;margin:0 auto;padding:0 0 3rem}
+      .login-form h3{color:#082d69;font-size:1.25rem;margin:0 0 12px}
+      @keyframes robotFloat{50%{transform:translateY(-10px)}}
+      @keyframes orbitPulse{50%{transform:scale(1.025)}}
       @keyframes floatCard{50%{transform:translateY(-10px)}}
-      @media(max-width:900px){.login-wrap{grid-template-columns:1fr}.login-right{min-height:420px}.login-left{padding:40px 28px}.login-title{font-size:2.2rem}}
+      @media(max-width:900px){.login-shell{margin:1rem .5rem 0}.login-grid{grid-template-columns:1fr}.login-visual{min-height:460px;order:-1}.login-copy{padding:42px 28px}.login-title{font-size:2.35rem}.login-orbit{width:350px;height:350px}.login-robot-img{width:330px}}
     </style>
-    <div class="login-wrap">
-      <div class="login-left">
-        <div class="login-logo">DILYTICS</div>
-        <div class="login-eyebrow">Enterprise AI Workspace</div>
-        <div class="login-title">Turn your data into <span>answers.</span></div>
-        <div class="login-sub">Sign in securely to explore Inventory, Sales, Supply Chain and Document AI with natural-language conversations powered by Snowflake.</div>
-      </div>
-      <div class="login-right">
-        <div class="login-float one">📊 Live insights</div><div class="login-float two">🔐 Secure access</div><div class="login-float three">🤖 AI ready</div>
-        <div class="login-orbit"><div class="login-robot"><div class="login-antenna"></div><div class="login-ball"></div><div class="login-face"><div class="login-eye"></div><div class="login-eye"></div><div class="login-mouth"></div></div></div></div>
-      </div>
-    </div>
-    """, unsafe_allow_html=True)
+    <div class="login-shell"><div class="login-grid"><div class="login-copy">
+      <div class="login-logo">DILYTICS</div>
+      <div class="login-eyebrow">Enterprise AI Workspace</div>
+      <div class="login-title">Turn your data into <span>answers.</span></div>
+      <div class="login-sub">Sign in securely to explore Inventory, Sales, Supply Chain and Document AI with natural-language conversations powered by Snowflake.</div>
+      <div class="login-feature-row"><span class="login-feature">📊 Live insights</span><span class="login-feature">🔐 Secure access</span><span class="login-feature">⚡ AI powered</span></div>
+    </div><div class="login-visual">
+      <div class="login-float one">📈 Smarter decisions</div><div class="login-float two">☁️ Cloud analytics</div><div class="login-float three">🤖 AI ready</div>
+      <div class="login-orbit"><img class="login-robot-img" src="{robot_src}" alt="Dilytics AI assistant" /></div>
+    </div></div></div>
+    """.replace("{robot_src}", _robot_data_uri()), unsafe_allow_html=True)
 
+    st.markdown('<div class="login-form">', unsafe_allow_html=True)
     st.markdown("### Sign in")
-    c1,c2=st.columns(2)
+    c1, c2 = st.columns(2, gap="medium")
     with c1:
-        st.session_state.username=st.text_input("Username",value=st.session_state.username)
+        st.session_state.username = st.text_input("Username", value=st.session_state.username, key="login_username")
     with c2:
-        st.session_state.password=st.text_input("Password",type="password")
-    captcha=f"{st.session_state.captcha_a} + {st.session_state.captcha_b} = ?"
-    cc1,cc2=st.columns([1,1])
-    with cc1: st.text_input("Security check",value=captcha,disabled=True)
-    with cc2: captcha_answer=st.text_input("Enter answer")
-    b1,b2=st.columns([3,1])
-    with b1: login_clicked=st.button("Sign in to Dilytics",use_container_width=True,type="primary")
+        st.session_state.password = st.text_input("Password", type="password", key="login_password")
+
+    captcha = f"{st.session_state.captcha_a} + {st.session_state.captcha_b} = ?"
+    cc1, cc2 = st.columns([1, 1], gap="medium")
+    with cc1:
+        st.text_input("Security check", value=captcha, disabled=True, key="login_captcha_question")
+    with cc2:
+        captcha_answer = st.text_input("Enter answer", key="login_captcha_answer")
+
+    b1, b2 = st.columns([4, 1], gap="small")
+    with b1:
+        login_clicked = st.button("Sign in to Dilytics", use_container_width=True, type="primary", key="login_submit")
     with b2:
-        if st.button("↻",help="New CAPTCHA",use_container_width=True): _new_captcha(); st.rerun()
+        if st.button("↻", help="New CAPTCHA", use_container_width=True, key="login_refresh_captcha"):
+            _new_captcha()
+            st.rerun()
+
+    st.markdown('</div>', unsafe_allow_html=True)
+
     if login_clicked:
         try:
             if int(captcha_answer.strip()) != st.session_state.captcha_a + st.session_state.captcha_b:
                 st.error("Incorrect security check. Please try again.")
             else:
                 with st.spinner("Connecting securely to Snowflake..."):
-                    conn=snowflake.connector.connect(user=st.session_state.username,password=st.session_state.password,account=ACCOUNT,host=HOST,port=443,warehouse=WAREHOUSE,role=ROLE,database=DATABASE,schema=SCHEMA)
-                    st.session_state.snowflake_conn=conn
-                    st.session_state.snowpark_session=Session.builder.configs({"connection":conn}).create()
-                    st.session_state.authenticated=True
-                    st.session_state.app_page="home"
+                    conn = snowflake.connector.connect(
+                        user=st.session_state.username,
+                        password=st.session_state.password,
+                        account=ACCOUNT,
+                        host=HOST,
+                        port=443,
+                        warehouse=WAREHOUSE,
+                        role=ROLE,
+                        database=DATABASE,
+                        schema=SCHEMA,
+                    )
+                    st.session_state.snowflake_conn = conn
+                    st.session_state.snowpark_session = Session.builder.configs({"connection": conn}).create()
+                    st.session_state.authenticated = True
+                    st.session_state.app_page = "home"
                     st.rerun()
-        except Exception as e: st.error(f"Authentication failed: {e}")
+        except Exception as e:
+            st.error(f"Authentication failed: {e}")
     st.stop()
 
 if not st.session_state.authenticated:
@@ -1446,13 +1479,22 @@ def _about_page():
     if st.button("⌂ Home",use_container_width=False): _set_page("home")
 
 
+def _open_chat():
+    """Open AI chat only after the authentication gate has been satisfied."""
+    if not st.session_state.get("authenticated", False):
+        st.session_state.app_page = "login"
+    else:
+        st.session_state.app_page = "chatbot"
+    st.rerun()
+
+
 def _home_page():
     st.markdown("""
     <style>
-      .home-wrap{background:#fff;color:#09295f}.home-hero{display:grid;grid-template-columns:1fr 1fr;gap:35px;align-items:center;padding:35px 20px 28px}.home-eyebrow{letter-spacing:4px;color:#1769d2;font-weight:800}.home-title{font-size:4rem;line-height:1.02;font-weight:900;color:#082d69}.home-title span{color:#1769d2}.home-sub{font-size:1.12rem;color:#587291;line-height:1.6;max-width:600px}.home-robot{height:370px;position:relative;display:flex;align-items:center;justify-content:center}.orb{width:330px;height:330px;border-radius:50%;background:radial-gradient(circle,#eaf7ff,#d9efff);display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 25px rgba(31,129,225,.05);animation:pulse 4s ease-in-out infinite}.bot{width:190px;height:145px;border:5px solid #1769d2;border-radius:55px;background:linear-gradient(#fff,#d9ecff);position:relative;box-shadow:0 25px 40px rgba(23,91,160,.18);animation:float 3.5s ease-in-out infinite}.face{position:absolute;inset:20px;background:#062454;border-radius:38px;display:flex;justify-content:center;align-items:center;gap:32px}.eye{width:22px;height:30px;border-radius:50%;background:#23d5ff;box-shadow:0 0 15px #23d5ff}.bot:after{content:'DILYTICS';position:absolute;bottom:-37px;left:50%;transform:translateX(-50%);background:#e51f2b;color:#fff;font-weight:900;padding:5px 11px;border-radius:3px}.bubble{position:absolute;right:5%;top:5%;padding:18px 22px;background:#fff;border:1px solid #d4e8ff;border-radius:20px;color:#1769d2;box-shadow:0 12px 30px rgba(23,91,160,.12);font-weight:700}.home-stats{display:flex;gap:35px;margin-top:25px;color:#315a88}.module-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:15px}.module-card{background:#fff;border:1px solid #d5eaff;border-radius:22px;padding:28px;box-shadow:0 15px 40px rgba(23,91,160,.07)}.module-card h2{color:#082d69}.module-card p{color:#587291;line-height:1.55}.module-card li{margin:9px 0;color:#183e70}.module-actions{display:flex;gap:12px;margin-top:22px}.module-actions .stButton>button{border-radius:12px!important}.home-footer{border-top:1px solid #dcecff;margin-top:35px;padding:20px 0;color:#5a7392;text-align:center}@keyframes float{50%{transform:translateY(-12px)}}@keyframes pulse{50%{transform:scale(1.03)}}@media(max-width:850px){.home-hero,.module-grid{grid-template-columns:1fr}.home-title{font-size:2.8rem}}
+      .home-wrap{background:#fff;color:#09295f}.home-hero{display:grid;grid-template-columns:1fr 1fr;gap:35px;align-items:center;padding:35px 20px 28px}.home-eyebrow{letter-spacing:4px;color:#1769d2;font-weight:800}.home-title{font-size:4rem;line-height:1.02;font-weight:900;color:#082d69}.home-title span{color:#1769d2}.home-sub{font-size:1.12rem;color:#587291;line-height:1.6;max-width:600px}.home-robot{height:430px;position:relative;display:flex;align-items:center;justify-content:center}.orb{width:430px;height:430px;border-radius:50%;background:radial-gradient(circle at 50% 42%,#ffffff,#e8f6ff 55%,#d6edff 100%);display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 25px rgba(31,129,225,.05),0 20px 55px rgba(23,91,160,.08);animation:pulse 4s ease-in-out infinite}.home-robot-img{width:390px;max-width:86%;height:auto;object-fit:contain;filter:drop-shadow(0 25px 35px rgba(20,94,170,.18));animation:float 3.5s ease-in-out infinite}.bubble{position:absolute;right:5%;top:5%;padding:18px 22px;background:#fff;border:1px solid #d4e8ff;border-radius:20px;color:#1769d2;box-shadow:0 12px 30px rgba(23,91,160,.12);font-weight:700}.home-stats{display:flex;gap:35px;margin-top:25px;color:#315a88}.module-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:15px}.module-card{background:#fff;border:1px solid #d5eaff;border-radius:22px;padding:28px;box-shadow:0 15px 40px rgba(23,91,160,.07)}.module-card h2{color:#082d69}.module-card p{color:#587291;line-height:1.55}.module-card li{margin:9px 0;color:#183e70}.module-actions{display:flex;gap:12px;margin-top:22px}.module-actions .stButton>button{border-radius:12px!important}.home-footer{border-top:1px solid #dcecff;margin-top:35px;padding:20px 0;color:#5a7392;text-align:center}@keyframes float{50%{transform:translateY(-12px)}}@keyframes pulse{50%{transform:scale(1.03)}}@media(max-width:850px){.home-hero,.module-grid{grid-template-columns:1fr}.home-title{font-size:2.8rem}.home-robot{height:360px}.orb{width:330px;height:330px}.home-robot-img{width:310px}.bubble{right:0}}
     </style>
-    <div class="home-hero"><div><div class="home-eyebrow">WELCOME TO DILYTICS</div><div class="home-title">Your AI-Powered<br><span>Data Companion</span></div><div class="home-sub">Ask questions, explore insights, and make smarter decisions with the power of your data.</div><div class="home-stats"><span>▮ Insights Made Simple</span><span>⚡ Faster Decisions</span><span>✓ Secure & Compliant</span></div></div><div class="home-robot"><div class="orb"><div class="bot"><div class="face"><div class="eye"></div><div class="eye"></div></div></div></div><div class="bubble"><b>Hi!</b><br>How can I help you<br>today?</div></div></div>
-    """,unsafe_allow_html=True)
+    <div class="home-hero"><div><div class="home-eyebrow">WELCOME TO DILYTICS</div><div class="home-title">Your AI-Powered<br><span>Data Companion</span></div><div class="home-sub">Ask questions, explore insights, and make smarter decisions with the power of your data.</div><div class="home-stats"><span>▮ Insights Made Simple</span><span>⚡ Faster Decisions</span><span>✓ Secure & Compliant</span></div></div><div class="home-robot"><div class="orb"><img class="home-robot-img" src="{robot_src}" alt="Dilytics AI assistant" /></div><div class="bubble"><b>Hi!</b><br>How can I help you<br>today?</div></div></div>
+    """.replace("{robot_src}", _robot_data_uri()),unsafe_allow_html=True)
     st.markdown('<div class="module-grid">',unsafe_allow_html=True)
     c1,c2=st.columns(2)
     with c1:
@@ -1461,14 +1503,14 @@ def _home_page():
         with a:
             if st.button("⌁ Explore Inventory",use_container_width=True,key="home_inv_explore"): _set_page("inventory")
         with b:
-            if st.button("◯ Chat with AI",use_container_width=True,key="home_inv_chat"): _set_page("chatbot")
+            if st.button("◯ Chat with AI",use_container_width=True,key="home_inv_chat"): _open_chat()
     with c2:
         st.markdown("""<div class="module-card"><h2>▥ &nbsp; Sales Intelligence</h2><p>Uncover sales trends, customer insights and revenue opportunities across products, regions and channels.</p><ul><li>Analyze total sales and revenue</li><li>Identify top products and customer segments</li><li>Track sales by region and channel</li><li>Monitor monthly and quarterly trends</li></ul></div>""",unsafe_allow_html=True)
         a,b=st.columns(2)
         with a:
             if st.button("⌁ Explore Sales",use_container_width=True,key="home_sales_explore"): _set_page("sales")
         with b:
-            if st.button("◯ Chat with AI",use_container_width=True,key="home_sales_chat"): _set_page("chatbot")
+            if st.button("◯ Chat with AI",use_container_width=True,key="home_sales_chat"): _open_chat()
     st.markdown('</div>',unsafe_allow_html=True)
     st.markdown('<div class="home-footer">© 2026 DiLytics. All rights reserved. &nbsp; | &nbsp; Powered by Snowflake &nbsp; | &nbsp; Secure & Compliant &nbsp; | &nbsp; Insights Made Simple</div>',unsafe_allow_html=True)
 
