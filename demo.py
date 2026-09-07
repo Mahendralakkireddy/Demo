@@ -1365,8 +1365,9 @@ def _top_nav():
           background:#e7f5ff !important;
           border:1px solid #b9dcf7 !important;
           border-radius:12px !important;
-          padding:7px 10px !important;
-          margin:0 0 22px 0 !important;
+          padding:10px 14px !important;
+          margin:0 0 24px 0 !important;
+          min-height:52px !important;
           box-shadow:0 5px 18px rgba(35,111,177,.10) !important;
       }
       .st-key-dly_main_header > div,
@@ -1382,7 +1383,7 @@ def _top_nav():
           display:flex;
           align-items:center;
           gap:8px;
-          min-height:34px;
+          min-height:38px;
           white-space:nowrap;
       }
       .dly-main-logo {
@@ -1391,10 +1392,10 @@ def _top_nav():
           justify-content:center;
           background:#e51f2b;
           color:#fff;
-          height:30px;
-          padding:0 11px;
+          height:34px;
+          padding:0 13px;
           border-radius:3px;
-          font-size:.72rem;
+          font-size:.74rem;
           font-weight:900;
           letter-spacing:.2px;
       }
@@ -1409,8 +1410,8 @@ def _top_nav():
       }
       .st-key-dly_main_header [data-testid="stButton"] > button {
           width:100% !important;
-          min-height:30px !important;
-          height:30px !important;
+          min-height:34px !important;
+          height:34px !important;
           padding:0 9px !important;
           margin:0 !important;
           border-radius:7px !important;
@@ -1624,15 +1625,32 @@ def _home_page():
           min-height:38px !important;
           height:38px !important;
           font-size:.82rem !important;
-          font-weight:600 !important;
-          border:1px solid #0878c8 !important;
-          background:#0878c8 !important;
+          font-weight:700 !important;
           color:#fff !important;
           box-shadow:0 4px 10px rgba(8,120,200,.14) !important;
       }
-      .module-card-actions [data-testid="stButton"] > button:hover{
+      /* Explore buttons = blue */
+      .st-key-home_inv_explore [data-testid="stButton"] > button,
+      .st-key-home_sales_explore [data-testid="stButton"] > button{
+          border:1px solid #0878c8 !important;
+          background:#0878c8 !important;
+      }
+      .st-key-home_inv_explore [data-testid="stButton"] > button:hover,
+      .st-key-home_sales_explore [data-testid="stButton"] > button:hover{
           background:#066aae !important;
           border-color:#066aae !important;
+      }
+      /* Chat with AI buttons = red */
+      .st-key-home_inv_chat [data-testid="stButton"] > button,
+      .st-key-home_sales_chat [data-testid="stButton"] > button{
+          border:1px solid #e51f2b !important;
+          background:#e51f2b !important;
+          box-shadow:0 4px 10px rgba(229,31,43,.14) !important;
+      }
+      .st-key-home_inv_chat [data-testid="stButton"] > button:hover,
+      .st-key-home_sales_chat [data-testid="stButton"] > button:hover{
+          background:#c91823 !important;
+          border-color:#c91823 !important;
       }
       .home-footer{border-top:1px solid #dcecff;margin-top:35px;padding:20px 0;color:#5a7392;text-align:center}
       @keyframes float{50%{transform:translateY(-12px)}}
