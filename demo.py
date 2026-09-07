@@ -855,10 +855,106 @@ def answer_uploaded_table_question(question: str, df: pd.DataFrame):
     return result_df, sql_query, result
 
 
+def _split_document_into_chunks(document_text: str) -> List[str]:
+    """Split extracted Word text into useful paragraph/table chunks."""
+    chunks = []
+    for block in re.split(r"\n{2,}|\n", document_text):
+        block = re.sub(r"\s+", " ", block).strip()
+        if block:
+            chunks.append(block)
+    return chunks
+
+
+def _word_question_answer(question: str, document_text: str) -> str:
+    """Answer Word-document questions without Cortex COMPLETE/AI_COMPLETE.
+
+    This is an extractive, trial-safe fallback: it ranks paragraphs/table rows
+    by overlap with the question and returns the most relevant document content.
+    It does not invent information and therefore works without an LLM entitlement.
+    """
+    chunks = _split_document_into_chunks(document_text)
+    if not chunks:
+        raise ValueError("No readable text was extracted from the Word document.")
+
+    stop_words = {
+        "what", "is", "are", "the", "a", "an", "of", "for", "to",
+        "in", "on", "and", "or", "with", "from", "this", "that",
+        "which", "who", "how", "why", "does", "do", "can", "please",
+        "tell", "me", "about", "give", "explain", "purpose",
+    }
+    question_words = [
+        w.lower() for w in re.findall(r"[A-Za-z0-9_]+", question)
+        if w.lower() not in stop_words and len(w) > 2
+    ]
+
+    # Also recognize common phrase variants so questions such as
+    # "What is the purpose of PII?" find a paragraph headed "Purpose".
+    query_lower = question.lower()
+    phrase_terms = []
+    if "purpose" in query_lower:
+        phrase_terms.extend(["purpose", "objective", "goal", "intended"])
+    if "pii" in query_lower:
+        phrase_terms.extend(["pii", "personally identifiable information"])
+    if "handling" in query_lower:
+        phrase_terms.extend(["handling", "protect", "protection", "process"])
+    if "approach" in query_lower or "approaches" in query_lower:
+        phrase_terms.extend(["approach", "approaches", "method"])
+
+    terms = list(dict.fromkeys(question_words + phrase_terms))
+    scored = []
+    for idx, chunk in enumerate(chunks):
+        low = chunk.lower()
+        score = 0
+        matched = 0
+        for term in terms:
+            if term in low:
+                matched += 1
+                score += 2 if " " in term else 1
+        # Prefer shorter focused passages when relevance is similar.
+        if matched:
+            score += min(len(terms), matched)
+            score += 1 if len(chunk) < 500 else 0
+            scored.append((score, matched, -len(chunk), idx, chunk))
+
+    if not scored:
+        # Safe fallback: show the beginning of the document rather than inventing.
+        preview = "\n\n".join(chunks[:3])
+        return (
+            "I could not find a passage in the Word document that directly matches "
+            "your question. Here is the beginning of the extracted document content "
+            "so you can refine the question:\n\n" + preview
+        )
+
+    scored.sort(reverse=True)
+    selected = []
+    seen = set()
+    for _, _, _, idx, chunk in scored[:5]:
+        # Include nearby context when available.
+        for pos in (idx - 1, idx, idx + 1):
+            if 0 <= pos < len(chunks) and pos not in seen:
+                seen.add(pos)
+                selected.append(chunks[pos])
+        if len(selected) >= 7:
+            break
+
+    return (
+        "Based on the uploaded Word document, the most relevant content is:\n\n"
+        + "\n\n".join(selected[:7])
+    )
+
+
 def answer_uploaded_text_question(question: str, document_text: str):
-    """Answer questions from a PDF/DOCX using AI_COMPLETE document understanding."""
+    """Answer Word questions without changing the working Excel/CSV path.
+
+    DOCX uses local extractive search because AI_COMPLETE/COMPLETE is blocked on
+    the current Snowflake trial account. PDF keeps the existing AI_COMPLETE path.
+    """
     if not document_text.strip():
         raise ValueError("No readable text was extracted from the uploaded document.")
+
+    if st.session_state.get("uploaded_document_name", "").lower().endswith(".docx"):
+        return _word_question_answer(question, document_text)
+
     return ai_complete_document_question(question)
 
 
@@ -1051,10 +1147,11 @@ with st.sidebar:
                 if doc_type == "table":
                     prepare_uploaded_table(doc_df)
                 elif doc_type == "text":
-                    # Keep the existing preview/text extraction, and additionally
-                    # upload the original PDF/DOCX to a session stage so AI_COMPLETE
-                    # can reason over the actual document (including layout/tables).
-                    _upload_document_to_stage(uploaded_doc)
+                    # Word (.docx) uses the trial-safe local document Q&A path below.
+                    # Keep PDF on the existing AI_COMPLETE path. The working
+                    # Excel/CSV Cortex Analyst functionality is untouched.
+                    if uploaded_doc.name.lower().endswith(".pdf"):
+                        _upload_document_to_stage(uploaded_doc)
 
             st.success(doc_message)
             st.rerun()
