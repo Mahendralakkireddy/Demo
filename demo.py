@@ -11,7 +11,7 @@ from typing import Any, Dict, List, Optional
 import re
 import yaml
 
-# ==================================================================
+# ===================================================================
 # Configuration
 # ===================================================================
 HOST = "WDSDGTL-XCC29288.snowflakecomputing.com"
@@ -1355,30 +1355,115 @@ def _logout():
 
 
 def _top_nav():
+    """Compact single-row application navigation aligned with the DILYTICS brand."""
     st.markdown("""
     <style>
-      .app-header{background:rgba(255,255,255,.96);border:1px solid #e1efff;border-radius:0 0 24px 24px;padding:12px 24px;box-shadow:0 8px 28px rgba(23,91,160,.07);margin:-1rem -1rem 1.2rem}
-      .brand-logo{display:inline-block;background:#e51f2b;color:#fff;font-size:1.55rem;font-weight:900;padding:8px 15px;letter-spacing:.4px;border-radius:3px}
-      .brand-tag{color:#37628f;font-size:.9rem;margin-left:12px}
-      .nav-title{color:#0b3f8f;font-weight:700;font-size:.86rem;text-align:center}
-      .profile-pill{background:#1769d2;color:white;border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center;font-weight:800}
+      /* ---------------------------------------------------------------
+         Compact header: brand + navigation stay on ONE horizontal row.
+         The Streamlit buttons are styled to match the light-blue theme.
+         --------------------------------------------------------------- */
+      .app-header{
+          background:rgba(255,255,255,.97);
+          border:1px solid #d8eaff;
+          border-radius:0 0 22px 22px;
+          padding:10px 18px;
+          box-shadow:0 7px 24px rgba(23,91,160,.07);
+          margin:-1rem -1rem .75rem;
+      }
+      .brand-logo{
+          display:inline-flex;
+          align-items:center;
+          justify-content:center;
+          background:#e51f2b;
+          color:#fff;
+          font-size:1.18rem;
+          font-weight:900;
+          padding:7px 12px;
+          letter-spacing:.4px;
+          border-radius:3px;
+          white-space:nowrap;
+      }
+      .brand-tag{
+          color:#37628f;
+          font-size:.72rem;
+          margin-left:9px;
+          white-space:nowrap;
+      }
+      .nav-row{
+          display:flex;
+          align-items:center;
+      }
+      .nav-row .stButton>button,
+      div[data-testid="column"] .nav-button button{
+          min-height:32px !important;
+          height:32px !important;
+          padding:3px 9px !important;
+          border-radius:8px !important;
+          border:1px solid #c9e0f7 !important;
+          background:#edf7ff !important;
+          color:#174f87 !important;
+          font-size:.68rem !important;
+          font-weight:700 !important;
+          line-height:1 !important;
+          box-shadow:none !important;
+          white-space:nowrap !important;
+          transition:all .15s ease-in-out !important;
+      }
+      .nav-row .stButton>button:hover,
+      div[data-testid="column"] .nav-button button:hover{
+          background:#dcefff !important;
+          border-color:#a9d1f4 !important;
+          color:#0b5ca8 !important;
+      }
+      .nav-row .stButton>button:focus:not(:active){
+          box-shadow:0 0 0 2px rgba(23,105,210,.12) !important;
+      }
+      .profile-nav button{
+          background:#f4f9ff !important;
+          color:#315f8f !important;
+      }
+      @media(max-width:850px){
+          .app-header{padding:9px 12px;margin-left:-.5rem;margin-right:-.5rem}
+          .brand-tag{display:none}
+          .brand-logo{font-size:1rem;padding:6px 9px}
+          .nav-row .stButton>button{font-size:.62rem !important;padding:3px 5px !important}
+      }
     </style>
-    <div class="app-header"><span class="brand-logo">DILYTICS</span><span class="brand-tag">Data. Insights. Impact.</span></div>
     """, unsafe_allow_html=True)
-    cols=st.columns([4.2,1.1,1.3,1.45,1.25])
-    with cols[1]:
-        if st.button("⌂  Home",use_container_width=True): _set_page("home")
-    with cols[2]:
-        if st.button("▣  Document AI",use_container_width=True): _set_page("document_ai")
-    with cols[3]:
-        if st.button("ⓘ  About Dilytics",use_container_width=True): _set_page("about")
-    with cols[4]:
-        username=st.session_state.get("username","User")
-        if st.button(f"◯  {username}",use_container_width=True): st.session_state.show_profile_menu=not st.session_state.get("show_profile_menu",False)
+
+    # Everything below is rendered in one Streamlit row so the navigation
+    # remains vertically aligned with the DILYTICS logo.
+    nav_cols = st.columns([3.15, 1.05, 1.55, 1.35, 1.10], gap="small")
+
+    with nav_cols[0]:
+        st.markdown(
+            '<div class="app-header"><span class="brand-logo">DILYTICS</span>'
+            '<span class="brand-tag">Data. Insights. Impact.</span></div>',
+            unsafe_allow_html=True,
+        )
+
+    with nav_cols[1]:
+        if st.button("⌂  Home", use_container_width=True, key="top_home"):
+            _set_page("home")
+
+    with nav_cols[2]:
+        if st.button("▣  Document AI Demo", use_container_width=True, key="top_docs"):
+            _set_page("document_ai")
+
+    with nav_cols[3]:
+        if st.button("ⓘ  About DiLytics", use_container_width=True, key="top_about"):
+            _set_page("about")
+
+    with nav_cols[4]:
+        username = st.session_state.get("username", "User")
+        if st.button(f"◯  {username}", use_container_width=True, key="top_profile"):
+            st.session_state.show_profile_menu = not st.session_state.get("show_profile_menu", False)
+
     if st.session_state.get("show_profile_menu"):
-        pc=st.columns([7,1.2])
+        pc = st.columns([8.0, 1.10])
         with pc[1]:
-            if st.button("Logout",use_container_width=True): _logout()
+            if st.button("Logout", use_container_width=True, key="top_logout"):
+                _logout()
 
 
 def _module_page(module: str):
