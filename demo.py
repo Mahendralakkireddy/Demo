@@ -1840,15 +1840,89 @@ with st.sidebar:
             st.rerun()
 # 6. MAIN HEADER
 # ===================================================================
-st.markdown("""<style>.chat-top{background:#fff;border:1px solid #dcecff;border-radius:18px;padding:10px 15px;box-shadow:0 8px 25px rgba(23,91,160,.06)}.chat-brand{font-size:1.35rem;font-weight:900;color:#082d69}.chat-brand span{color:#1769d2}</style><div class="chat-top"><span class="chat-brand">DILYTICS <span>Enterprise AI</span></span></div>""",unsafe_allow_html=True)
-cc1,cc2,cc3,cc4=st.columns([5,1.1,1.1,1.3])
-with cc1: st.caption("Ask natural-language questions across Inventory, Sales, Supply Chain, and uploaded documents.")
-with cc2:
-    if st.button("⌂ Home",use_container_width=True,key="chat_home"): _set_page("home")
-with cc3:
-    if st.button("▣ Docs",use_container_width=True,key="chat_docs"): _set_page("document_ai")
-with cc4:
-    if st.button("Logout",use_container_width=True,key="chat_logout"): _logout()
+# Single solid header container: brand + tagline on the left and
+# compact navigation buttons on the same line on the right.
+st.markdown("""
+<style>
+/* Header styling */
+.dly-chat-header {
+    background: #e8f4ff;
+    border: 1px solid #c7e2f8;
+    border-radius: 14px;
+    padding: 8px 12px;
+    margin: 0 0 18px 0;
+    box-shadow: 0 5px 18px rgba(35, 111, 177, .08);
+}
+.dly-chat-brand {
+    font-size: 1.08rem;
+    font-weight: 900;
+    color: #0a3b78;
+    line-height: 1.15;
+    margin: 0;
+    white-space: nowrap;
+}
+.dly-chat-brand span { color: #1769d2; }
+.dly-chat-tagline {
+    color: #52718f;
+    font-size: .67rem;
+    line-height: 1.2;
+    margin-top: 3px;
+    white-space: nowrap;
+}
+/* Make the Streamlit buttons compact, blue, and vertically centered. */
+.dly-chat-header [data-testid="stButton"] > button {
+    min-height: 32px !important;
+    height: 32px !important;
+    padding: 0 10px !important;
+    border-radius: 8px !important;
+    border: 1px solid #78afe0 !important;
+    background: #d5ebff !important;
+    color: #0a3f7c !important;
+    font-size: .70rem !important;
+    font-weight: 700 !important;
+    line-height: 1 !important;
+    box-shadow: none !important;
+    white-space: nowrap !important;
+}
+.dly-chat-header [data-testid="stButton"] > button:hover {
+    background: #bddfff !important;
+    border-color: #4e97d2 !important;
+    color: #07356c !important;
+}
+.dly-chat-header [data-testid="column"] {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.dly-chat-header [data-testid="column"]:first-child {
+    justify-content: flex-start;
+}
+@media (max-width: 850px) {
+    .dly-chat-brand, .dly-chat-tagline { white-space: normal; }
+    .dly-chat-header [data-testid="stButton"] > button { font-size: .64rem !important; padding: 0 6px !important; }
+}
+</style>
+""", unsafe_allow_html=True)
+
+with st.container():
+    st.markdown('<div class="dly-chat-header">', unsafe_allow_html=True)
+    h1, h2, h3, h4 = st.columns([2.45, 1.0, 1.35, 1.0], gap="small")
+    with h1:
+        st.markdown(
+            '<div class="dly-chat-brand">DILYTICS <span>Enterprise AI</span></div>'
+            '<div class="dly-chat-tagline">Data. Insights. Impact.</div>',
+            unsafe_allow_html=True,
+        )
+    with h2:
+        if st.button("⌂  Home", use_container_width=True, key="chat_home"):
+            _set_page("home")
+    with h3:
+        if st.button("▣  Document AI", use_container_width=True, key="chat_docs"):
+            _set_page("document_ai")
+    with h4:
+        if st.button("↪  Logout", use_container_width=True, key="chat_logout"):
+            _logout()
+    st.markdown('</div>', unsafe_allow_html=True)
 
 # 7. EXAMPLE QUESTIONS
 # These buttons are only examples. They do NOT contain SQL.
