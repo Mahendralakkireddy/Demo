@@ -1488,22 +1488,41 @@ def _top_nav():
 
 def _module_page(module: str):
     inventory = module == "inventory"
-    title = "Inventory Intelligence" if inventory else "Sales Intelligence"
-    subtitle = "Turn inventory data into clear, actionable decisions across products, warehouses and stock levels." if inventory else "Turn sales data into clear, actionable decisions across revenue, products, customers, regions and channels."
-    points = ([
-        "Track total inventory quantity, availability and inventory value.",
-        "Compare inventory value across warehouses and product categories.",
-        "Identify excess, overstocked, quarantined and out-of-stock inventory.",
-        "Find products that need urgent replenishment or reorder attention.",
-        "Analyze days of supply and inventory health using the latest snapshot.",
-    ] if inventory else [
-        "Analyze total sales, orders, discounts, taxes and shipping costs.",
-        "Identify top products and understand product-level revenue performance.",
-        "Compare sales across customer regions and order channels.",
-        "Analyze monthly sales trends and average order value.",
-        "Explore completed and cancelled orders to understand sales performance.",
-    ])
-    icon="▦" if inventory else "▥"
+    sales = module == "sales"
+    supply_chain = module == "supply_chain"
+    if inventory:
+        title = "Inventory Intelligence"
+        subtitle = "Turn inventory data into clear, actionable decisions across products, warehouses and stock levels."
+        points = [
+            "Track total inventory quantity, availability and inventory value.",
+            "Compare inventory value across warehouses and product categories.",
+            "Identify excess, overstocked, quarantined and out-of-stock inventory.",
+            "Find products that need urgent replenishment or reorder attention.",
+            "Analyze days of supply and inventory health using the latest snapshot.",
+        ]
+        icon = "▦"
+    elif sales:
+        title = "Sales Intelligence"
+        subtitle = "Turn sales data into clear, actionable decisions across revenue, products, customers, regions and channels."
+        points = [
+            "Analyze total sales, orders, discounts, taxes and shipping costs.",
+            "Identify top products and understand product-level revenue performance.",
+            "Compare sales across customer regions and order channels.",
+            "Analyze monthly sales trends and average order value.",
+            "Explore completed and cancelled orders to understand sales performance.",
+        ]
+        icon = "▥"
+    else:
+        title = "Supply Chain Intelligence"
+        subtitle = "Turn supply chain data into clear, actionable decisions across orders, shipments, fulfillment, suppliers and logistics."
+        points = [
+            "Analyze purchase orders, order values and fulfillment performance.",
+            "Track shipments, delivery dates and shipment status across the network.",
+            "Identify delayed, pending and exception shipments and orders.",
+            "Compare supplier performance, order volumes and procurement trends.",
+            "Analyze logistics, lead times and delivery performance over time.",
+        ]
+        icon = "🚚"
     st.markdown(f"""
     <style>
       .module-hero{{padding:48px 55px;background:linear-gradient(135deg,#fff,#edf7ff);border:1px solid #cfe6ff;border-radius:28px;box-shadow:0 18px 45px rgba(23,91,160,.08)}}
@@ -1636,7 +1655,7 @@ def _home_page():
       .home-stats{display:flex;gap:35px;margin-top:25px;color:#315a88}
 
       /* Each intelligence card is ONE container: content + both buttons. */
-      .st-key-inventory_card, .st-key-sales_card{
+      .st-key-inventory_card, .st-key-sales_card, .st-key-supply_chain_card{
           background:#fff !important;
           border:1px solid #d5eaff !important;
           border-radius:22px !important;
@@ -1645,7 +1664,7 @@ def _home_page():
           box-sizing:border-box !important;
           height:100% !important;
       }
-      .st-key-inventory_card > div, .st-key-sales_card > div{gap:0 !important;}
+      .st-key-inventory_card > div, .st-key-sales_card > div, .st-key-supply_chain_card > div{gap:0 !important;}
       .module-card-container{box-sizing:border-box !important;}
       .module-card-container h2{color:#082d69;margin-top:0;margin-bottom:12px}
       .module-card-container p{color:#587291;line-height:1.55}
@@ -1662,27 +1681,31 @@ def _home_page():
       }
       /* Explore buttons = blue */
       .st-key-home_inv_explore [data-testid="stButton"] > button,
-      .st-key-home_sales_explore [data-testid="stButton"] > button{
+      .st-key-home_sales_explore [data-testid="stButton"] > button,
+      .st-key-home_supply_explore [data-testid="stButton"] > button{
           border:1px solid #0878c8 !important;
           background:#0878c8 !important;
           color: #ffffff !important;
       }
       .st-key-home_inv_explore [data-testid="stButton"] > button:hover,
-      .st-key-home_sales_explore [data-testid="stButton"] > button:hover{
+      .st-key-home_sales_explore [data-testid="stButton"] > button:hover,
+      .st-key-home_supply_explore [data-testid="stButton"] > button:hover{
           background:#066aae !important;
           border-color:#066aae !important;
           color: #ffffff !important;
       }
       /* Chat with AI buttons = red */
       .st-key-home_inv_chat [data-testid="stButton"] > button,
-      .st-key-home_sales_chat [data-testid="stButton"] > button{
+      .st-key-home_sales_chat [data-testid="stButton"] > button,
+      .st-key-home_supply_chat [data-testid="stButton"] > button{
           border:1px solid #e51f2b !important;
           background:#e51f2b !important;
           box-shadow:0 4px 10px rgba(229,31,43,.14) !important;
           color: #ffffff !important;
       }
       .st-key-home_inv_chat [data-testid="stButton"] > button:hover,
-      .st-key-home_sales_chat [data-testid="stButton"] > button:hover{
+      .st-key-home_sales_chat [data-testid="stButton"] > button:hover,
+      .st-key-home_supply_chat [data-testid="stButton"] > button:hover{
           background:#c91823 !important;
           border-color:#c91823 !important;
           color: #ffffff !important;
@@ -1713,9 +1736,9 @@ def _home_page():
     </div>
     """.replace("{robot_src}", _robot_data_uri()),unsafe_allow_html=True)
 
-    # Each card is a real Streamlit container. The content and both
-    # action buttons are rendered inside the same container.
-    c1,c2=st.columns(2, gap="medium")
+    # Three intelligence cards: Inventory, Sales and Supply Chain.
+    # Each card is a single container with content + both action buttons.
+    c1,c2,c3=st.columns(3, gap="medium")
 
     with c1:
         with st.container(key="inventory_card"):
@@ -1734,7 +1757,7 @@ def _home_page():
             st.markdown('<div class="module-card-actions">', unsafe_allow_html=True)
             a,b=st.columns(2, gap="small")
             with a:
-                if st.button("⌁ Explore Inventory",use_container_width=True,key="home_inv_explore"):
+                if st.button("↗ Explore Inventory",use_container_width=True,key="home_inv_explore"):
                     _set_page("inventory")
             with b:
                 if st.button("◯ Chat with AI",use_container_width=True,key="home_inv_chat"):
@@ -1758,10 +1781,34 @@ def _home_page():
             st.markdown('<div class="module-card-actions">', unsafe_allow_html=True)
             a,b=st.columns(2, gap="small")
             with a:
-                if st.button("⌁ Explore Sales",use_container_width=True,key="home_sales_explore"):
+                if st.button("↗ Explore Sales",use_container_width=True,key="home_sales_explore"):
                     _set_page("sales")
             with b:
                 if st.button("◯ Chat with AI",use_container_width=True,key="home_sales_chat"):
+                    _open_chat()
+            st.markdown('</div>', unsafe_allow_html=True)
+
+    with c3:
+        with st.container(key="supply_chain_card"):
+            st.markdown("""
+            <div class="module-card-container">
+              <h2>🚚 &nbsp; Supply Chain Intelligence</h2>
+              <p>Monitor supply chain performance, fulfillment, logistics and operational trends across your network.</p>
+              <ul>
+                <li>Analyze supply chain and fulfillment performance</li>
+                <li>Track orders, shipments and delivery trends</li>
+                <li>Identify delays, bottlenecks and exceptions</li>
+                <li>Explore supplier and logistics performance</li>
+              </ul>
+            </div>
+            """, unsafe_allow_html=True)
+            st.markdown('<div class="module-card-actions">', unsafe_allow_html=True)
+            a,b=st.columns(2, gap="small")
+            with a:
+                if st.button("↗ Explore Supply Chain",use_container_width=True,key="home_supply_explore"):
+                    _set_page("supply_chain")
+            with b:
+                if st.button("◯ Chat with AI",use_container_width=True,key="home_supply_chat"):
                     _open_chat()
             st.markdown('</div>', unsafe_allow_html=True)
 
@@ -1778,6 +1825,7 @@ if st.session_state.app_page != "chatbot":
     if page=="home": _home_page()
     elif page=="inventory": _module_page("inventory")
     elif page=="sales": _module_page("sales")
+    elif page=="supply_chain": _module_page("supply_chain")
     elif page=="document_ai": _document_ai_page()
     elif page=="about": _about_page()
     st.stop()
@@ -2247,6 +2295,64 @@ with tab_sales:
             key="s7",
         ):
             quick_prompt = "What is the total discount?"
+
+with tab_supply:
+    with st.expander("💡 What can I ask about Supply Chain?", expanded=False):
+        if st.button(
+            "🚚 What is the total number of purchase orders?",
+            use_container_width=True,
+            key="sc1",
+        ):
+            quick_prompt = "What is the total number of purchase orders?"
+
+        if st.button(
+            "💰 What is the total purchase order value?",
+            use_container_width=True,
+            key="sc2",
+        ):
+            quick_prompt = "What is the total purchase order value?"
+
+        if st.button(
+            "📦 How many shipments are there?",
+            use_container_width=True,
+            key="sc3",
+        ):
+            quick_prompt = "How many shipments are there?"
+
+        if st.button(
+            "⏱️ What is the average shipment lead time?",
+            use_container_width=True,
+            key="sc4",
+        ):
+            quick_prompt = "What is the average shipment lead time?"
+
+        if st.button(
+            "⚠️ How many shipments are delayed?",
+            use_container_width=True,
+            key="sc5",
+        ):
+            quick_prompt = "How many shipments are delayed?"
+
+        if st.button(
+            "🏭 Which suppliers have the highest purchase order value?",
+            use_container_width=True,
+            key="sc6",
+        ):
+            quick_prompt = "Which suppliers have the highest purchase order value?"
+
+        if st.button(
+            "📅 What are shipments by month?",
+            use_container_width=True,
+            key="sc7",
+        ):
+            quick_prompt = "What are shipments by month?"
+
+        if st.button(
+            "🚛 What is the on-time delivery performance?",
+            use_container_width=True,
+            key="sc8",
+        ):
+            quick_prompt = "What is the on-time delivery performance?"
 
 st.markdown("---")
 
