@@ -46,7 +46,7 @@ def _robot_data_uri():
 
 st.set_page_config(
     page_title="Dilytics Enterprise AI",
-    page_icon="📦",
+    page_icon="",
     layout="wide",
 )
 
@@ -383,9 +383,9 @@ def _login_page():
       <div class="login-eyebrow">Enterprise AI Workspace</div>
       <div class="login-title">Turn your data into <span>answers.</span></div>
       <div class="login-sub">Sign in securely to explore Inventory, Sales, Supply Chain and Document AI with natural-language conversations powered by Snowflake.</div>
-      <div class="login-feature-row"><span class="login-feature">📊 Live insights</span><span class="login-feature">🔐 Secure access</span><span class="login-feature">⚡ AI powered</span></div>
+      <div class="login-feature-row"><span class="login-feature"> Live insights</span><span class="login-feature"> Secure access</span><span class="login-feature"> AI powered</span></div>
     </div><div class="login-visual">
-      <div class="login-float one">📈 Smarter decisions</div><div class="login-float two">☁️ Cloud analytics</div><div class="login-float three">🤖 AI ready</div>
+      <div class="login-float one"> Smarter decisions</div><div class="login-float two"> Cloud analytics</div><div class="login-float three"> AI ready</div>
       <div class="login-orbit"><img class="login-robot-img" src="{robot_src}" alt="Dilytics AI assistant" /></div>
     </div></div></div>
     """.replace("{robot_src}", _robot_data_uri()), unsafe_allow_html=True)
@@ -409,7 +409,7 @@ def _login_page():
     with b1:
         login_clicked = st.button("Sign in to Dilytics", use_container_width=True, type="primary", key="login_submit")
     with b2:
-        if st.button("↻", help="New CAPTCHA", use_container_width=True, key="login_refresh_captcha"):
+        if st.button("", help="New CAPTCHA", use_container_width=True, key="login_refresh_captcha"):
             _new_captcha()
             st.rerun()
 
@@ -1315,14 +1315,14 @@ def render_uploaded_document_preview():
         return
 
     st.markdown("---")
-    st.markdown(f"### 📄 Uploaded Document: `{doc_name}`")
+    st.markdown(f"###  Uploaded Document: `{doc_name}`")
 
     if doc_type == "table":
         df = st.session_state.uploaded_document_df
         if df is not None:
             st.dataframe(_normalize_uploaded_dataframe(df), use_container_width=True)
     elif doc_type == "text":
-        with st.expander("📖 Extracted Document Content", expanded=False):
+        with st.expander(" Extracted Document Content", expanded=False):
             st.text_area(
                 "Document text",
                 st.session_state.uploaded_document_text,
@@ -1463,20 +1463,20 @@ def _top_nav():
             )
 
         with c2:
-            if st.button("⌂ Home", use_container_width=True, key="top_home"):
+            if st.button(" Home", use_container_width=True, key="top_home"):
                 _set_page("home")
 
         with c3:
-            if st.button("▣ Document AI Demo", use_container_width=True, key="top_docs"):
+            if st.button(" Document AI Demo", use_container_width=True, key="top_docs"):
                 _set_page("document_ai")
 
         with c4:
-            if st.button("ⓘ About DiLytics", use_container_width=True, key="top_about"):
+            if st.button(" About DiLytics", use_container_width=True, key="top_about"):
                 _set_page("about")
 
         with c5:
             username = st.session_state.get("username", "User")
-            if st.button(f"◯ {username}", use_container_width=True, key="top_profile"):
+            if st.button(f" {username}", use_container_width=True, key="top_profile"):
                 st.session_state.show_profile_menu = not st.session_state.get("show_profile_menu", False)
 
     if st.session_state.get("show_profile_menu"):
@@ -1500,7 +1500,7 @@ def _module_page(module: str):
             "Find products that need urgent replenishment or reorder attention.",
             "Analyze days of supply and inventory health using the latest snapshot.",
         ]
-        icon = "▦"
+        icon = ""
     elif sales:
         title = "Sales Intelligence"
         subtitle = "Turn sales data into clear, actionable decisions across revenue, products, customers, regions and channels."
@@ -1511,7 +1511,7 @@ def _module_page(module: str):
             "Analyze monthly sales trends and average order value.",
             "Explore completed and cancelled orders to understand sales performance.",
         ]
-        icon = "▥"
+        icon = ""
     else:
         title = "Supply Chain Intelligence"
         subtitle = "Turn supply chain data into clear, actionable decisions across orders, shipments, fulfillment, suppliers and logistics."
@@ -1522,7 +1522,7 @@ def _module_page(module: str):
             "Compare supplier performance, order volumes and procurement trends.",
             "Analyze logistics, lead times and delivery performance over time.",
         ]
-        icon = "🚚"
+        icon = ""
     st.markdown(f"""
     <style>
       .module-hero{{padding:48px 55px;background:linear-gradient(135deg,#fff,#edf7ff);border:1px solid #cfe6ff;border-radius:28px;box-shadow:0 18px 45px rgba(23,91,160,.08)}}
@@ -1533,13 +1533,13 @@ def _module_page(module: str):
     <div class="module-hero"><div class="module-icon">{icon}</div><div class="module-title">{title}</div><div class="module-sub">{subtitle}</div></div>
     """,unsafe_allow_html=True)
     st.markdown("### What you can analyze")
-    for p in points: st.markdown(f'<div class="point"><b>✓</b>{p}</div>',unsafe_allow_html=True)
+    for p in points: st.markdown(f'<div class="point"><b></b>{p}</div>',unsafe_allow_html=True)
     st.markdown("### Start exploring")
     a,b=st.columns(2)
     with a:
-        if st.button(f"💬 Chat with {title}",use_container_width=True,type="primary"): _set_page("chatbot")
+        if st.button(f" Chat with {title}",use_container_width=True,type="primary"): _set_page("chatbot")
     with b:
-        if st.button("⌂  Back to Home",use_container_width=True): _set_page("home")
+        if st.button("  Back to Home",use_container_width=True): _set_page("home")
 
 
 def _document_ai_page():
@@ -1553,15 +1553,15 @@ def _document_ai_page():
       @keyframes docFloat{50%{transform:translate(-50%,-54%) rotate(7deg)}} @keyframes scan{0%{top:45px}100%{top:220px}}
       @media(max-width:850px){.doc-hero{grid-template-columns:1fr}}
     </style>
-    <div class="doc-hero"><div><div class="doc-title">Document AI</div><div class="doc-sub">Upload a business document and move directly into a document-focused conversation. Use the assistant to explore spreadsheets and Word documents, extract relevant content, and ask natural-language questions.</div><div class="doc-list">✓ Excel / CSV analysis<br>✓ Word document content search<br>✓ Data questions and summaries<br>✓ Results displayed inside the familiar chat workspace</div></div><div class="doc-animation"><div class="doc-sheet"><div class="doc-line"></div><div class="doc-line"></div><div class="doc-line short"></div><div class="doc-line"></div><div class="doc-scan"></div></div></div></div>
+    <div class="doc-hero"><div><div class="doc-title">Document AI</div><div class="doc-sub">Upload a business document and move directly into a document-focused conversation. Use the assistant to explore spreadsheets and Word documents, extract relevant content, and ask natural-language questions.</div><div class="doc-list"> Excel / CSV analysis<br> Word document content search<br> Data questions and summaries<br> Results displayed inside the familiar chat workspace</div></div><div class="doc-animation"><div class="doc-sheet"><div class="doc-line"></div><div class="doc-line"></div><div class="doc-line short"></div><div class="doc-line"></div><div class="doc-scan"></div></div></div></div>
     """,unsafe_allow_html=True)
     st.markdown("### Analyze your document")
     uploaded=st.file_uploader("Upload CSV, Excel or Word",type=["csv","xlsx","xls","docx"],key="document_ai_uploader")
     c1,c2=st.columns([2,1])
     with c1:
-        analyze=st.button("📄 Analyze Your Document",use_container_width=True,type="primary",disabled=uploaded is None)
+        analyze=st.button(" Analyze Your Document",use_container_width=True,type="primary",disabled=uploaded is None)
     with c2:
-        if st.button("⌂ Home",use_container_width=True): _set_page("home")
+        if st.button(" Home",use_container_width=True): _set_page("home")
     if analyze and uploaded:
         try:
             with st.spinner("Analyzing document..."):
@@ -1593,7 +1593,7 @@ def _document_ai_page():
             messages_for_event = st.session_state.chat_sessions[current_id]["messages"]
             messages_for_event.append({
                 "role": "assistant",
-                "content": f"📄 **Document analyzed:** `{uploaded.name}`\n\n{doc_message}",
+                "content": f" **Document analyzed:** `{uploaded.name}`\n\n{doc_message}",
                 "sql": None,
                 "data": None,
                 "semantic_model": "Uploaded Document",
@@ -1622,12 +1622,12 @@ def _about_page():
         with col: st.markdown(f'<div class="about-card"><h3>{h}</h3><p>{t}</p></div>',unsafe_allow_html=True)
     st.markdown("### Why Dilytics for modern analytics")
     points=["End-to-end analytics, data engineering and AI capabilities.","Natural-language access to insights through conversational interfaces.","Modular solutions that can be customized to business processes.","Snowflake, Power BI, Tableau and other modern data-platform expertise."]
-    for p in points: st.markdown(f"✓ **{p}**")
+    for p in points: st.markdown(f" **{p}**")
     st.markdown("### Key milestones")
-    milestones=[("2011","DiLytics was founded in California to deliver enterprise analytics solutions."),("2012","Delivered a complex supply-chain planning analytics solution for a leading biopharmaceutical organization."),("2023–2024","Expanded strategic engagements and implemented DiLytics Insight Solutions for major organizations."),("2025","Delivered Sales, Finance and Planning Analytics solutions for a leading global medical-device manufacturer."),("2026","Expanded analytics delivery across nonprofit behavioral health and other data-driven organizations.")]
+    milestones=[("2011","DiLytics was founded in California to deliver enterprise analytics solutions."),("2012","Delivered a complex supply-chain planning analytics solution for a leading biopharmaceutical organization."),("20232024","Expanded strategic engagements and implemented DiLytics Insight Solutions for major organizations."),("2025","Delivered Sales, Finance and Planning Analytics solutions for a leading global medical-device manufacturer."),("2026","Expanded analytics delivery across nonprofit behavioral health and other data-driven organizations.")]
     for year,desc in milestones:
-        st.markdown(f"**{year}**  —  {desc}")
-    if st.button("⌂ Home",use_container_width=False): _set_page("home")
+        st.markdown(f"**{year}**    {desc}")
+    if st.button(" Home",use_container_width=False): _set_page("home")
 
 
 def _open_chat():
@@ -1727,7 +1727,7 @@ def _home_page():
         <div class="home-eyebrow">WELCOME TO DILYTICS</div>
         <div class="home-title">Your AI-Powered<br><span>Data Companion</span></div>
         <div class="home-sub">Ask questions, explore insights, and make smarter decisions with the power of your data.</div>
-        <div class="home-stats"><span>▮ Insights Made Simple</span><span>⚡ Faster Decisions</span><span>✓ Secure & Compliant</span></div>
+        <div class="home-stats"><span> Insights Made Simple</span><span> Faster Decisions</span><span> Secure & Compliant</span></div>
       </div>
       <div class="home-robot">
         <div class="orb"><img class="home-robot-img" src="{robot_src}" alt="Dilytics AI assistant" /></div>
@@ -1744,7 +1744,7 @@ def _home_page():
         with st.container(key="inventory_card"):
             st.markdown("""
             <div class="module-card-container">
-              <h2>▦ &nbsp; Inventory Intelligence</h2>
+              <h2> &nbsp; Inventory Intelligence</h2>
               <p>Get real-time insights into stock levels, warehouse capacity and product performance.</p>
               <ul>
                 <li>Track inventory levels and availability</li>
@@ -1757,10 +1757,10 @@ def _home_page():
             st.markdown('<div class="module-card-actions">', unsafe_allow_html=True)
             a,b=st.columns(2, gap="small")
             with a:
-                if st.button("↗ Explore Inventory",use_container_width=True,key="home_inv_explore"):
+                if st.button(" Explore Inventory",use_container_width=True,key="home_inv_explore"):
                     _set_page("inventory")
             with b:
-                if st.button("◯ Chat with AI",use_container_width=True,key="home_inv_chat"):
+                if st.button(" Chat with AI",use_container_width=True,key="home_inv_chat"):
                     _open_chat()
             st.markdown('</div>', unsafe_allow_html=True)
 
@@ -1768,7 +1768,7 @@ def _home_page():
         with st.container(key="sales_card"):
             st.markdown("""
             <div class="module-card-container">
-              <h2>▥ &nbsp; Sales Intelligence</h2>
+              <h2> &nbsp; Sales Intelligence</h2>
               <p>Uncover sales trends, customer insights and revenue opportunities across products, regions and channels.</p>
               <ul>
                 <li>Analyze total sales and revenue</li>
@@ -1781,10 +1781,10 @@ def _home_page():
             st.markdown('<div class="module-card-actions">', unsafe_allow_html=True)
             a,b=st.columns(2, gap="small")
             with a:
-                if st.button("↗ Explore Sales",use_container_width=True,key="home_sales_explore"):
+                if st.button(" Explore Sales",use_container_width=True,key="home_sales_explore"):
                     _set_page("sales")
             with b:
-                if st.button("◯ Chat with AI",use_container_width=True,key="home_sales_chat"):
+                if st.button(" Chat with AI",use_container_width=True,key="home_sales_chat"):
                     _open_chat()
             st.markdown('</div>', unsafe_allow_html=True)
 
@@ -1792,7 +1792,7 @@ def _home_page():
         with st.container(key="supply_chain_card"):
             st.markdown("""
             <div class="module-card-container">
-              <h2>🚚 &nbsp; Supply Chain Intelligence</h2>
+              <h2> &nbsp; Supply Chain Intelligence</h2>
               <p>Monitor supply chain performance, fulfillment, logistics and operational trends across your network.</p>
               <ul>
                 <li>Analyze supply chain and fulfillment performance</li>
@@ -1805,14 +1805,14 @@ def _home_page():
             st.markdown('<div class="module-card-actions">', unsafe_allow_html=True)
             a,b=st.columns(2, gap="small")
             with a:
-                if st.button("↗ Explore Supply Chain",use_container_width=True,key="home_supply_explore"):
+                if st.button(" Explore Supply Chain",use_container_width=True,key="home_supply_explore"):
                     _set_page("supply_chain")
             with b:
-                if st.button("◯ Chat with AI",use_container_width=True,key="home_supply_chat"):
+                if st.button(" Chat with AI",use_container_width=True,key="home_supply_chat"):
                     _open_chat()
             st.markdown('</div>', unsafe_allow_html=True)
 
-    st.markdown('<div class="home-footer">© 2026 DiLytics. All rights reserved. &nbsp; | &nbsp; Powered by Snowflake &nbsp; | &nbsp; Secure & Compliant &nbsp; | &nbsp; Insights Made Simple</div>',unsafe_allow_html=True)
+    st.markdown('<div class="home-footer"> 2026 DiLytics. All rights reserved. &nbsp; | &nbsp; Powered by Snowflake &nbsp; | &nbsp; Secure & Compliant &nbsp; | &nbsp; Insights Made Simple</div>',unsafe_allow_html=True)
 
 
 # Initialize route state and render non-chat pages.
@@ -1914,14 +1914,14 @@ def display_chart_tab(df: pd.DataFrame, key_prefix: str = ""):
 # 5. SIDEBAR
 # ===================================================================
 with st.sidebar:
-    st.markdown("### ⚡ Dilytics AI")
+    st.markdown("###  Dilytics AI")
     st.markdown(
-        '<span class="status-pill">● Cortex Analyst Live</span>',
+        '<span class="status-pill"> Cortex Analyst Live</span>',
         unsafe_allow_html=True,
     )
     st.write("")
 
-    if st.button("➕ New Chat", use_container_width=True, type="primary"):
+    if st.button(" New Chat", use_container_width=True, type="primary"):
         new_id = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
         st.session_state.current_session_id = new_id
         st.session_state.chat_sessions[new_id] = {
@@ -1931,7 +1931,7 @@ with st.sidebar:
         st.rerun()
 
     st.markdown("---")
-    st.markdown("##### 🕒 Recent Conversations")
+    st.markdown("#####  Recent Conversations")
 
     for s_id, s_data in reversed(list(st.session_state.chat_sessions.items())):
         is_active = s_id == st.session_state.current_session_id
@@ -1940,7 +1940,7 @@ with st.sidebar:
             label = label[:18] + "..."
 
         if st.button(
-            f"{'👉 ' if is_active else '🗨️ '}{label}",
+            f"{' ' if is_active else ' '}{label}",
             key=f"sess_{s_id}",
             use_container_width=True,
         ):
@@ -1949,7 +1949,7 @@ with st.sidebar:
 
     st.markdown("---")
 
-    if st.button("🗑️ Clear All Sessions", use_container_width=True):
+    if st.button(" Clear All Sessions", use_container_width=True):
         st.session_state.chat_sessions = {}
         init_id = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
         st.session_state.current_session_id = init_id
@@ -1962,7 +1962,7 @@ with st.sidebar:
 
 # ===================================================================
     st.markdown("---")
-    st.markdown("##### 📄 Analyze an Uploaded Document")
+    st.markdown("#####  Analyze an Uploaded Document")
 
     uploaded_doc = st.file_uploader(
         "Upload CSV, Excel, PDF or Word",
@@ -1972,7 +1972,7 @@ with st.sidebar:
     )
 
     if st.button(
-        "🔍 Analyze Document",
+        " Analyze Document",
         use_container_width=True,
         disabled=uploaded_doc is None,
         key="analyze_uploaded_document",
@@ -2019,7 +2019,7 @@ with st.sidebar:
             messages_for_event = st.session_state.chat_sessions[current_id]["messages"]
             messages_for_event.append({
                 "role": "assistant",
-                "content": f"📄 **Document analyzed:** `{uploaded_doc.name}`\n\n{doc_message}",
+                "content": f" **Document analyzed:** `{uploaded_doc.name}`\n\n{doc_message}",
                 "sql": None,
                 "data": None,
                 "semantic_model": "Uploaded Document",
@@ -2039,7 +2039,7 @@ with st.sidebar:
             f"Loaded: `{st.session_state.uploaded_document_name}`"
         )
         if st.button(
-            "✖ Remove Uploaded Document",
+            " Remove Uploaded Document",
             use_container_width=True,
             key="remove_uploaded_document",
         ):
@@ -2173,13 +2173,13 @@ with st.container(key="dly_chat_header"):
             unsafe_allow_html=True,
         )
     with h2:
-        if st.button("⌂  Home", use_container_width=True, key="chat_home"):
+        if st.button("  Home", use_container_width=True, key="chat_home"):
             _set_page("home")
     with h3:
-        if st.button("▣  Document AI", use_container_width=True, key="chat_docs"):
+        if st.button("  Document AI", use_container_width=True, key="chat_docs"):
             _set_page("document_ai")
     with h4:
-        if st.button("↪  Logout", use_container_width=True, key="chat_logout"):
+        if st.button("  Logout", use_container_width=True, key="chat_logout"):
             _logout()
 
 # 7. EXAMPLE QUESTIONS
@@ -2191,164 +2191,164 @@ st.markdown("### Explore your data")
 st.caption("Choose a question below or type your own question in the chat.")
 
 tab_inv, tab_sales, tab_supply = st.tabs(
-    ["📦 Inventory Intelligence", "💰 Sales Intelligence", "🚚 Supply Chain Intelligence"]
+    [" Inventory Intelligence", " Sales Intelligence", " Supply Chain Intelligence"]
 )
 
 with tab_inv:
-    with st.expander("💡 What can I ask about Inventory?", expanded=False):
+    with st.expander(" What can I ask about Inventory?", expanded=False):
         if st.button(
-            "💰 What is the total inventory value?",
+            " What is the total inventory value?",
             use_container_width=True,
             key="i1",
         ):
             quick_prompt = "What is the total inventory value?"
 
         if st.button(
-            "🏭 What is the inventory value by warehouse?",
+            " What is the inventory value by warehouse?",
             use_container_width=True,
             key="i2",
         ):
             quick_prompt = "What is the inventory value by warehouse?"
 
         if st.button(
-            "📦 Which products have the highest inventory value?",
+            " Which products have the highest inventory value?",
             use_container_width=True,
             key="i3",
         ):
             quick_prompt = "Which products have the highest inventory value?"
 
         if st.button(
-            "📉 How many products are out of stock?",
+            " How many products are out of stock?",
             use_container_width=True,
             key="i4",
         ):
             quick_prompt = "How many products are out of stock?"
 
         if st.button(
-            "⚠️ What is the total excess inventory value by warehouse?",
+            " What is the total excess inventory value by warehouse?",
             use_container_width=True,
             key="i5",
         ):
             quick_prompt = "What is the total excess inventory value by warehouse?"
 
         if st.button(
-            "🔄 Which products need to be reordered?",
+            " Which products need to be reordered?",
             use_container_width=True,
             key="i6",
         ):
             quick_prompt = "Which products need to be reordered?"
 
         if st.button(
-            "🏷️ What is the inventory value by product category?",
+            " What is the inventory value by product category?",
             use_container_width=True,
             key="i7",
         ):
             quick_prompt = "What is the inventory value by product category?"
 
 with tab_sales:
-    with st.expander("💡 What can I ask about Sales?", expanded=False):
+    with st.expander(" What can I ask about Sales?", expanded=False):
         if st.button(
-            "💵 What is the total sales amount?",
+            " What is the total sales amount?",
             use_container_width=True,
             key="s1",
         ):
             quick_prompt = "What is the total sales amount?"
 
         if st.button(
-            "🏆 What are the top products by sales?",
+            " What are the top products by sales?",
             use_container_width=True,
             key="s2",
         ):
             quick_prompt = "What are the top products by sales?"
 
         if st.button(
-            "🌍 What are total sales by customer region?",
+            " What are total sales by customer region?",
             use_container_width=True,
             key="s3",
         ):
             quick_prompt = "What are total sales by customer region?"
 
         if st.button(
-            "📅 What are total sales by month?",
+            " What are total sales by month?",
             use_container_width=True,
             key="s4",
         ):
             quick_prompt = "What are total sales by month?"
 
         if st.button(
-            "📊 What is total sales by order channel?",
+            " What is total sales by order channel?",
             use_container_width=True,
             key="s5",
         ):
             quick_prompt = "What is total sales by order channel?"
 
         if st.button(
-            "💳 What is the average order value?",
+            " What is the average order value?",
             use_container_width=True,
             key="s6",
         ):
             quick_prompt = "What is the average order value?"
 
         if st.button(
-            "🎟️ What is the total discount?",
+            " What is the total discount?",
             use_container_width=True,
             key="s7",
         ):
             quick_prompt = "What is the total discount?"
 
 with tab_supply:
-    with st.expander("💡 What can I ask about Supply Chain?", expanded=False):
+    with st.expander(" What can I ask about Supply Chain?", expanded=False):
         if st.button(
-            "🚚 What is the total number of purchase orders?",
+            " What is the total number of purchase orders?",
             use_container_width=True,
             key="sc1",
         ):
             quick_prompt = "What is the total number of purchase orders?"
 
         if st.button(
-            "💰 What is the total purchase order value?",
+            " What is the total purchase order value?",
             use_container_width=True,
             key="sc2",
         ):
             quick_prompt = "What is the total purchase order value?"
 
         if st.button(
-            "📦 How many shipments are there?",
+            " How many shipments are there?",
             use_container_width=True,
             key="sc3",
         ):
             quick_prompt = "How many shipments are there?"
 
         if st.button(
-            "⏱️ What is the average shipment lead time?",
+            " What is the average shipment lead time?",
             use_container_width=True,
             key="sc4",
         ):
             quick_prompt = "What is the average shipment lead time?"
 
         if st.button(
-            "⚠️ How many shipments are delayed?",
+            " How many shipments are delayed?",
             use_container_width=True,
             key="sc5",
         ):
             quick_prompt = "How many shipments are delayed?"
 
         if st.button(
-            "🏭 Which suppliers have the highest purchase order value?",
+            " Which suppliers have the highest purchase order value?",
             use_container_width=True,
             key="sc6",
         ):
             quick_prompt = "Which suppliers have the highest purchase order value?"
 
         if st.button(
-            "📅 What are shipments by month?",
+            " What are shipments by month?",
             use_container_width=True,
             key="sc7",
         ):
             quick_prompt = "What are shipments by month?"
 
         if st.button(
-            "🚛 What is the on-time delivery performance?",
+            " What is the on-time delivery performance?",
             use_container_width=True,
             key="sc8",
         ):
@@ -2375,7 +2375,7 @@ for idx, msg in enumerate(messages):
                 current_df = st.session_state.uploaded_document_df
                 # Show the preview only for the currently loaded document.
                 if current_df is not None and doc_name == st.session_state.uploaded_document_name:
-                    with st.expander("📊 View uploaded data", expanded=True):
+                    with st.expander(" View uploaded data", expanded=True):
                         st.dataframe(
                             _normalize_uploaded_dataframe(current_df),
                             use_container_width=True,
@@ -2383,7 +2383,7 @@ for idx, msg in enumerate(messages):
             elif doc_type == "text":
                 current_text = st.session_state.uploaded_document_text
                 if current_text and doc_name == st.session_state.uploaded_document_name:
-                    with st.expander("📖 View extracted document content", expanded=True):
+                    with st.expander(" View extracted document content", expanded=True):
                         st.text_area(
                             "Document text",
                             current_text,
@@ -2408,7 +2408,7 @@ for idx, msg in enumerate(messages):
                 st.caption(f"Verified Query Used: `{name}`")
 
         if msg.get("data") is not None:
-            tab_data, tab_chart = st.tabs(["Data 📄", "Chart 📈"])
+            tab_data, tab_chart = st.tabs(["Data ", "Chart "])
             with tab_data:
                 st.dataframe(msg["data"], use_container_width=True)
             with tab_chart:
@@ -2501,7 +2501,7 @@ if user_prompt:
                         st.code(doc_sql_result, language="sql")
 
                 if doc_df_result is not None:
-                    tab_data, tab_chart = st.tabs(["Data 📄", "Chart 📈"])
+                    tab_data, tab_chart = st.tabs(["Data ", "Chart "])
                     with tab_data:
                         st.dataframe(doc_df_result, use_container_width=True)
                     with tab_chart:
@@ -2600,7 +2600,7 @@ if user_prompt:
                 with st.spinner("Executing generated SQL in Snowflake..."):
                     df = session.sql(sql_query).to_pandas()
 
-                tab_data, tab_chart = st.tabs(["Data 📄", "Chart 📈"])
+                tab_data, tab_chart = st.tabs(["Data ", "Chart "])
 
                 with tab_data:
                     st.dataframe(df, use_container_width=True)
