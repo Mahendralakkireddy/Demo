@@ -1556,9 +1556,36 @@ def _document_ai_page():
                 st.session_state.uploaded_document_table=None
                 st.session_state.uploaded_document_semantic_model=None
                 if doc_type=="table": prepare_uploaded_table(doc_df)
+
+            # Keep the Document AI upload in the same chat timeline as
+            # questions asked before the upload. This also makes the
+            # uploaded-document preview render when the chatbot opens.
+            if "chat_sessions" not in st.session_state:
+                st.session_state.chat_sessions = {}
+            if "current_session_id" not in st.session_state:
+                init_id = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+                st.session_state.current_session_id = init_id
+                st.session_state.chat_sessions[init_id] = {
+                    "title": "New Conversation",
+                    "messages": [],
+                }
+
+            current_id = st.session_state.current_session_id
+            messages_for_event = st.session_state.chat_sessions[current_id]["messages"]
+            messages_for_event.append({
+                "role": "assistant",
+                "content": f"📄 **Document analyzed:** `{uploaded.name}`\n\n{doc_message}",
+                "sql": None,
+                "data": None,
+                "semantic_model": "Uploaded Document",
+                "verified_query": None,
+                "document_event": True,
+                "document_name": uploaded.name,
+                "document_type": doc_type,
+            })
+
             st.session_state.answer_source="Uploaded Document"
             st.session_state.app_page="chatbot"
-            st.success(doc_message)
             st.rerun()
         except Exception as e: st.error(f"Document analysis failed: {e}")
 
@@ -2242,7 +2269,7 @@ for idx, msg in enumerate(messages):
                 current_df = st.session_state.uploaded_document_df
                 # Show the preview only for the currently loaded document.
                 if current_df is not None and doc_name == st.session_state.uploaded_document_name:
-                    with st.expander("📊 View uploaded data", expanded=False):
+                    with st.expander("📊 View uploaded data", expanded=True):
                         st.dataframe(
                             _normalize_uploaded_dataframe(current_df),
                             use_container_width=True,
@@ -2250,7 +2277,7 @@ for idx, msg in enumerate(messages):
             elif doc_type == "text":
                 current_text = st.session_state.uploaded_document_text
                 if current_text and doc_name == st.session_state.uploaded_document_name:
-                    with st.expander("📖 View extracted document content", expanded=False):
+                    with st.expander("📖 View extracted document content", expanded=True):
                         st.text_area(
                             "Document text",
                             current_text,
