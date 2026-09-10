@@ -2453,12 +2453,17 @@ def _top_nav():
       }
 
       .st-key-dly_main_header > div > [data-testid="column"]:last-child [data-testid="stHorizontalBlock"] {
-          width: 100% !important;
-          min-width: 0 !important;
+          /* Compact two-button group, anchored directly under the
+             top-right Share area. */
+          width: 300px !important;
+          max-width: 300px !important;
+          min-width: 300px !important;
+          margin-left: auto !important;
+          margin-right: 0 !important;
           justify-content: flex-end !important;
           align-items: center !important;
           flex-wrap: nowrap !important;
-          gap: 10px !important;
+          gap: 8px !important;
       }
 
       .st-key-dly_main_header > div > [data-testid="column"]:last-child [data-testid="column"] {
@@ -2475,6 +2480,13 @@ def _top_nav():
           justify-content: stretch !important;
           width: 100% !important;
           min-width: 0 !important;
+      }
+
+      /* Keep each navigation button compact and fully visible. */
+      .st-key-dly_main_header > div > [data-testid="column"]:last-child [data-testid="column"] {
+          min-width: 0 !important;
+          flex: 1 1 0 !important;
+          width: 0 !important;
       }
 
       .st-key-top_home [data-testid="stButton"],
