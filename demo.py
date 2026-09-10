@@ -2628,7 +2628,7 @@ def _top_nav():
           background: #f5f7fa;
           color: #111827;
 
-          font-size: 22px;
+          font-size: 15px;
 
           box-shadow: inset 0 0 0 1px #e5e9ee;
       }
