@@ -2652,6 +2652,36 @@ def _top_nav():
           font-size: .72rem !important;
       }
 
+      /* Final UI-only navigation adjustment: compact right-aligned buttons. */
+      .st-key-dly_main_header > div > [data-testid="column"]:last-child [data-testid="stHorizontalBlock"] {
+          width: 300px !important;
+          max-width: 300px !important;
+          margin-left: auto !important;
+          margin-right: 0 !important;
+          justify-content: flex-end !important;
+          gap: 10px !important;
+      }
+
+      .st-key-dly_main_header > div > [data-testid="column"]:last-child [data-testid="stHorizontalBlock"] > [data-testid="column"] {
+          flex: 0 0 145px !important;
+          width: 145px !important;
+          max-width: 145px !important;
+          min-width: 145px !important;
+      }
+
+      .st-key-top_home [data-testid="stButton"],
+      .st-key-top_docs [data-testid="stButton"] {
+          width: 145px !important;
+          max-width: 145px !important;
+      }
+
+      .st-key-top_home [data-testid="stButton"] > button,
+      .st-key-top_docs [data-testid="stButton"] > button {
+          width: 145px !important;
+          max-width: 145px !important;
+          min-width: 145px !important;
+      }
+
       /* Responsive fallback. */
       @media (max-width: 1250px) {
           .st-key-dly_main_header {
