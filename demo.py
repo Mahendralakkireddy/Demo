@@ -2626,6 +2626,7 @@ def _top_nav():
           max-width: 100% !important;
           min-width: 0 !important;
           box-sizing: border-box !important;
+          margin-top: -45px !important;
       }
 
       .st-key-top_home [data-testid="stButton"] > button,
@@ -2633,6 +2634,7 @@ def _top_nav():
       .st-key-top_about [data-testid="stButton"] > button {
           height: 56px !important;
           min-height: 56px !important;
+          margin-top: -45px !important;
 
           padding: 0 8px !important;
           margin: 0 !important;
