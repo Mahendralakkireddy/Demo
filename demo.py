@@ -2400,7 +2400,7 @@ def _top_nav():
       /* Exact horizontal DILYTICS logo. */
       .dly-reference-logo {
           width: 140px !important;
-          height: 42px !important;
+          height: 56px !important;
           max-width: none !important;
           object-fit: contain !important;
           object-position: left center !important;
@@ -2523,8 +2523,8 @@ def _top_nav():
       .st-key-top_home [data-testid="stButton"] > button,
       .st-key-top_docs [data-testid="stButton"] > button,
       .st-key-top_about [data-testid="stButton"] > button {
-          height: 42px !important;
-          min-height: 42px !important;
+          height: 56px !important;
+          min-height: 56px !important;
 
           padding: 0 8px !important;
           margin: 0 !important;
@@ -2628,7 +2628,7 @@ def _top_nav():
           background: #f5f7fa;
           color: #111827;
 
-          font-size: 15px;
+          font-size: 22px;
 
           box-shadow: inset 0 0 0 1px #e5e9ee;
       }
@@ -2691,8 +2691,8 @@ def _top_nav():
           .st-key-top_home [data-testid="stButton"] > button,
           .st-key-top_docs [data-testid="stButton"] > button,
           .st-key-top_about [data-testid="stButton"] > button {
-              height: 42px !important;
-              min-height: 42px !important;
+              height: 56px !important;
+              min-height: 56px !important;
               padding: 0 9px !important;
               font-size: .76rem !important;
               font-weight: 800 !important;
