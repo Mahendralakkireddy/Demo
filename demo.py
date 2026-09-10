@@ -248,6 +248,7 @@ section[data-testid="stSidebar"] [class*="st-key-pin_"] button p {
     align-items:center;
     justify-content:flex-start;
     padding:8px 8px 10px 8px;
+    margin-top:-55px !important;
     margin-bottom:2px;
 }
 .dly-sidebar-brand-logo {
@@ -2840,7 +2841,7 @@ def _top_nav():
           /* Chatbot landing page only: remove the empty header space left by
              the main-area logo and move Explore your data upward. */
           .st-key-dly_main_header {
-              margin-bottom: -38px !important;
+              margin-bottom: -100px !important;
           }
           .st-key-dly_main_header [data-testid="column"] {
               min-height: 24px !important;
