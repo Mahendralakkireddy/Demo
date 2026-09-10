@@ -3755,28 +3755,40 @@ def _home_page():
           }
       }
     
-      /* FINAL SMALL NAV OVERRIDE: Home + Document AI under Share, far right */
+      /* FINAL NAV OVERRIDE — compact buttons at far right, below Share */
+      .st-key-dly_main_header {
+          position: relative !important;
+          min-height: 48px !important;
+      }
+
+      /* Place the complete Home + Document AI group at the far right. */
       .st-key-dly_main_header > div > [data-testid="column"]:last-child {
-          display: flex !important;
-          flex-direction: column !important;
-          align-items: flex-end !important;
-          justify-content: flex-start !important;
+          display: block !important;
+          position: static !important;
       }
 
       .st-key-dly_main_header > div > [data-testid="column"]:last-child [data-testid="stHorizontalBlock"] {
-          width: 170px !important;
-          max-width: 170px !important;
-          min-width: 170px !important;
-          margin-left: auto !important;
-          margin-right: 8px !important;
+          position: absolute !important;
+          top: 0 !important;
+          right: 8px !important;
+          left: auto !important;
+
+          width: 192px !important;
+          min-width: 192px !important;
+          max-width: 192px !important;
+
+          margin: 0 !important;
           padding: 0 !important;
-          gap: 5px !important;
+
           display: flex !important;
+          flex-direction: row !important;
           justify-content: flex-end !important;
           align-items: center !important;
+          gap: 14px !important;
           flex-wrap: nowrap !important;
       }
 
+      /* Give each button its own fixed width so Streamlit cannot stretch them. */
       .st-key-dly_main_header > div > [data-testid="column"]:last-child [data-testid="stHorizontalBlock"] > [data-testid="column"] {
           flex: 0 0 auto !important;
           width: auto !important;
@@ -3785,14 +3797,7 @@ def _home_page():
       }
 
       .st-key-top_home,
-      .st-key-top_docs {
-          width: auto !important;
-          min-width: 0 !important;
-          max-width: none !important;
-          margin: 0 !important;
-          padding: 0 !important;
-      }
-
+      .st-key-top_docs,
       .st-key-top_home [data-testid="stButton"],
       .st-key-top_docs [data-testid="stButton"] {
           width: auto !important;
@@ -3802,13 +3807,31 @@ def _home_page():
           padding: 0 !important;
       }
 
-      .st-key-top_home [data-testid="stButton"] > button,
+      .st-key-top_home [data-testid="stButton"] > button {
+          width: 70px !important;
+          min-width: 70px !important;
+          max-width: 70px !important;
+          height: 28px !important;
+          min-height: 28px !important;
+          padding: 0 6px !important;
+          margin: 0 !important;
+          border-radius: 6px !important;
+          font-size: .60rem !important;
+          line-height: 1 !important;
+          font-weight: 700 !important;
+          white-space: nowrap !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          box-sizing: border-box !important;
+      }
+
       .st-key-top_docs [data-testid="stButton"] > button {
-          width: auto !important;
-          min-width: 58px !important;
-          max-width: 88px !important;
-          height: 27px !important;
-          min-height: 27px !important;
+          width: 108px !important;
+          min-width: 108px !important;
+          max-width: 108px !important;
+          height: 28px !important;
+          min-height: 28px !important;
           padding: 0 6px !important;
           margin: 0 !important;
           border-radius: 6px !important;
@@ -3830,18 +3853,28 @@ def _home_page():
 
       @media (max-width: 700px) {
           .st-key-dly_main_header > div > [data-testid="column"]:last-child [data-testid="stHorizontalBlock"] {
-              width: 150px !important;
-              min-width: 150px !important;
-              max-width: 150px !important;
-              margin-right: 4px !important;
+              right: 4px !important;
+              width: 170px !important;
+              min-width: 170px !important;
+              max-width: 170px !important;
+              gap: 8px !important;
           }
 
-          .st-key-top_home [data-testid="stButton"] > button,
+          .st-key-top_home [data-testid="stButton"] > button {
+              width: 60px !important;
+              min-width: 60px !important;
+              max-width: 60px !important;
+              height: 26px !important;
+              min-height: 26px !important;
+              font-size: .56rem !important;
+          }
+
           .st-key-top_docs [data-testid="stButton"] > button {
-              min-width: 52px !important;
-              max-width: 78px !important;
-              height: 25px !important;
-              min-height: 25px !important;
+              width: 102px !important;
+              min-width: 102px !important;
+              max-width: 102px !important;
+              height: 26px !important;
+              min-height: 26px !important;
               font-size: .56rem !important;
           }
       }
