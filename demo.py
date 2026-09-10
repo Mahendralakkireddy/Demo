@@ -2733,8 +2733,8 @@ def _top_nav():
           .st-key-top_home [data-testid="stButton"] > button,
           .st-key-top_docs [data-testid="stButton"] > button,
           .st-key-top_about [data-testid="stButton"] > button {
-              height: 44px !important;
-              min-height: 44px !important;
+              height: 52px !important;
+              min-height: 52px !important;
               padding: 0 8px !important;
               font-size: .72rem !important;
           }
@@ -2763,8 +2763,8 @@ def _top_nav():
           .st-key-top_home [data-testid="stButton"] > button,
           .st-key-top_docs [data-testid="stButton"] > button,
           .st-key-top_about [data-testid="stButton"] > button {
-              height: 48px !important;
-              min-height: 48px !important;
+              height: 52px !important;
+              min-height: 52px !important;
               padding: 0 10px !important;
               font-size: .80rem !important;
           font-weight: 800 !important;
@@ -2815,8 +2815,8 @@ def _top_nav():
           .st-key-top_home [data-testid="stButton"] > button,
           .st-key-top_docs [data-testid="stButton"] > button,
           .st-key-top_about [data-testid="stButton"] > button {
-              height: 44px !important;
-              min-height: 44px !important;
+              height: 52px !important;
+              min-height: 52px !important;
               border-radius: 9px !important;
               padding: 0 6px !important;
               font-size: .64rem !important;
@@ -3071,8 +3071,8 @@ def _about_page():
           width: 98px !important;
           max-width: 98px !important;
           min-width: 98px !important;
-          height: 34px !important;
-          min-height: 34px !important;
+          height: 52px !important;
+          min-height: 52px !important;
           padding: 0 4px !important;
           font-size: .68rem !important;
           border-radius: 7px !important;
@@ -3859,8 +3859,8 @@ def _home_page():
           width: auto !important;
           min-width: 58px !important;
           max-width: 88px !important;
-          height: 27px !important;
-          min-height: 27px !important;
+          height: 52px !important;
+          min-height: 52px !important;
           padding: 0 6px !important;
           margin: 0 !important;
           border-radius: 6px !important;
@@ -3956,6 +3956,13 @@ def _home_page():
           font-size: 17px !important;
       }
 
+      /* GLOBAL NAV SIZE — identical Home / Document AI button height on every page. */
+      .st-key-top_home [data-testid="stButton"] > button,
+      .st-key-top_docs [data-testid="stButton"] > button {
+          height: 52px !important;
+          min-height: 52px !important;
+      }
+
       @media (max-width: 700px) {
           /* Reset manually positioned navigation on small screens. */
           .st-key-top_home,
@@ -3976,8 +3983,8 @@ def _home_page():
           .st-key-top_docs [data-testid="stButton"] > button {
               min-width: 52px !important;
               max-width: 78px !important;
-              height: 25px !important;
-              min-height: 25px !important;
+              height: 52px !important;
+              min-height: 52px !important;
               font-size: .56rem !important;
           }
       }
