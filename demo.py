@@ -2682,6 +2682,29 @@ def _top_nav():
           min-width: 145px !important;
       }
 
+      /* Final requested UI-only positioning: align logo with the
+         Welcome text and move the compact navigation group to the far right. */
+      .dly-nav-logo-left {
+          transform: translateX(-44px) !important;
+      }
+
+      .st-key-dly_main_header [data-testid="stHorizontalBlock"] {
+          width: 300px !important;
+          max-width: 300px !important;
+          margin-left: auto !important;
+          margin-right: 0 !important;
+          justify-content: flex-end !important;
+          gap: 10px !important;
+          flex-wrap: nowrap !important;
+      }
+
+      .st-key-dly_main_header [data-testid="stHorizontalBlock"] > [data-testid="column"] {
+          flex: 0 0 145px !important;
+          width: 145px !important;
+          max-width: 145px !important;
+          min-width: 145px !important;
+      }
+
       /* Responsive fallback. */
       @media (max-width: 1250px) {
           .st-key-dly_main_header {
