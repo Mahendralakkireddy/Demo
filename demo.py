@@ -1306,8 +1306,8 @@ def ai_complete_document_question(question: str) -> str:
         "If multiple passages support the answer, reconcile them and state the relevant section/page when available. "
         "For calculations, show the calculation briefly and use only document values. "
         "Never invent a missing value. Be concise but complete. "
-        HIDE_DATE_OUTPUT_INSTRUCTION + " "
-        "User question: " + question
+        + HIDE_DATE_OUTPUT_INSTRUCTION + " "
+        + "User question: " + question
     )
     # TO_FILE expects the stage reference as a string such as
     # '@"DATABASE"."SCHEMA"."STAGE"'.
