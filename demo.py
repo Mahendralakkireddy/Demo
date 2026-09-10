@@ -2470,9 +2470,6 @@ def _top_nav():
       .st-key-top_docs [data-testid="stButton"] > button::before {
           content: "▣";
       }
-    </style>
-    """, unsafe_allow_html=True)
-
       .st-key-top_about [data-testid="stButton"] > button::before {
           content: "D";
 
@@ -2559,39 +2556,27 @@ def _top_nav():
           min-width: 145px !important;
       }
 
-          # FINAL UI-ONLY OVERRIDE: anchor the logo exactly to the same left edge
-    # as the Home page Welcome section, and keep the compact navigation
-    # group anchored to the right. The button-to-button gap remains fixed
-    # inside the flex group so it is consistent across viewport sizes.
-    st.markdown("""
-    <style>
+      /* ================================================================
+         FINAL UI-ONLY RESPONSIVE HEADER ADJUSTMENT
+         Logo aligns with the Welcome section on the left.
+         Home + Document AI stay as one compact group on the right.
+         The controlled flex gap remains constant across screen sizes.
+         ================================================================ */
       .st-key-dly_main_header {
-          position: relative !important;
-          padding: 0 !important;
+          padding: 0 38px !important;
           margin: -68px 0 -8px 0 !important;
-          min-height: 55px !important;
       }
 
-      .st-key-dly_main_header > div {
-          position: relative !important;
-          width: 100% !important;
-          min-height: 55px !important;
-      }
-
-      /* Logo: Moved slightly further left to align perfectly with WELCOME text */
-      .st-key-dly_main_header .dly-nav-logo-left {
-          position: absolute !important;
-          left: -15px !important; 
-          top: 0 !important;
-          width: 154px !important;
-          height: 45px !important;
-          margin: 0 !important;
-          padding: 0 !important;
-          transform: none !important;
-          display: flex !important;
+      .st-key-dly_main_header > div > [data-testid="column"]:first-child {
           justify-content: flex-start !important;
           align-items: center !important;
-          z-index: 30 !important;
+      }
+
+      .st-key-dly_main_header > div > [data-testid="column"]:first-child .dly-nav-logo-left {
+          justify-content: flex-start !important;
+          align-items: center !important;
+          transform: none !important;
+          margin: 0 !important;
       }
 
       .st-key-dly_main_header .dly-reference-logo {
@@ -2600,9 +2585,7 @@ def _top_nav():
           margin: 0 !important;
       }
 
-      /* Home + Document AI: compact, fixed internal gap, pushed far right under "Share" */
       .st-key-dly_main_header > div > [data-testid="column"]:last-child {
-          display: flex !important;
           justify-content: flex-end !important;
           align-items: center !important;
       }
@@ -2612,8 +2595,7 @@ def _top_nav():
           max-width: 300px !important;
           min-width: 300px !important;
           margin-left: auto !important;
-          margin-right: -45px !important; 
-          display: flex !important;
+          margin-right: 0 !important;
           justify-content: flex-end !important;
           align-items: center !important;
           gap: 12px !important;
@@ -2637,34 +2619,6 @@ def _top_nav():
           box-sizing: border-box !important;
       }
 
-      @media (max-width: 700px) {
-          .st-key-dly_main_header .dly-nav-logo-left {
-              position: relative !important;
-              left: auto !important;
-              top: auto !important;
-              width: 125px !important;
-              height: 42px !important;
-          }
-
-          .st-key-dly_main_header > div > [data-testid="column"]:last-child [data-testid="stHorizontalBlock"] {
-              width: 100% !important;
-              min-width: 0 !important;
-              max-width: 100% !important;
-              margin-right: 0 !important;
-              gap: 6px !important;
-          }
-
-          .st-key-top_home [data-testid="stButton"],
-          .st-key-top_docs [data-testid="stButton"],
-          .st-key-top_home [data-testid="stButton"] > button,
-          .st-key-top_docs [data-testid="stButton"] > button {
-              width: 144px !important;
-              max-width: 144px !important;
-              min-width: 0 !important;
-          }
-      }
-    </style>
-    """, unsafe_allow_html=True)
       /* Responsive fallback. */
       @media (max-width: 1250px) {
           .st-key-dly_main_header {
