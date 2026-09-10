@@ -2367,7 +2367,7 @@ def _top_nav():
           border: 0 !important;
           border-radius: 0 !important;
 
-          padding: 0 58px !important;
+          padding: 0 !important;
           /* Pull header directly below the Streamlit toolbar. UI-only. */
           margin: -68px 0 -8px 0 !important;
 
@@ -2395,8 +2395,8 @@ def _top_nav():
 
       /* Exact horizontal DILYTICS logo. */
       .dly-reference-logo {
-          width: 154px !important;
-          height: 45px !important;
+          width: 140px !important;
+          height: 42px !important;
           max-width: none !important;
           object-fit: contain !important;
           object-position: left center !important;
@@ -2640,16 +2640,17 @@ def _top_nav():
 
       /* Final compact navigation sizing: UI-only, no behavior changes. */
       .st-key-dly_main_header > div > [data-testid="column"]:last-child [data-testid="stHorizontalBlock"] {
-          width: min(560px, 100%) !important;
+          width: min(300px, 100%) !important;
           margin-left: auto !important;
+          margin-right: 0 !important;
       }
 
       .st-key-top_home [data-testid="stButton"] > button,
       .st-key-top_docs [data-testid="stButton"] > button {
-          min-height: 38px !important;
-          height: 38px !important;
-          padding: 0 8px !important;
-          font-size: .72rem !important;
+          min-height: 36px !important;
+          height: 36px !important;
+          padding: 0 6px !important;
+          font-size: .70rem !important;
       }
 
       /* Responsive fallback. */
@@ -3280,7 +3281,7 @@ def _home_page():
           grid-template-columns:1fr 1fr;
           gap:35px;
           align-items:center;
-          padding:0 20px 28px;
+          padding:0 0 28px;
           margin-top:-14px;
       }
       .home-eyebrow{
