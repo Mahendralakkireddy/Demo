@@ -2368,7 +2368,8 @@ def _top_nav():
           border-radius: 0 !important;
 
           padding: 0 58px !important;
-          margin: -4px 0 -6px 0 !important;
+          /* Pull header directly below the Streamlit toolbar. UI-only. */
+          margin: -68px 0 -8px 0 !important;
 
           position: relative !important;
           z-index: 20 !important;
@@ -2635,6 +2636,20 @@ def _top_nav():
       .st-key-top_docs [data-testid="stButton"] > button:focus,
       .st-key-top_about [data-testid="stButton"] > button:focus {
           outline: none !important;
+      }
+
+      /* Final compact navigation sizing: UI-only, no behavior changes. */
+      .st-key-dly_main_header > div > [data-testid="column"]:last-child [data-testid="stHorizontalBlock"] {
+          width: min(560px, 100%) !important;
+          margin-left: auto !important;
+      }
+
+      .st-key-top_home [data-testid="stButton"] > button,
+      .st-key-top_docs [data-testid="stButton"] > button {
+          min-height: 38px !important;
+          height: 38px !important;
+          padding: 0 8px !important;
+          font-size: .72rem !important;
       }
 
       /* Responsive fallback. */
