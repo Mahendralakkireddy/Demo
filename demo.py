@@ -2367,8 +2367,8 @@ def _top_nav():
           border: 0 !important;
           border-radius: 0 !important;
 
-          padding: 10px 58px !important;
-          margin: -12px 0 8px 0 !important;
+          padding: 0 58px !important;
+          margin: -12px 0 4px 0 !important;
 
           position: relative !important;
           z-index: 20 !important;
@@ -2385,7 +2385,7 @@ def _top_nav():
       .st-key-dly_main_header [data-testid="column"] {
           display: flex !important;
           align-items: center !important;
-          min-height: 68px !important;
+          min-height: 56px !important;
       }
 
       .st-key-dly_main_header [data-testid="column"]:first-child {
@@ -2394,8 +2394,8 @@ def _top_nav():
 
       /* Exact horizontal DILYTICS logo. */
       .dly-reference-logo {
-          width: 228px !important;
-          height: 69px !important;
+          width: 190px !important;
+          height: 56px !important;
           max-width: none !important;
           object-fit: contain !important;
           object-position: left center !important;
@@ -2497,13 +2497,13 @@ def _top_nav():
       .st-key-top_home [data-testid="stButton"] > button,
       .st-key-top_docs [data-testid="stButton"] > button,
       .st-key-top_about [data-testid="stButton"] > button {
-          height: 46px !important;
-          min-height: 46px !important;
+          height: 42px !important;
+          min-height: 42px !important;
 
-          padding: 0 11px !important;
+          padding: 0 8px !important;
           margin: 0 !important;
 
-          border-radius: 10px !important;
+          border-radius: 9px !important;
 
           background: #ffffff !important;
           border: 1px solid #dfe4eb !important;
@@ -3265,7 +3265,8 @@ def _home_page():
           grid-template-columns:1fr 1fr;
           gap:35px;
           align-items:center;
-          padding:8px 20px 28px;
+          padding:0 20px 28px;
+          margin-top:-14px;
       }
       .home-eyebrow{
           letter-spacing:4px;
