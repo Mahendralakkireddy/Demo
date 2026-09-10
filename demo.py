@@ -566,7 +566,6 @@ def _login_page():
           display:flex;
           flex-direction:column;
           justify-content:center;
-          transform:translateY(-40px);
       }
 
       .login-visual{
@@ -579,7 +578,7 @@ def _login_page():
       }
 
       .login-logo{
-          display:inline-flex;
+          display:none !important;
           width:max-content;
           background:#e51f2b;
           color:#fff;
@@ -753,6 +752,22 @@ def _login_page():
           margin-top:14px;
       }
 
+      /* Sign-in button — blue background */
+      .st-key-login_submit button {
+          background:#1769d2 !important;
+          background-color:#1769d2 !important;
+          border:1px solid #1769d2 !important;
+          color:#ffffff !important;
+          font-weight:700 !important;
+      }
+
+      .st-key-login_submit button:hover {
+          background:#0b3f8f !important;
+          background-color:#0b3f8f !important;
+          border-color:#0b3f8f !important;
+          color:#ffffff !important;
+      }
+
       @keyframes robotFloat{50%{transform:translateY(-10px)}}
       @keyframes orbitPulse{50%{transform:scale(1.025)}}
       @keyframes floatCard{50%{transform:translateY(-10px)}}
@@ -765,7 +780,7 @@ def _login_page():
       @media(max-width:700px){
           .login-ai-card{grid-template-columns:1fr}
           .login-visual{min-height:430px;order:-1}
-          .login-copy{padding:42px 28px;transform:none}
+          .login-copy{padding:42px 28px}
           .login-title{font-size:2.35rem}
           .login-orbit{width:350px;height:350px}
           .login-robot-img{width:330px}
@@ -783,6 +798,7 @@ def _login_page():
             """
             <div class="login-ai-card">
               <div class="login-copy">
+                <div class="login-logo">DILYTICS</div>
                 <div class="login-eyebrow">Enterprise AI Workspace</div>
                 <div class="login-title">
                   Turn your data into <span>answers.</span>
@@ -826,7 +842,7 @@ def _login_page():
                 <div class="login-form-badge">
                   🟢 Secure workspace access
                 </div>
-                <div class="login-form-title">Sign in to Analytics</div>
+                <div class="login-form-title">Sign in to AI analytics</div>
                 <div class="login-form-sub">
                   Connect securely to your enterprise intelligence workspace.
                 </div>
@@ -848,7 +864,7 @@ def _login_page():
             )
 
             login_clicked = st.button(
-                "Sign in to Analytics",
+                "Sign in to AI analytics",
                 use_container_width=True,
                 type="primary",
                 key="login_submit",
