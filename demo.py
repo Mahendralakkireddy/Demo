@@ -3010,6 +3010,110 @@ def _top_nav():
     </style>
     """, unsafe_allow_html=True)
 
+    # FINAL TINY UI-ONLY FIX: keep the logo on the LEFT and make the
+    # Home / Document AI group a non-overlapping, consistently spaced
+    # responsive group on the RIGHT. No application logic is changed.
+    st.markdown("""
+    <style>
+      /* Logo: left edge aligned with the Welcome section below. */
+      .st-key-dly_main_header > div > [data-testid="column"]:first-child {
+          display: flex !important;
+          align-items: center !important;
+          justify-content: flex-start !important;
+      }
+
+      .st-key-dly_main_header .dly-nav-logo-left {
+          position: relative !important;
+          left: auto !important;
+          top: auto !important;
+          width: 154px !important;
+          height: 45px !important;
+          margin: 0 0 0 38px !important;
+          padding: 0 !important;
+          transform: none !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: flex-start !important;
+      }
+
+      .st-key-dly_main_header .dly-reference-logo {
+          width: 154px !important;
+          height: 45px !important;
+          margin: 0 !important;
+      }
+
+      /* Navigation: fixed compact button widths + controlled gap.
+         The group is right-aligned and cannot overlap its own buttons. */
+      .st-key-dly_main_header > div > [data-testid="column"]:last-child {
+          display: flex !important;
+          align-items: center !important;
+          justify-content: flex-end !important;
+          min-width: 0 !important;
+      }
+
+      .st-key-dly_main_header > div > [data-testid="column"]:last-child > div {
+          width: auto !important;
+          max-width: 304px !important;
+          min-width: 304px !important;
+          margin-left: auto !important;
+          margin-right: 38px !important;
+      }
+
+      .st-key-dly_main_header > div > [data-testid="column"]:last-child [data-testid="stHorizontalBlock"] {
+          width: 304px !important;
+          max-width: 304px !important;
+          min-width: 304px !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: flex-end !important;
+          flex-wrap: nowrap !important;
+          gap: 16px !important;
+      }
+
+      .st-key-dly_main_header > div > [data-testid="column"]:last-child [data-testid="stHorizontalBlock"] > [data-testid="column"] {
+          flex: 0 0 144px !important;
+          width: 144px !important;
+          max-width: 144px !important;
+          min-width: 144px !important;
+          padding: 0 !important;
+      }
+
+      .st-key-top_home [data-testid="stButton"],
+      .st-key-top_docs [data-testid="stButton"],
+      .st-key-top_home [data-testid="stButton"] > button,
+      .st-key-top_docs [data-testid="stButton"] > button {
+          width: 144px !important;
+          max-width: 144px !important;
+          min-width: 144px !important;
+          box-sizing: border-box !important;
+      }
+
+      /* On narrow screens, let the existing responsive layout take over. */
+      @media (max-width: 700px) {
+          .st-key-dly_main_header .dly-nav-logo-left {
+              margin-left: 0 !important;
+          }
+
+          .st-key-dly_main_header > div > [data-testid="column"]:last-child > div,
+          .st-key-dly_main_header > div > [data-testid="column"]:last-child [data-testid="stHorizontalBlock"] {
+              width: 100% !important;
+              min-width: 0 !important;
+              max-width: 100% !important;
+          }
+
+          .st-key-dly_main_header > div > [data-testid="column"]:last-child > div {
+              margin-right: 0 !important;
+          }
+
+          .st-key-dly_main_header > div > [data-testid="column"]:last-child [data-testid="stHorizontalBlock"] {
+              gap: 12px !important;
+          }
+      }
+    </style>
+    """, unsafe_allow_html=True)
+
     with st.container(key="dly_main_header"):
         # The right area is intentionally narrow enough that the buttons
         # stay together, just like the reference image.
