@@ -3986,7 +3986,7 @@ def _home_page():
       .st-key-top_home,
       .st-key-top_docs {
           position: absolute !important;
-          top: 15px !important;
+          top: 48px !important;
           z-index: 10000 !important;
           margin: 0 !important;
           padding: 0 !important;
