@@ -2505,6 +2505,7 @@ def _top_nav():
           display: flex !important;
           position: absolute !important;
           top: -40px !important;
+          hight:200px !important;
           right: 185px !important;
           width: 100px !important;
           z-index: 10000 !important;
