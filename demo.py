@@ -769,6 +769,96 @@ def _login_page():
           color:#ffffff !important;
       }
 
+      /* ================================================================
+         GLOBAL TOP NAV FOR LOGIN PAGE
+         Match the Home-page Home / Document AI buttons exactly.
+         Width, height, spacing, icons and visual treatment are kept
+         identical to the final Home-page navigation.
+         ================================================================ */
+      .st-key-top_home,
+      .st-key-top_docs {
+          position:absolute !important;
+          top:48px !important;
+          z-index:10000 !important;
+          margin:0 !important;
+          padding:0 !important;
+      }
+
+      .st-key-top_home {
+          right:195px !important;
+          width:120px !important;
+      }
+
+      .st-key-top_docs {
+          right:15px !important;
+          width:170px !important;
+      }
+
+      .st-key-top_home [data-testid="stButton"],
+      .st-key-top_docs [data-testid="stButton"] {
+          width:100% !important;
+          min-width:0 !important;
+          max-width:none !important;
+          margin:0 !important;
+          padding:0 !important;
+      }
+
+      .st-key-top_home [data-testid="stButton"] > button,
+      .st-key-top_docs [data-testid="stButton"] > button {
+          width:100% !important;
+          min-width:0 !important;
+          max-width:none !important;
+          height:52px !important;
+          min-height:52px !important;
+          padding:0 8px !important;
+          margin:0 !important;
+          border-radius:8px !important;
+          font-size:.76rem !important;
+          font-weight:700 !important;
+          white-space:nowrap !important;
+          display:flex !important;
+          align-items:center !important;
+          justify-content:center !important;
+          box-sizing:border-box !important;
+          background:#ffffff !important;
+          border:1px solid #dfe4eb !important;
+          color:#171717 !important;
+          box-shadow:0 2px 8px rgba(21,43,70,.055), inset 0 1px 0 rgba(255,255,255,.98) !important;
+      }
+
+      .st-key-top_home [data-testid="stButton"] > button:hover,
+      .st-key-top_docs [data-testid="stButton"] > button:hover {
+          background:#fbfcfe !important;
+          border-color:#cfd8e3 !important;
+          transform:translateY(-1px) !important;
+          box-shadow:0 6px 14px rgba(21,43,70,.10), inset 0 1px 0 rgba(255,255,255,.98) !important;
+      }
+
+      .st-key-top_home [data-testid="stButton"] > button::before,
+      .st-key-top_docs [data-testid="stButton"] > button::before {
+          display:inline-flex !important;
+          align-items:center !important;
+          justify-content:center !important;
+          width:29px !important;
+          height:29px !important;
+          flex:0 0 29px !important;
+          margin-right:7px !important;
+          border-radius:6px !important;
+          background:#f5f7fa !important;
+          color:#111827 !important;
+          box-shadow:inset 0 0 0 1px #e5e9ee !important;
+      }
+
+      .st-key-top_home [data-testid="stButton"] > button::before {
+          content:"⌂" !important;
+          font-size:19px !important;
+      }
+
+      .st-key-top_docs [data-testid="stButton"] > button::before {
+          content:"▣" !important;
+          font-size:17px !important;
+      }
+
       @keyframes robotFloat{50%{transform:translateY(-10px)}}
       @keyframes orbitPulse{50%{transform:scale(1.025)}}
       @keyframes floatCard{50%{transform:translateY(-10px)}}
