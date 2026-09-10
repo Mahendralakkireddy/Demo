@@ -566,6 +566,7 @@ def _login_page():
           display:flex;
           flex-direction:column;
           justify-content:center;
+          transform:translateY(-40px);
       }
 
       .login-visual{
@@ -596,7 +597,7 @@ def _login_page():
           letter-spacing:2px;
           text-transform:uppercase;
           font-size:.78rem;
-          margin-top:38px;
+          margin-top:0;
       }
 
       .login-title{
@@ -764,7 +765,7 @@ def _login_page():
       @media(max-width:700px){
           .login-ai-card{grid-template-columns:1fr}
           .login-visual{min-height:430px;order:-1}
-          .login-copy{padding:42px 28px}
+          .login-copy{padding:42px 28px;transform:none}
           .login-title{font-size:2.35rem}
           .login-orbit{width:350px;height:350px}
           .login-robot-img{width:330px}
@@ -782,7 +783,6 @@ def _login_page():
             """
             <div class="login-ai-card">
               <div class="login-copy">
-                <div class="login-logo">DILYTICS</div>
                 <div class="login-eyebrow">Enterprise AI Workspace</div>
                 <div class="login-title">
                   Turn your data into <span>answers.</span>
@@ -826,7 +826,7 @@ def _login_page():
                 <div class="login-form-badge">
                   🟢 Secure workspace access
                 </div>
-                <div class="login-form-title">Sign in to Dilytics</div>
+                <div class="login-form-title">Sign in to Analytics</div>
                 <div class="login-form-sub">
                   Connect securely to your enterprise intelligence workspace.
                 </div>
@@ -848,7 +848,7 @@ def _login_page():
             )
 
             login_clicked = st.button(
-                "Sign in to Dilytics",
+                "Sign in to Analytics",
                 use_container_width=True,
                 type="primary",
                 key="login_submit",
