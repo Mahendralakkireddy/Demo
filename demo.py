@@ -2482,8 +2482,8 @@ def _top_nav():
           display: flex !important;
           position: fixed !important;
           top: 3.5rem !important;
-          right: 175px !important;
-          width: 90px !important;
+          right: 185px !important;
+          width: 100px !important;
           z-index: 10000 !important;
       }
 
@@ -2493,7 +2493,7 @@ def _top_nav():
           position: fixed !important;
           top: 3.5rem !important;
           right: 15px !important;
-          width: 150px !important;
+          width: 155px !important;
           z-index: 10000 !important;
       }
 
