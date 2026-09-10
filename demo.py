@@ -3878,12 +3878,12 @@ def _home_page():
 
       .st-key-top_home {
           right: 185px !important;
-          width: 110px !important;
+          width: 120px !important;
       }
 
       .st-key-top_docs {
           right: 15px !important;
-          width: 160px !important;
+          width: 170px !important;
       }
 
       .st-key-top_home [data-testid="stButton"],
