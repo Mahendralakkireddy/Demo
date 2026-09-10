@@ -2937,14 +2937,14 @@ def _top_nav():
       }
 
       .st-key-dly_main_header [data-testid="column"] {
-          min-height: 24px !important;
+          min-height: 20px !important;
       }
 
       /* Increase Home + Document AI buttons only on Chatbot page */
       .st-key-top_home [data-testid="stButton"] > button,
       .st-key-top_docs [data-testid="stButton"] > button {
-          height: 60px !important;
-          min-height: 60px !important;
+          height: 50px !important;
+          min-height: 50px !important;
       }
     </style>
     """, unsafe_allow_html=True)
