@@ -2930,18 +2930,24 @@ def _top_nav():
 
     if is_chatbot_page:
         st.markdown("""
-        <style>
-          /* Chatbot landing page only: remove the empty header space left by
-             the main-area logo and move Explore your data upward. */
-          .st-key-dly_main_header {
-              margin-bottom: -130px !important;
-          }
-          .st-key-dly_main_header [data-testid="column"] {
-              min-height: 24px !important;
-          }
-        </style>
-        """, unsafe_allow_html=True)
+    <style>
+      /* Chatbot page only */
+      .st-key-dly_main_header {
+          margin-bottom: -38px !important;
+      }
 
+      .st-key-dly_main_header [data-testid="column"] {
+          min-height: 24px !important;
+      }
+
+      /* Increase Home + Document AI buttons only on Chatbot page */
+      .st-key-top_home [data-testid="stButton"] > button,
+      .st-key-top_docs [data-testid="stButton"] > button {
+          height: 60px !important;
+          min-height: 60px !important;
+      }
+    </style>
+    """, unsafe_allow_html=True)
     with st.container(key="dly_main_header"):
         # The right area is intentionally narrow enough that the buttons
         # stay together, just like the reference image.
