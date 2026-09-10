@@ -2367,8 +2367,8 @@ def _top_nav():
           border: 0 !important;
           border-radius: 0 !important;
 
-          padding: 14px 58px !important;
-          margin: -12px 0 18px 0 !important;
+          padding: 10px 58px !important;
+          margin: -12px 0 8px 0 !important;
 
           position: relative !important;
           z-index: 20 !important;
@@ -2415,7 +2415,12 @@ def _top_nav():
           display: flex !important;
           justify-content: flex-end !important;
           align-items: center !important;
-          margin: 0 0 8px 0 !important;
+          margin: 0 !important;
+      }
+
+      .dly-nav-logo-left {
+          justify-content: flex-start !important;
+          align-items: center !important;
       }
 
       /* ================================================================
@@ -2492,13 +2497,13 @@ def _top_nav():
       .st-key-top_home [data-testid="stButton"] > button,
       .st-key-top_docs [data-testid="stButton"] > button,
       .st-key-top_about [data-testid="stButton"] > button {
-          height: 54px !important;
-          min-height: 54px !important;
+          height: 46px !important;
+          min-height: 46px !important;
 
-          padding: 0 14px !important;
+          padding: 0 11px !important;
           margin: 0 !important;
 
-          border-radius: 13px !important;
+          border-radius: 10px !important;
 
           background: #ffffff !important;
           border: 1px solid #dfe4eb !important;
@@ -2506,7 +2511,7 @@ def _top_nav():
           color: #171717 !important;
 
           font-family: "Inter", "Segoe UI", Arial, sans-serif !important;
-          font-size: .96rem !important;
+          font-size: .86rem !important;
           font-weight: 800 !important;
           letter-spacing: 0 !important;
 
@@ -2641,10 +2646,10 @@ def _top_nav():
           .st-key-top_home [data-testid="stButton"] > button,
           .st-key-top_docs [data-testid="stButton"] > button,
           .st-key-top_about [data-testid="stButton"] > button {
-              height: 48px !important;
-              min-height: 48px !important;
-              padding: 0 10px !important;
-              font-size: .80rem !important;
+              height: 42px !important;
+              min-height: 42px !important;
+              padding: 0 9px !important;
+              font-size: .76rem !important;
               font-weight: 800 !important;
           }
 
@@ -2779,20 +2784,15 @@ def _top_nav():
             vertical_alignment="center",
         )
 
-        # Keep the left half of the header unchanged in width, but move the
-        # DILYTICS logo into the right navigation area as requested.
+        # Keep the logo on the left side of the same navigation row.
         with logo_col:
-            st.empty()
-
-        with nav_col:
-            # Logo sits at the top-right of the existing navigation area,
-            # directly above the navigation buttons.
             st.markdown(
-                f'<div class="dly-nav-logo"><img class="dly-reference-logo" '
+                f'<div class="dly-nav-logo dly-nav-logo-left"><img class="dly-reference-logo" '
                 f'src="{logo_uri}" alt="Dilytics" /></div>',
                 unsafe_allow_html=True,
             )
 
+        with nav_col:
             # Keep the existing Home / Document AI navigation behavior and
             # proportions, with the About Dilytics button removed.
             n1, n2 = st.columns(
@@ -3265,7 +3265,7 @@ def _home_page():
           grid-template-columns:1fr 1fr;
           gap:35px;
           align-items:center;
-          padding:35px 20px 28px;
+          padding:8px 20px 28px;
       }
       .home-eyebrow{
           letter-spacing:4px;
