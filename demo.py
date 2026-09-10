@@ -2992,54 +2992,81 @@ def _about_page():
     <style>
 
       /* Navigation Group: Anchored to the far right directly below the Share area */
-      .st-key-dly_main_header > div > [data-testid="column"]:last-child [data-testid="stHorizontalBlock"] {
-          width: 210px !important;
-          max-width: 210px !important;
-          min-width: 210px !important;
-          margin-left: auto !important;
-          margin-right: 12px !important;
-          display: flex !important;
-          justify-content: flex-end !important;
-          align-items: center !important;
-          gap: 8px !important;
-          flex-wrap: nowrap !important;
-      }
-
-      .st-key-dly_main_header > div > [data-testid="column"]:last-child [data-testid="stHorizontalBlock"] > [data-testid="column"] {
-          flex: 0 0 98px !important;
-          width: 98px !important;
-          max-width: 98px !important;
-          min-width: 98px !important;
-      }
-
-      .st-key-top_home [data-testid="stButton"],
-      .st-key-top_docs [data-testid="stButton"],
-      .st-key-top_home [data-testid="stButton"] > button,
-      .st-key-top_docs [data-testid="stButton"] > button {
-          width: 98px !important;
-          max-width: 98px !important;
-          min-width: 98px !important;
-          height: 34px !important;
-          min-height: 34px !important;
-          padding: 0 4px !important;
-          font-size: .68rem !important;
-          border-radius: 7px !important;
-          background: #ffffff !important;
-          border: 1px solid #dfe4eb !important;
-          color: #171717 !important;
-          font-weight: 800 !important;
-          display: flex !important;
-          align-items: center !important;
-          justify-content: center !important;
-          box-sizing: border-box !important;
-      }
-
-      /* Icons for the smaller buttons */
-      .st-key-top_home [data-testid="stButton"] > button::before,
-      .st-key-top_docs [data-testid="stButton"] > button::before {
-          content: "";
-          display: none !important;
-      }
+      /* =========================================================
+        TOP NAVIGATION — HOME + DOCUMENT AI
+        Far right, directly below Share, compact size
+        ========================================================= */
+        
+        /* Push navigation group to the far right */
+        .st-key-dly_main_header > div > [data-testid="column"]:last-child
+        [data-testid="stHorizontalBlock"] {
+        width: 190px !important;
+        max-width: 190px !important;
+        min-width: 190px !important;
+        
+        margin-left: auto !important;
+        margin-right: 8px !important;
+        
+        display: flex !important;
+        justify-content: flex-end !important;
+        align-items: center !important;
+        
+        gap: 5px !important;
+        flex-wrap: nowrap !important;
+        }
+        
+        /* Make both columns compact */
+        .st-key-dly_main_header > div > [data-testid="column"]:last-child
+        [data-testid="stHorizontalBlock"] > [data-testid="column"] {
+        flex: 0 0 auto !important;
+        width: auto !important;
+        max-width: none !important;
+        min-width: 0 !important;
+        }
+        
+        /* Home + Document AI buttons */
+        .st-key-top_home [data-testid="stButton"] > button,
+        .st-key-top_docs [data-testid="stButton"] > button {
+        width: auto !important;
+        min-width: 62px !important;
+        max-width: 92px !important;
+        
+        height: 28px !important;
+        min-height: 28px !important;
+        
+        padding: 0 7px !important;
+        
+        font-size: 0.62rem !important;
+        line-height: 1 !important;
+        
+        border-radius: 6px !important;
+        
+        background: #ffffff !important;
+        border: 1px solid #dfe4eb !important;
+        color: #171717 !important;
+        
+        font-weight: 700 !important;
+        
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        
+        box-sizing: border-box !important;
+        }
+        
+        /* Prevent Streamlit from stretching the button */
+        .st-key-top_home [data-testid="stButton"],
+        .st-key-top_docs [data-testid="stButton"] {
+        width: auto !important;
+        max-width: none !important;
+        min-width: 0 !important;
+        }
+        
+        /* No extra icon before the text */
+        .st-key-top_home [data-testid="stButton"] > button::before,
+        .st-key-top_docs [data-testid="stButton"] > button::before {
+        display: none !important;
+        }
 
       /* ================================================================
          ABOUT DILYTICS — MISSION / VISION / SOLUTIONS / SERVICES
