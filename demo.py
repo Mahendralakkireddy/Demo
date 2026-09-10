@@ -2481,21 +2481,22 @@ def _top_nav():
           width: 0 !important;
       }
 
-      /* Detach and manually position the Home button */
+      /* Final home-page UI positioning: place the buttons directly
+         beneath the Streamlit Share area, without fixed positioning.
+         They therefore move naturally with the page when scrolling. */
       .st-key-top_home {
           display: flex !important;
           position: absolute !important;
-          top: 48px !important;
+          top: -40px !important;
           right: 185px !important;
           width: 100px !important;
           z-index: 10000 !important;
       }
 
-      /* Detach and manually position the Document AI button */
       .st-key-top_docs {
           display: flex !important;
           position: absolute !important;
-          top: 48px !important;
+          top: -40px !important;
           right: 15px !important;
           width: 155px !important;
           z-index: 10000 !important;
