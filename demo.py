@@ -2477,14 +2477,24 @@ def _top_nav():
           width: 0 !important;
       }
 
-      .st-key-top_home,
-      .st-key-top_docs,
-      .st-key-top_about {
+      /* Detach and manually position the Home button */
+      .st-key-top_home {
           display: flex !important;
-          align-items: center !important;
-          justify-content: stretch !important;
-          width: 100% !important;
-          min-width: 0 !important;
+          position: fixed !important;
+          top: 3.5rem !important;
+          right: 175px !important;
+          width: 90px !important;
+          z-index: 10000 !important;
+      }
+
+      /* Detach and manually position the Document AI button */
+      .st-key-top_docs {
+          display: flex !important;
+          position: fixed !important;
+          top: 3.5rem !important;
+          right: 15px !important;
+          width: 150px !important;
+          z-index: 10000 !important;
       }
 
       .st-key-top_home [data-testid="stButton"],
@@ -2648,22 +2658,23 @@ def _top_nav():
           outline: none !important;
       }
 
-      /* Final compact navigation sizing: UI-only, no behavior changes. */
-      .st-key-dly_main_header > div > [data-testid="column"]:last-child [data-testid="stHorizontalBlock"] {
-          width: 230px !important;
-          position: fixed !important;
-          top: 3.5rem !important;
-          right: 1.2rem !important;
-          margin: 0 !important;
-          z-index: 1000 !important;
+      /* Manual top-right navigation sizing — UI-only, no behavior changes. */
+      .st-key-top_home [data-testid="stButton"],
+      .st-key-top_docs [data-testid="stButton"] {
+          width: 100% !important;
+          min-width: 0 !important;
       }
 
       .st-key-top_home [data-testid="stButton"] > button,
       .st-key-top_docs [data-testid="stButton"] > button {
-          min-height: 36px !important;
-          height: 36px !important;
-          padding: 0 6px !important;
-          font-size: .70rem !important;
+          width: 100% !important;
+          min-width: 0 !important;
+          max-width: 100% !important;
+          height: 28px !important;
+          min-height: 28px !important;
+          padding: 0 7px !important;
+          font-size: .62rem !important;
+          box-sizing: border-box !important;
       }
 
       /* Responsive fallback. */
@@ -3833,11 +3844,19 @@ def _home_page():
       }
 
       @media (max-width: 700px) {
+          /* Reset manually positioned navigation on small screens. */
+          .st-key-top_home,
+          .st-key-top_docs {
+              position: static !important;
+              width: 100% !important;
+              margin-top: 5px !important;
+          }
+
           .st-key-dly_main_header > div > [data-testid="column"]:last-child [data-testid="stHorizontalBlock"] {
-              width: 150px !important;
-              min-width: 150px !important;
-              max-width: 150px !important;
-              margin-right: 4px !important;
+              width: 100% !important;
+              position: static !important;
+              gap: 6px !important;
+              flex-wrap: nowrap !important;
           }
 
           .st-key-top_home [data-testid="stButton"] > button,
