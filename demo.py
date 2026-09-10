@@ -2348,132 +2348,82 @@ def _logout():
 
 def _top_nav():
     """Reference-matched Dilytics website navigation."""
-    logo_uri = "data:image/jpeg;base64," + ... # (keep your existing logo_uri data string)
+    logo_uri = "data:image/jpeg;base64," + "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"
 
     st.markdown("""
     <style>
       /* ================================================================
-         DILYTICS REFERENCE HEADER - UI POSITION ADJUSTMENT
+         DILYTICS REFERENCE HEADER
+         Compact white website header:
+         logo left | tightly grouped nav right
          ================================================================ */
 
       .st-key-dly_main_header {
           width: 100% !important;
           max-width: none !important;
           box-sizing: border-box !important;
+
           background: transparent !important;
           border: 0 !important;
           border-radius: 0 !important;
-          padding: 0 !important;
-          margin: -72px 0 4px 0 !important;
+
+          padding: 0 58px !important;
+          /* Pull header directly below the Streamlit toolbar. UI-only. */
+          margin: -68px 0 -8px 0 !important;
+
           position: relative !important;
           z-index: 20 !important;
+
           box-shadow: none !important;
       }
 
-      .st-key-dly_main_header > div {
-          position: relative !important;
+      .st-key-dly_main_header > div,
+      .st-key-dly_main_header > div > div {
           width: 100% !important;
-          min-height: 50px !important;
-      }
-
-      /* Logo: Moved further left to align directly above "WELCOME TO DILYTICS" */
-      .st-key-dly_main_header .dly-nav-logo-left {
-          position: absolute !important;
-          left: 12px !important;
-          top: 0 !important;
-          width: 154px !important;
-          height: 45px !important;
-          margin: 0 !important;
-          padding: 0 !important;
-          display: flex !important;
-          justify-content: flex-start !important;
-          align-items: center !important;
-          z-index: 30 !important;
-      }
-
-      .st-key-dly_main_header .dly-reference-logo {
-          width: 154px !important;
-          height: 45px !important;
-          margin: 0 !important;
-      }
-
-      /* Navigation Group: Moved further right under the Share/toolbar area */
-      .st-key-dly_main_header > div > [data-testid="column"]:last-child {
-          display: flex !important;
-          justify-content: flex-end !important;
-          align-items: center !important;
-      }
-
-      .st-key-dly_main_header > div > [data-testid="column"]:last-child [data-testid="stHorizontalBlock"] {
-          width: 300px !important;
-          max-width: 300px !important;
-          min-width: 300px !important;
-          margin-left: auto !important;
-          margin-right: 12px !important;
-          display: flex !important;
-          justify-content: flex-end !important;
-          align-items: center !important;
-          gap: 12px !important;
-          flex-wrap: nowrap !important;
-      }
-
-      .st-key-dly_main_header > div > [data-testid="column"]:last-child [data-testid="stHorizontalBlock"] > [data-testid="column"] {
-          flex: 0 0 144px !important;
-          width: 144px !important;
-          max-width: 144px !important;
-          min-width: 144px !important;
-      }
-
-      .st-key-top_home [data-testid="stButton"],
-      .st-key-top_docs [data-testid="stButton"],
-      .st-key-top_home [data-testid="stButton"] > button,
-      .st-key-top_docs [data-testid="stButton"] > button {
-          width: 144px !important;
-          max-width: 144px !important;
-          min-width: 144px !important;
-          height: 38px !important;
-          min-height: 38px !important;
-          padding: 0 8px !important;
-          font-size: .72rem !important;
-          border-radius: 9px !important;
-          background: #ffffff !important;
-          border: 1px solid #dfe4eb !important;
-          color: #171717 !important;
-          font-weight: 800 !important;
-          display: flex !important;
-          align-items: center !important;
-          justify-content: center !important;
           box-sizing: border-box !important;
       }
 
-      /* Icons for Home and Document AI buttons */
-      .st-key-top_home [data-testid="stButton"] > button::before,
-      .st-key-top_docs [data-testid="stButton"] > button::before {
-          width: 26px;
-          height: 26px;
-          flex: 0 0 26px;
-          margin-right: 8px;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          border-radius: 6px;
-          background: #f5f7fa;
-          color: #111827;
-          font-size: 16px;
-          box-shadow: inset 0 0 0 1px #e5e9ee;
+      .st-key-dly_main_header [data-testid="column"] {
+          display: flex !important;
+          align-items: center !important;
+          min-height: 48px !important;
       }
 
-      .st-key-top_home [data-testid="stButton"] > button::before {
-          content: "⌂";
+      .st-key-dly_main_header [data-testid="column"]:first-child {
+          justify-content: flex-start !important;
       }
 
-      .st-key-top_docs [data-testid="stButton"] > button::before {
-          content: "▣";
-      }
-    </style>
-    """, unsafe_allow_html=True)
+      /* Exact horizontal DILYTICS logo. */
+      .dly-reference-logo {
+          width: 154px !important;
+          height: 45px !important;
+          max-width: none !important;
+          object-fit: contain !important;
+          object-position: left center !important;
 
-    # (Keep the rest of your _top_nav container columns logic unchanged below)
+          display: block !important;
+          margin: 0 !important;
+          padding: 0 !important;
+
+          border: 0 !important;
+          border-radius: 0 !important;
+          box-shadow: none !important;
+      }
+
+      /* DILYTICS logo moved to the top-right of the navigation area. */
+      .dly-nav-logo {
+          width: 100% !important;
+          display: flex !important;
+          justify-content: flex-end !important;
+          align-items: center !important;
+          margin: 0 !important;
+      }
+
+      .dly-nav-logo-left {
+          justify-content: flex-start !important;
+          align-items: center !important;
+      }
+
       /* ================================================================
          NAVIGATION
          The important change is that the three buttons are treated as
