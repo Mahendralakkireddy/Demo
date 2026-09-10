@@ -11,7 +11,7 @@ from typing import Any, Dict, List, Optional
 import re
 import yaml
 
-# ==================================================================
+# ===================================================================
 # Configuration
 # ===================================================================
 HOST = "WDSDGTL-XCC29288.snowflakecomputing.com"
@@ -2461,6 +2461,16 @@ def _top_nav():
           gap: 10px !important;
       }
 
+      /* Final UI adjustment: keep the two navigation buttons compact and
+         push the complete group to the far right, directly under the
+         Streamlit Share area. The buttons remain separate and responsive. */
+      .st-key-dly_main_header > div > [data-testid="column"]:last-child [data-testid="stHorizontalBlock"] {
+          width: min(300px, 100%) !important;
+          max-width: 300px !important;
+          margin-left: auto !important;
+          margin-right: 0 !important;
+      }
+
       .st-key-dly_main_header > div > [data-testid="column"]:last-child [data-testid="column"] {
           min-width: 0 !important;
           flex: 1 1 0 !important;
@@ -2980,6 +2990,57 @@ def _about_image_data(filename):
 def _about_page():
     st.markdown("""
     <style>
+
+      /* Navigation Group: Anchored to the far right directly below the Share area */
+      .st-key-dly_main_header > div > [data-testid="column"]:last-child [data-testid="stHorizontalBlock"] {
+          width: 210px !important;
+          max-width: 210px !important;
+          min-width: 210px !important;
+          margin-left: auto !important;
+          margin-right: 12px !important;
+          display: flex !important;
+          justify-content: flex-end !important;
+          align-items: center !important;
+          gap: 8px !important;
+          flex-wrap: nowrap !important;
+      }
+
+      .st-key-dly_main_header > div > [data-testid="column"]:last-child [data-testid="stHorizontalBlock"] > [data-testid="column"] {
+          flex: 0 0 98px !important;
+          width: 98px !important;
+          max-width: 98px !important;
+          min-width: 98px !important;
+      }
+
+      .st-key-top_home [data-testid="stButton"],
+      .st-key-top_docs [data-testid="stButton"],
+      .st-key-top_home [data-testid="stButton"] > button,
+      .st-key-top_docs [data-testid="stButton"] > button {
+          width: 98px !important;
+          max-width: 98px !important;
+          min-width: 98px !important;
+          height: 34px !important;
+          min-height: 34px !important;
+          padding: 0 4px !important;
+          font-size: .68rem !important;
+          border-radius: 7px !important;
+          background: #ffffff !important;
+          border: 1px solid #dfe4eb !important;
+          color: #171717 !important;
+          font-weight: 800 !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          box-sizing: border-box !important;
+      }
+
+      /* Icons for the smaller buttons */
+      .st-key-top_home [data-testid="stButton"] > button::before,
+      .st-key-top_docs [data-testid="stButton"] > button::before {
+          content: "";
+          display: none !important;
+      }
+
       /* ================================================================
          ABOUT DILYTICS — MISSION / VISION / SOLUTIONS / SERVICES
          Clean two-column card layout matching the requested design.
