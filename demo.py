@@ -2484,8 +2484,8 @@ def _top_nav():
       /* Detach and manually position the Home button */
       .st-key-top_home {
           display: flex !important;
-          position: fixed !important;
-          top: 3.5rem !important;
+          position: absolute !important;
+          top: 48px !important;
           right: 185px !important;
           width: 100px !important;
           z-index: 10000 !important;
@@ -2494,8 +2494,8 @@ def _top_nav():
       /* Detach and manually position the Document AI button */
       .st-key-top_docs {
           display: flex !important;
-          position: fixed !important;
-          top: 3.5rem !important;
+          position: absolute !important;
+          top: 48px !important;
           right: 15px !important;
           width: 155px !important;
           z-index: 10000 !important;
@@ -3853,6 +3853,7 @@ def _home_page():
           display: flex !important;
           align-items: center !important;
           justify-content: center !important;
+          overflow: hidden !important;
           box-sizing: border-box !important;
       }
 
@@ -3862,11 +3863,13 @@ def _home_page():
           content: none !important;
       }
 
-      /* FINAL CHATBOT LANDING-PAGE NAV OVERRIDE — UI ONLY */
+      /* FINAL NAV OVERRIDE — match the Home-page buttons on every page.
+         UI ONLY: use absolute positioning so the buttons move with the
+         header when the page scrolls; they are never viewport-fixed. */
       .st-key-top_home,
       .st-key-top_docs {
-          position: fixed !important;
-          top: 3.5rem !important;
+          position: absolute !important;
+          top: 48px !important;
           z-index: 10000 !important;
           margin: 0 !important;
           padding: 0 !important;
