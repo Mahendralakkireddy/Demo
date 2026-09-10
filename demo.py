@@ -2505,7 +2505,6 @@ def _top_nav():
           display: flex !important;
           position: absolute !important;
           top: -40px !important;
-          hight:200px !important;
           right: 185px !important;
           width: 100px !important;
           z-index: 10000 !important;
@@ -2842,7 +2841,7 @@ def _top_nav():
           /* Chatbot landing page only: remove the empty header space left by
              the main-area logo and move Explore your data upward. */
           .st-key-dly_main_header {
-              margin-bottom: -10px !important;
+              margin-bottom: -130px !important;
           }
           .st-key-dly_main_header [data-testid="column"] {
               min-height: 24px !important;
@@ -3895,7 +3894,7 @@ def _home_page():
       }
 
       .st-key-top_home {
-          right: 185px !important;
+          right: 195px !important;
           width: 120px !important;
       }
 
@@ -3918,8 +3917,8 @@ def _home_page():
           width: 100% !important;
           min-width: 0 !important;
           max-width: none !important;
-          height: 38px !important;
-          min-height: 38px !important;
+          height: 52px !important;
+          min-height: 52px !important;
           padding: 0 8px !important;
           margin: 0 !important;
           border-radius: 8px !important;
