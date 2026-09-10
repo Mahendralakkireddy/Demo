@@ -74,7 +74,7 @@ st.markdown("""
 
 .main .block-container {
     max-width: 1180px;
-    padding-top: 0.75rem;
+    padding-top: 0 !important;
     padding-bottom: 3rem;
 }
 
@@ -112,7 +112,7 @@ st.markdown("""
     color:#86efac; font-size:.72rem; font-weight:700;
 }
 .dly-hero {
-    padding: 26px 8px 22px;
+    padding: 10px 8px 22px;
 }
 .dly-eyebrow {
     color:#1769d2; font-size:.78rem; font-weight:800;
@@ -2368,7 +2368,7 @@ def _top_nav():
           border-radius: 0 !important;
 
           padding: 0 58px !important;
-          margin: -12px 0 4px 0 !important;
+          margin: -4px 0 -6px 0 !important;
 
           position: relative !important;
           z-index: 20 !important;
@@ -2385,7 +2385,7 @@ def _top_nav():
       .st-key-dly_main_header [data-testid="column"] {
           display: flex !important;
           align-items: center !important;
-          min-height: 56px !important;
+          min-height: 48px !important;
       }
 
       .st-key-dly_main_header [data-testid="column"]:first-child {
@@ -2394,8 +2394,8 @@ def _top_nav():
 
       /* Exact horizontal DILYTICS logo. */
       .dly-reference-logo {
-          width: 190px !important;
-          height: 56px !important;
+          width: 154px !important;
+          height: 45px !important;
           max-width: none !important;
           object-fit: contain !important;
           object-position: left center !important;
