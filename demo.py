@@ -782,6 +782,7 @@ def _login_page():
           z-index:10000 !important;
           margin:0 !important;
           padding:0 !important;
+          margin-top: -45px !important;
       }
 
       .st-key-top_home {
@@ -2594,7 +2595,7 @@ def _top_nav():
       .st-key-top_home {
           display: flex !important;
           position: absolute !important;
-          top: -40px !important;
+          top: -25px !important;
           right: 185px !important;
           width: 100px !important;
           z-index: 10000 !important;
@@ -2603,7 +2604,7 @@ def _top_nav():
       .st-key-top_docs {
           display: flex !important;
           position: absolute !important;
-          top: -40px !important;
+          top: -25px !important;
           right: 15px !important;
           width: 155px !important;
           z-index: 10000 !important;
