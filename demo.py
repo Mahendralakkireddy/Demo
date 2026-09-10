@@ -2705,6 +2705,69 @@ def _top_nav():
           min-width: 145px !important;
       }
 
+      /* ================================================================
+         FINAL UI-ONLY RESPONSIVE HEADER ADJUSTMENT
+         Logo aligns with the Welcome section on the left.
+         Home + Document AI stay as one compact group on the right.
+         The controlled flex gap remains constant across screen sizes.
+         ================================================================ */
+      .st-key-dly_main_header {
+          padding: 0 38px !important;
+          margin: -68px 0 -8px 0 !important;
+      }
+
+      .st-key-dly_main_header > div > [data-testid="column"]:first-child {
+          justify-content: flex-start !important;
+          align-items: center !important;
+      }
+
+      .st-key-dly_main_header > div > [data-testid="column"]:first-child .dly-nav-logo-left {
+          justify-content: flex-start !important;
+          align-items: center !important;
+          transform: none !important;
+          margin: 0 !important;
+      }
+
+      .st-key-dly_main_header .dly-reference-logo {
+          width: 154px !important;
+          height: 45px !important;
+          margin: 0 !important;
+      }
+
+      .st-key-dly_main_header > div > [data-testid="column"]:last-child {
+          justify-content: flex-end !important;
+          align-items: center !important;
+      }
+
+      .st-key-dly_main_header > div > [data-testid="column"]:last-child [data-testid="stHorizontalBlock"] {
+          width: 300px !important;
+          max-width: 300px !important;
+          min-width: 300px !important;
+          margin-left: auto !important;
+          margin-right: 0 !important;
+          justify-content: flex-end !important;
+          align-items: center !important;
+          gap: 12px !important;
+          flex-wrap: nowrap !important;
+      }
+
+      .st-key-dly_main_header > div > [data-testid="column"]:last-child [data-testid="stHorizontalBlock"] > [data-testid="column"] {
+          flex: 0 0 144px !important;
+          width: 144px !important;
+          max-width: 144px !important;
+          min-width: 144px !important;
+      }
+
+      .st-key-top_home [data-testid="stButton"],
+      .st-key-top_docs [data-testid="stButton"],
+      .st-key-top_home [data-testid="stButton"] > button,
+      .st-key-top_docs [data-testid="stButton"] > button {
+          width: 144px !important;
+          max-width: 144px !important;
+          min-width: 144px !important;
+          box-sizing: border-box !important;
+      }
+
       /* Responsive fallback. */
       @media (max-width: 1250px) {
           .st-key-dly_main_header {
