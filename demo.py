@@ -2352,6 +2352,7 @@ DILYTICS_LOGO_URI = "data:image/jpeg;base64," + "/9j/4AAQSkZJRgABAQEAYABgAAD/2wB
 def _top_nav():
     """Reference-matched Dilytics website navigation."""
     logo_uri = DILYTICS_LOGO_URI
+    is_chatbot_page = st.session_state.get("app_page") == "chatbot"
 
     st.markdown("""
     <style>
@@ -2816,6 +2817,20 @@ def _top_nav():
     </style>
     """, unsafe_allow_html=True)
 
+    if is_chatbot_page:
+        st.markdown("""
+        <style>
+          /* Chatbot landing page only: remove the empty header space left by
+             the main-area logo and move Explore your data upward. */
+          .st-key-dly_main_header {
+              margin-bottom: -38px !important;
+          }
+          .st-key-dly_main_header [data-testid="column"] {
+              min-height: 24px !important;
+          }
+        </style>
+        """, unsafe_allow_html=True)
+
     with st.container(key="dly_main_header"):
         # The right area is intentionally narrow enough that the buttons
         # stay together, just like the reference image.
@@ -2830,11 +2845,12 @@ def _top_nav():
 
         # Keep the logo on the left side of the same navigation row.
         with logo_col:
-            st.markdown(
-                f'<div class="dly-nav-logo dly-nav-logo-left"><img class="dly-reference-logo" '
-                f'src="{logo_uri}" alt="Dilytics" /></div>',
-                unsafe_allow_html=True,
-            )
+            if not is_chatbot_page:
+                st.markdown(
+                    f'<div class="dly-nav-logo dly-nav-logo-left"><img class="dly-reference-logo" '
+                    f'src="{logo_uri}" alt="Dilytics" /></div>',
+                    unsafe_allow_html=True,
+                )
 
         with nav_col:
             # Keep the existing Home / Document AI navigation behavior and
@@ -3844,6 +3860,79 @@ def _home_page():
       .st-key-top_docs [data-testid="stButton"] > button::before {
           display: none !important;
           content: none !important;
+      }
+
+      /* FINAL CHATBOT LANDING-PAGE NAV OVERRIDE — UI ONLY */
+      .st-key-top_home,
+      .st-key-top_docs {
+          position: fixed !important;
+          top: 3.5rem !important;
+          z-index: 10000 !important;
+          margin: 0 !important;
+          padding: 0 !important;
+      }
+
+      .st-key-top_home {
+          right: 185px !important;
+          width: 110px !important;
+      }
+
+      .st-key-top_docs {
+          right: 15px !important;
+          width: 160px !important;
+      }
+
+      .st-key-top_home [data-testid="stButton"],
+      .st-key-top_docs [data-testid="stButton"] {
+          width: 100% !important;
+          min-width: 0 !important;
+          max-width: none !important;
+          margin: 0 !important;
+          padding: 0 !important;
+      }
+
+      .st-key-top_home [data-testid="stButton"] > button,
+      .st-key-top_docs [data-testid="stButton"] > button {
+          width: 100% !important;
+          min-width: 0 !important;
+          max-width: none !important;
+          height: 38px !important;
+          min-height: 38px !important;
+          padding: 0 8px !important;
+          margin: 0 !important;
+          border-radius: 8px !important;
+          font-size: .76rem !important;
+          font-weight: 700 !important;
+          white-space: nowrap !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          box-sizing: border-box !important;
+      }
+
+      .st-key-top_home [data-testid="stButton"] > button::before,
+      .st-key-top_docs [data-testid="stButton"] > button::before {
+          display: inline-flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          width: 29px !important;
+          height: 29px !important;
+          flex: 0 0 29px !important;
+          margin-right: 7px !important;
+          border-radius: 6px !important;
+          background: #f5f7fa !important;
+          color: #111827 !important;
+          box-shadow: inset 0 0 0 1px #e5e9ee !important;
+      }
+
+      .st-key-top_home [data-testid="stButton"] > button::before {
+          content: "⌂" !important;
+          font-size: 19px !important;
+      }
+
+      .st-key-top_docs [data-testid="stButton"] > button::before {
+          content: "▣" !important;
+          font-size: 17px !important;
       }
 
       @media (max-width: 700px) {
