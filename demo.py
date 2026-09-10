@@ -21,6 +21,15 @@ SCHEMA = "GOLD"
 WAREHOUSE = "COMPUTE_WH"
 ROLE = "ACCOUNTADMIN"
 
+DOCUMENT_OUTPUT_INSTRUCTION = (
+    "Important output rule: Do not display or include START DATE or END DATE "
+    "columns/fields in the final answer, result table, or displayed output. "
+    "Dates may be used internally for filtering or calculations when required, "
+    "but do not show those start/end date fields unless the user explicitly asks "
+    "to see the start date or end date. "
+)
+
+
 # FULL semantic-model YAML files on Snowflake stages.
 INVENTORY_YAML_STAGE_PATH = (
     '@"INVENTORY_DW_DEMO"."INVENTORY_SCHEMA"."YAML"/INV_ANALYST_DEMO_90_VERIFIED_FIXED_1.yaml'
@@ -74,7 +83,7 @@ st.markdown("""
 
 .main .block-container {
     max-width: 1180px;
-    padding-top: 0 !important;
+    padding-top: 0.75rem;
     padding-bottom: 3rem;
 }
 
@@ -112,7 +121,7 @@ st.markdown("""
     color:#86efac; font-size:.72rem; font-weight:700;
 }
 .dly-hero {
-    padding: 10px 8px 22px;
+    padding: 26px 8px 22px;
 }
 .dly-eyebrow {
     color:#1769d2; font-size:.78rem; font-weight:800;
@@ -246,20 +255,19 @@ section[data-testid="stSidebar"] [class*="st-key-pin_"] button p {
 .dly-sidebar-brand {
     display:flex;
     align-items:center;
-    justify-content:flex-start;
+    justify-content:space-between;
     padding:8px 8px 10px 8px;
-    margin-top:-55px !important;
     margin-bottom:2px;
 }
-.dly-sidebar-brand-logo {
-    width:110px !important;
-    height:33px !important;
-    max-width:110px !important;
-    object-fit:contain !important;
-    object-position:left center !important;
-    display:block !important;
-    margin:0 !important;
-    padding:0 !important;
+.dly-sidebar-brand-name {
+    font-size:1.08rem;
+    font-weight:700;
+    color:#111827;
+    letter-spacing:-.01em;
+}
+.dly-sidebar-brand-icon {
+    color:#ef4444;
+    margin-right:6px;
 }
 
 /* Search */
@@ -579,7 +587,7 @@ def _login_page():
       }
 
       .login-logo{
-          display:none !important;
+          display:inline-flex;
           width:max-content;
           background:#e51f2b;
           color:#fff;
@@ -597,7 +605,7 @@ def _login_page():
           letter-spacing:2px;
           text-transform:uppercase;
           font-size:.78rem;
-          margin-top:0;
+          margin-top:38px;
       }
 
       .login-title{
@@ -753,113 +761,6 @@ def _login_page():
           margin-top:14px;
       }
 
-      /* Sign-in button — blue background */
-      .st-key-login_submit button {
-          background:#1769d2 !important;
-          background-color:#1769d2 !important;
-          border:1px solid #1769d2 !important;
-          color:#ffffff !important;
-          font-weight:700 !important;
-      }
-
-      .st-key-login_submit button:hover {
-          background:#0b3f8f !important;
-          background-color:#0b3f8f !important;
-          border-color:#0b3f8f !important;
-          color:#ffffff !important;
-      }
-
-      /* ================================================================
-         GLOBAL TOP NAV FOR LOGIN PAGE
-         Match the Home-page Home / Document AI buttons exactly.
-         Width, height, spacing, icons and visual treatment are kept
-         identical to the final Home-page navigation.
-         ================================================================ */
-      .st-key-top_home,
-      .st-key-top_docs {
-          position:absolute !important;
-          top:48px !important;
-          z-index:10000 !important;
-          margin:0 !important;
-          padding:0 !important;
-          margin-top: -45px !important;
-      }
-
-      .st-key-top_home {
-          right:195px !important;
-          width:120px !important;
-      }
-
-      .st-key-top_docs {
-          right:15px !important;
-          width:170px !important;
-      }
-
-      .st-key-top_home [data-testid="stButton"],
-      .st-key-top_docs [data-testid="stButton"] {
-          width:100% !important;
-          min-width:0 !important;
-          max-width:none !important;
-          margin:0 !important;
-          padding:0 !important;
-      }
-
-      .st-key-top_home [data-testid="stButton"] > button,
-      .st-key-top_docs [data-testid="stButton"] > button {
-          width:100% !important;
-          min-width:0 !important;
-          max-width:none !important;
-          height:52px !important;
-          min-height:52px !important;
-          padding:0 8px !important;
-          margin:0 !important;
-          border-radius:8px !important;
-          font-size:.76rem !important;
-          font-weight:700 !important;
-          white-space:nowrap !important;
-          display:flex !important;
-          align-items:center !important;
-          justify-content:center !important;
-          box-sizing:border-box !important;
-          background:#ffffff !important;
-          border:1px solid #dfe4eb !important;
-          color:#171717 !important;
-          box-shadow:0 2px 8px rgba(21,43,70,.055), inset 0 1px 0 rgba(255,255,255,.98) !important;
-      }
-
-      .st-key-top_home [data-testid="stButton"] > button:hover,
-      .st-key-top_docs [data-testid="stButton"] > button:hover {
-          background:#fbfcfe !important;
-          border-color:#cfd8e3 !important;
-          transform:translateY(-1px) !important;
-          box-shadow:0 6px 14px rgba(21,43,70,.10), inset 0 1px 0 rgba(255,255,255,.98) !important;
-      }
-
-      .st-key-top_home [data-testid="stButton"] > button::before,
-      .st-key-top_docs [data-testid="stButton"] > button::before {
-          display:inline-flex !important;
-          align-items:center !important;
-          justify-content:center !important;
-          width:29px !important;
-          height:29px !important;
-          flex:0 0 29px !important;
-          margin-right:7px !important;
-          border-radius:6px !important;
-          background:#f5f7fa !important;
-          color:#111827 !important;
-          box-shadow:inset 0 0 0 1px #e5e9ee !important;
-      }
-
-      .st-key-top_home [data-testid="stButton"] > button::before {
-          content:"⌂" !important;
-          font-size:19px !important;
-      }
-
-      .st-key-top_docs [data-testid="stButton"] > button::before {
-          content:"▣" !important;
-          font-size:17px !important;
-      }
-
       @keyframes robotFloat{50%{transform:translateY(-10px)}}
       @keyframes orbitPulse{50%{transform:scale(1.025)}}
       @keyframes floatCard{50%{transform:translateY(-10px)}}
@@ -934,7 +835,7 @@ def _login_page():
                 <div class="login-form-badge">
                   🟢 Secure workspace access
                 </div>
-                <div class="login-form-title">Sign in to AI analytics</div>
+                <div class="login-form-title">Sign in to Dilytics</div>
                 <div class="login-form-sub">
                   Connect securely to your enterprise intelligence workspace.
                 </div>
@@ -956,7 +857,7 @@ def _login_page():
             )
 
             login_clicked = st.button(
-                "Sign in to AI analytics",
+                "Sign in to Dilytics",
                 use_container_width=True,
                 type="primary",
                 key="login_submit",
@@ -1020,6 +921,7 @@ def get_analyst_headers() -> Dict[str, str]:
 
 
 def call_cortex_analyst(prompt: str) -> Dict[str, Any]:
+    prompt = DOCUMENT_OUTPUT_INSTRUCTION + "\nUser question: " + prompt
     request_body = {
         "messages": [{
             "role": "user",
@@ -1057,6 +959,7 @@ def call_cortex_analyst_with_semantic_model(
     semantic_model_yaml: str,
 ) -> Dict[str, Any]:
     """Call Cortex Analyst with an inline, dynamically generated YAML model."""
+    prompt = DOCUMENT_OUTPUT_INSTRUCTION + "\nUser question: " + prompt
     request_body = {
         "messages": [{
             "role": "user",
@@ -1174,14 +1077,6 @@ if "uploaded_document_stage" not in st.session_state:
     st.session_state.uploaded_document_stage = None
 if "uploaded_document_stage_file" not in st.session_state:
     st.session_state.uploaded_document_stage_file = None
-# ADDITIVE: keep the uploaded Excel workbook so the user can switch sheets
-# after the document has been analyzed, without changing the existing workflow.
-if "uploaded_excel_bytes" not in st.session_state:
-    st.session_state.uploaded_excel_bytes = None
-if "uploaded_excel_sheets" not in st.session_state:
-    st.session_state.uploaded_excel_sheets = []
-if "uploaded_excel_selected_sheet" not in st.session_state:
-    st.session_state.uploaded_excel_selected_sheet = None
 
 
 def _snowflake_sql_literal(value: str) -> str:
@@ -1299,7 +1194,8 @@ def ai_complete_document_question(question: str) -> str:
         "If multiple passages support the answer, reconcile them and state the relevant section/page when available. "
         "For calculations, show the calculation briefly and use only document values. "
         "Never invent a missing value. Be concise but complete. "
-        "User question: " + question
+        + DOCUMENT_OUTPUT_INSTRUCTION
+        + "User question: " + question
     )
     # TO_FILE expects the stage reference as a string such as
     # '@"DATABASE"."SCHEMA"."STAGE"'.
@@ -1768,11 +1664,6 @@ def process_uploaded_document(uploaded_file):
     extension = name.rsplit(".", 1)[-1].lower()
 
     if extension == "csv":
-        # ADDITIVE: a CSV has no worksheets, so clear any worksheet metadata
-        # left by a previously uploaded Excel workbook.
-        st.session_state.uploaded_excel_bytes = None
-        st.session_state.uploaded_excel_sheets = []
-        st.session_state.uploaded_excel_selected_sheet = None
         uploaded_file.seek(0)
         df = pd.read_csv(uploaded_file)
         df = _normalize_uploaded_dataframe(df)
@@ -1782,14 +1673,8 @@ def process_uploaded_document(uploaded_file):
 
     if extension in {"xlsx", "xls"}:
         uploaded_file.seek(0)
-        workbook_bytes = uploaded_file.getvalue()
-        excel_file = pd.ExcelFile(io.BytesIO(workbook_bytes))
+        excel_file = pd.ExcelFile(uploaded_file)
         sheet_name = _choose_best_excel_sheet(excel_file)
-        # ADDITIVE: retain the workbook and every worksheet name for the
-        # Sheet Selection dropdown shown below the uploaded-file preview.
-        st.session_state.uploaded_excel_bytes = workbook_bytes
-        st.session_state.uploaded_excel_sheets = list(excel_file.sheet_names)
-        st.session_state.uploaded_excel_selected_sheet = sheet_name
         df = pd.read_excel(excel_file, sheet_name=sheet_name)
         df = _normalize_uploaded_dataframe(df)
         if df.empty:
@@ -1802,9 +1687,6 @@ def process_uploaded_document(uploaded_file):
         )
 
     if extension == "pdf":
-        st.session_state.uploaded_excel_bytes = None
-        st.session_state.uploaded_excel_sheets = []
-        st.session_state.uploaded_excel_selected_sheet = None
         try:
             from pypdf import PdfReader
         except ImportError:
@@ -1821,9 +1703,6 @@ def process_uploaded_document(uploaded_file):
         return "text", None, full_text, f"PDF analyzed successfully ({len(reader.pages)} pages; page markers preserved for grounded answers)."
 
     if extension == "docx":
-        st.session_state.uploaded_excel_bytes = None
-        st.session_state.uploaded_excel_sheets = []
-        st.session_state.uploaded_excel_selected_sheet = None
         import zipfile
         import xml.etree.ElementTree as ET
 
@@ -2242,168 +2121,6 @@ def answer_uploaded_text_question(question: str, document_text: str):
         fallback = _word_question_answer(question, document_text)
         return fallback
 
-def _read_uploaded_excel_sheet(sheet_name: str) -> pd.DataFrame:
-    """Read one selected worksheet from the retained uploaded workbook."""
-    workbook_bytes = st.session_state.get("uploaded_excel_bytes")
-    if not workbook_bytes:
-        raise RuntimeError("The uploaded Excel workbook is no longer available in this session.")
-    excel_file = pd.ExcelFile(io.BytesIO(workbook_bytes))
-    if sheet_name not in excel_file.sheet_names:
-        raise ValueError(f"Worksheet '{sheet_name}' is not available in the uploaded workbook.")
-    df = pd.read_excel(excel_file, sheet_name=sheet_name)
-    df = _normalize_uploaded_dataframe(df)
-    if df.empty:
-        raise ValueError(f"Excel worksheet '{sheet_name}' contains no data rows.")
-    return df
-
-
-def _switch_uploaded_excel_sheet(sheet_name: str):
-    """Switch the active uploaded worksheet and rebuild only its Analyst model."""
-    current = st.session_state.get("uploaded_excel_selected_sheet")
-    if not sheet_name or sheet_name == current:
-        return
-
-    with st.spinner(f"Loading worksheet '{sheet_name}'..."):
-        new_df = _read_uploaded_excel_sheet(sheet_name)
-        # The uploaded table represents the currently selected worksheet.
-        # Replace only that transient table/model; all other application logic
-        # remains unchanged.
-        _drop_uploaded_table()
-        st.session_state.uploaded_document_df = new_df
-        st.session_state.uploaded_excel_selected_sheet = sheet_name
-        prepare_uploaded_table(new_df)
-
-
-def _column_summary_for_uploaded_df(df: pd.DataFrame) -> pd.DataFrame:
-    """Build the compact Columns & Summary view used by the new dropdown."""
-    rows = []
-    for col in df.columns:
-        series = df[col]
-        non_null = series.dropna()
-        row = {
-            "Column": str(col),
-            "Type": str(series.dtype),
-            "Rows": int(len(series)),
-            "Missing": int(series.isna().sum()),
-            "Unique": int(non_null.nunique(dropna=True)),
-        }
-        if pd.api.types.is_numeric_dtype(series) and not pd.api.types.is_bool_dtype(series):
-            try:
-                row["Min"] = float(non_null.min()) if len(non_null) else None
-                row["Average"] = float(non_null.mean()) if len(non_null) else None
-                row["Max"] = float(non_null.max()) if len(non_null) else None
-            except Exception:
-                row["Min"] = row["Average"] = row["Max"] = None
-        rows.append(row)
-    return pd.DataFrame(rows)
-
-
-def _render_uploaded_document_dropdowns(doc_type: str, key_suffix: str = "default"):
-    """Render the two additive dropdowns directly below the document preview."""
-    # ---------------------------------------------------------------
-    # 1. Sheet Selection
-    # ---------------------------------------------------------------
-    if doc_type == "table" and st.session_state.get("uploaded_excel_sheets"):
-        sheets = st.session_state.uploaded_excel_sheets
-        current_sheet = st.session_state.get("uploaded_excel_selected_sheet")
-        if current_sheet not in sheets:
-            current_sheet = sheets[0]
-            st.session_state.uploaded_excel_selected_sheet = current_sheet
-        selected_sheet = st.selectbox(
-            "Sheet Selection",
-            sheets,
-            index=sheets.index(current_sheet),
-            key=f"uploaded_excel_sheet_selector_{key_suffix}",
-            help="Select which Excel worksheet should be used for preview and document questions.",
-        )
-        if selected_sheet != current_sheet:
-            _switch_uploaded_excel_sheet(selected_sheet)
-    else:
-        # Keep the requested control visible for Word/other document types.
-        st.selectbox(
-            "Sheet Selection",
-            ["Not applicable — this document has no worksheets"],
-            index=0,
-            disabled=True,
-            key=f"uploaded_document_sheet_selector_disabled_{key_suffix}",
-        )
-
-    # ---------------------------------------------------------------
-    # 2. Columns & Summary
-    # ---------------------------------------------------------------
-    if doc_type == "table":
-        df = st.session_state.get("uploaded_document_df")
-        if df is None or df.empty:
-            return
-
-        options = ["Summary"] + [str(c) for c in df.columns]
-        selected = st.selectbox(
-            "Columns & Summary",
-            options,
-            index=0,
-            key=f"uploaded_document_columns_summary_selector_{key_suffix}",
-            help="View the uploaded file summary or inspect an individual column.",
-        )
-
-        if selected == "Summary":
-            summary = _column_summary_for_uploaded_df(df)
-            st.caption(
-                f"{len(df):,} rows • {len(df.columns):,} columns • "
-                f"{int(df.isna().sum().sum()):,} missing cells"
-            )
-            st.dataframe(summary, use_container_width=True, hide_index=True)
-        else:
-            series = df[selected]
-            non_null = series.dropna()
-            c1, c2, c3, c4 = st.columns(4)
-            c1.metric("Type", str(series.dtype))
-            c2.metric("Missing", f"{int(series.isna().sum()):,}")
-            c3.metric("Unique", f"{int(non_null.nunique(dropna=True)):,}")
-            c4.metric("Non-null", f"{int(non_null.shape[0]):,}")
-
-            if pd.api.types.is_numeric_dtype(series) and not pd.api.types.is_bool_dtype(series):
-                try:
-                    n1, n2, n3 = st.columns(3)
-                    n1.metric("Min", f"{float(non_null.min()):,.2f}" if len(non_null) else "—")
-                    n2.metric("Average", f"{float(non_null.mean()):,.2f}" if len(non_null) else "—")
-                    n3.metric("Max", f"{float(non_null.max()):,.2f}" if len(non_null) else "—")
-                except Exception:
-                    pass
-
-            samples = [str(v) for v in non_null.head(10).tolist()]
-            if samples:
-                st.caption("Sample values")
-                st.write(" • ".join(samples))
-    else:
-        # For Word/PDF, the same dropdown provides document-level summary and
-        # extracted-content access instead of pretending the document has columns.
-        text = st.session_state.get("uploaded_document_text") or ""
-        doc_options = ["Summary", "Extracted Content"]
-        selected = st.selectbox(
-            "Columns & Summary",
-            doc_options,
-            index=0,
-            key=f"uploaded_text_columns_summary_selector_{key_suffix}",
-            help="View document summary or the extracted document content.",
-        )
-        if selected == "Summary":
-            lines = [x for x in text.splitlines() if x.strip()]
-            words = re.findall(r"\b\w+\b", text)
-            st.caption(
-                f"{len(lines):,} non-empty lines • {len(words):,} words • "
-                f"{len(text):,} characters"
-            )
-        else:
-            st.text_area(
-                "Extracted content",
-                text,
-                height=280,
-                disabled=True,
-                label_visibility="collapsed",
-                key=f"uploaded_text_columns_summary_content_{key_suffix}",
-            )
-
-
 def render_uploaded_document_preview():
     """Display the analyzed document without interfering with the original UI."""
     doc_type = st.session_state.uploaded_document_type
@@ -2419,7 +2136,6 @@ def render_uploaded_document_preview():
         df = st.session_state.uploaded_document_df
         if df is not None:
             st.dataframe(_normalize_uploaded_dataframe(df), use_container_width=True)
-        _render_uploaded_document_dropdowns(doc_type, key_suffix="standalone_table")
     elif doc_type == "text":
         with st.expander("📖 Extracted Document Content", expanded=False):
             st.text_area(
@@ -2429,7 +2145,6 @@ def render_uploaded_document_preview():
                 disabled=True,
                 label_visibility="collapsed",
             )
-        _render_uploaded_document_dropdowns(doc_type, key_suffix="standalone_text")
 
 
 # ===================================================================
@@ -2454,13 +2169,9 @@ def _logout():
     st.rerun()
 
 
-DILYTICS_LOGO_URI = "data:image/jpeg;base64," + "/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/2wBDAQMEBAUEBQkFBQkUDQsNFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBT/wAARCABDAMgDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwDw+iiivzc/tMKKKKACiijGKACiiigAoo/lR/KgAoo9e5HWigAooooEFFGMUfz7+1ABRRRQMKKKPpz9KBBRRRR0uMKKKKACiiigAooooAKKKKAO6+D3we1v42+K5fD+gzWUF5Fatds9/IyRhFZVPKqxzlx2r1c/sIeOH3Lb+IvCN1MOBDDqUhcn0x5PWrn/AAT1Gfjdqn/YBnx7fv4K+dfEErw+JtSkR2R1u5CGUnIw56GvTUaMKMZzV736nxdTEZjiszrYTDVVCMFF6xvfmvubvxI+Eniv4S6pHY+J9Il05psmCbIeGYDqUcEg9sjqM8gVpfBf4Ja18cdb1DS9Du7K0nsrX7W7XzsqldwXAKq3civpD4IeILv9pX9nvxx4I8UzHU9W0KBbnTdQuTvmyVcxZY5JKtGVJ6lXx61zn/BO7/kpHinn/mDH/wBGpWkMNTnVhb4ZHFiM7xdHAYpVElXoWTaV4tO1mr9106Hzj8P/AATe/EbxppXhrTpoIL3UZvKjluSRGpwTyQCe3oaX4h+Br34a+NdV8M6jNBcXunSiOSW1JMbEqG4JAPQjsK7X9lb/AJOF8E/9fx/9AepP2s/+TiPG3/X3H/6KSuZ0oqh7Tzt+B70cbWlmywd/d9nzfO9t/Qz/ABd8Bdd8JfC7QPHxvLDU9A1bYFayd2a3dgflkBQAEFWU8nDDHpnk/APgbU/iR4w0rw1o6K+oX8vloZCQiDG5nYgH5VUFiQDwDjJ4r6O/ZD8Q2PxI8HeK/gx4gnxbarbyXWlSPyYpQAXC57ghJQPVXNX/ANn3wuf2d/AvxA+Jvia1Eesac8uh6XbSjh51bYxHqDIFXI6KjnpXTHCwqck4fD1+W54dbPMTg44jC17OvFpQ0+JT+H7tb+hwOnfsa+JtX8Qa7pNr4n8LGfRp1trh5r2VAZDGsmB+65wGAPoQR2rcX9gPx49qbkeIvCZt1ODL9vm2g+hPk49K+btU1K61rUrvUL2Zri8upXnnlfrJIxJZj9STX1P4Y/5R5+MPbWIh1/6ebUUUY4erzLk2u9+wZnWzjAxoyWIXvyjH4Fo3u/vPMfip+zB4i+Efhf8At3U9b8PahbeckHk6bePLNls4O1o1GOPWsD4ifBHWvhp4N8H+JNSu7G4svE9qLq0itXcyRL5aPhwVABxIvQnkGvPScjHOPTPFfV37WX/JAfgKPTR1/wDSa2rGMKVSFScVayXXzO+ricdgsVhMLWqKftJSu7W0Ubr8T54+Hfwz8R/FTxAmjeGtOe/uyu+Q5CxwpnBd2PCr/wDqGTxXukn7BfiqNRbjxf4WbWcZ/s77VJvJx0zszn/gNdfpWoP+zx+xZaa3o5Nn4q8YXKqb6MYkjVt5UqeoxDG2D2aQkV8ctdzPcm4aaRpy/mGQsdxbrnPrnv1/GrcKNCMfaJuT17WRjSxWZZvVqzwdVU6UJOKuruTW7fZdFY6bxV8LPFHgzxsvhLU9Jmj16R0jhtYv3hnLnCGMjhge2Pp1BFezWv7DnieK2t11vxX4X0DVLlQ0OmXt6fNJPY4HX/d3Cue/Z/8AinNe/tE+Cdc8b6tJfx2gNgl7fMGMatFIkW5upw8g5Y8ZJ963v2v/AIK+NdG+JniHxbcWdzq/h7UZzcxanAplSBCABHJj7gUYA3cEAc9qqFGm6cqyi5a7X2MsVmGOjjKWAnVjSbhdytdSle1lf7+54/8AFH4Xa78IPFT6B4gjgS9ESzxvbSiSOWNiwDqeDjKsOQDx0rkat6jqt9qrQG+vLi8a3iW3iNzIz+VGvKouTwoJ6dBntVSvOm4uTcFZH2WGVaNGKrSTl1aVk/RdAooorI6QooooAKKKKACiiigD6d/4J65Hxu1PH/QBn/8AR0FfOfiMZ8Rap/19S9v9s16p+yl8X9F+CnxLutd16G7n0+fTpLP/AEKMO6s0kTAkEjjCH9K7i58UfswLeT38nhvxdqUzuZWgd9qsxOf+eq8Z969ZRjUw8I86TTf6Hwk6tfL83xFd0JTjOMUnFX1Vzof2KoH8F/DP4qeOtRUw6XFZCCCRuBK8aSO4Hry0YGOpOKof8E7jj4keKOM/8SY/+jUrgPjX+0zN8RPDNr4N8M6JD4R8EWhBXT7cjfPtOV34AAAbDbRnnkkkDDv2TfjRoPwT8Xa3qevpdvb3mnNaxfZIg5371bnJHYVtCrShVpwT0jfXzZ5mLy7G18BjMRUp2qVnG0Fq1GNkvn1Zh/srjP7Q3gn/AK/Sf/HH/wAal/azGP2iPG3/AF9x/wDolK5r4K+NbH4d/FXw54k1OOaWwsLoyyi3UM5XaRwCQO/c19A+NPiV+zV4/wDFWo+IdY0XxVLqV84eaSI7ASFC9BKMcAVhT5Z0ORySd+p6mKnWwebRxKoynD2fL7qvre58w+DfFV94I8V6Vr2mSeXf6dcpcRHoCVbofUEZB9mI719Yf8FFvFN6uveFPDMbiPShbNqTRoMCSZnZNzDvgBsf77Zr5u+Lt14DufFED/Dy01Gz0IWyeZHqbbpPO3uWIyzcbSnHqDXd/tafGfQPjZ4z0XVPDyXiWtppy20n2yII2/zGbAwx7GlGahRqU+bt8+9jTEYaWMzTBY1UWklO91tty3/Gx4ZX1h4X/wCUeXjL/sMxf+lVrXyfXuei/GjQNP8A2T/EHw5lS8/4SC/1FLqFhEPJ2CaFzls56Rt26kVlhZRg5cztdM7c+w9XERw6pRvy1IN+ST1Z4ZX1f+1l/wAkB+A3/YHX/wBJbavlCvcvjr8aNA+I3wt+F/h7Sku1v/Dmni2vTcRBU3iGJPlIJzzGeoHBFFCcY0aib1aX5izTD1a2YYKrTjeMXK77XjZXPU/izbyeOP2FPAOqachmi0SaBbsKM7FRZLdiQP8AbKn6HPSvjqvb/wBnn9pOT4QW2o+H9c0seI/BmqEm6059pZCw2uyhvlYMvBRsA4HI5z2V1rP7LIum1SPRvFMhP7z+x0ZghP8Adzv/APZ63qqGJUZqaTtZ38up5WCqYnI51sPOhKcHJyi46rXWz7NM+XeuBgH2xnt/gf6V7l8IP2u/HPws+y6fPcnxF4fjwh03UWJZE/uxyfeXjoDlR/dob44+CtQ+LkOtX/w8sv8AhC4tOOkpokKoWSLcWEw4A83LN6dfvZ5PWx3X7LEF0uqrb+K5Arb/AOw25jJ/uE5yR7eZ+NRRjySvSqJWf3nVmOJjiqSpY7BSleN1ZJ2fa99Gu439tP4c+GdEk8H+NfC1kul2fim1a4lskjEahtqOrhBwrMshDAY5XPUmvmOvV/2hvjvcfHDxLZzQ2I0jQNLhNvpunqRmNTjc7Y43NtXgDACgAnqfKKwxU4TqycNj1choYnDZdTp4u/Ok93eyu7J+isFFFFcZ9AFFFFABRRRQAUUUUAFGB0HSiigXmFGeSfUYPPWiigYfp9KT8qWigAxzn/8AXRnv3xjrRRQAUA/lnPXrRRQAUZ/yDRRQAUdRjtRRQG+4Udv89KKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigD/2Q=="
-
-
 def _top_nav():
     """Reference-matched Dilytics website navigation."""
-    logo_uri = DILYTICS_LOGO_URI
-    is_chatbot_page = st.session_state.get("app_page") == "chatbot"
+    logo_uri = "data:image/jpeg;base64," + "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"
 
     st.markdown("""
     <style>
@@ -2479,9 +2190,8 @@ def _top_nav():
           border: 0 !important;
           border-radius: 0 !important;
 
-          padding: 0 !important;
-          /* Pull header directly below the Streamlit toolbar. UI-only. */
-          margin: -68px 0 -8px 0 !important;
+          padding: 14px 58px !important;
+          margin: -12px 0 18px 0 !important;
 
           position: relative !important;
           z-index: 20 !important;
@@ -2498,7 +2208,7 @@ def _top_nav():
       .st-key-dly_main_header [data-testid="column"] {
           display: flex !important;
           align-items: center !important;
-          min-height: 48px !important;
+          min-height: 68px !important;
       }
 
       .st-key-dly_main_header [data-testid="column"]:first-child {
@@ -2507,8 +2217,8 @@ def _top_nav():
 
       /* Exact horizontal DILYTICS logo. */
       .dly-reference-logo {
-          width: 140px !important;
-          height: 56px !important;
+          width: 228px !important;
+          height: 69px !important;
           max-width: none !important;
           object-fit: contain !important;
           object-position: left center !important;
@@ -2520,20 +2230,6 @@ def _top_nav():
           border: 0 !important;
           border-radius: 0 !important;
           box-shadow: none !important;
-      }
-
-      /* DILYTICS logo moved to the top-right of the navigation area. */
-      .dly-nav-logo {
-          width: 100% !important;
-          display: flex !important;
-          justify-content: flex-end !important;
-          align-items: center !important;
-          margin: 0 !important;
-      }
-
-      .dly-nav-logo-left {
-          justify-content: flex-start !important;
-          align-items: center !important;
       }
 
       /* ================================================================
@@ -2573,41 +2269,20 @@ def _top_nav():
           gap: 10px !important;
       }
 
-      /* Final UI adjustment: keep the two navigation buttons compact and
-         push the complete group to the far right, directly under the
-         Streamlit Share area. The buttons remain separate and responsive. */
-      .st-key-dly_main_header > div > [data-testid="column"]:last-child [data-testid="stHorizontalBlock"] {
-          width: min(300px, 100%) !important;
-          max-width: 300px !important;
-          margin-left: auto !important;
-          margin-right: 0 !important;
-      }
-
       .st-key-dly_main_header > div > [data-testid="column"]:last-child [data-testid="column"] {
           min-width: 0 !important;
           flex: 1 1 0 !important;
           width: 0 !important;
       }
 
-      /* Final home-page UI positioning: place the buttons directly
-         beneath the Streamlit Share area, without fixed positioning.
-         They therefore move naturally with the page when scrolling. */
-      .st-key-top_home {
+      .st-key-top_home,
+      .st-key-top_docs,
+      .st-key-top_about {
           display: flex !important;
-          position: absolute !important;
-          top: -100px !important;
-          right: 185px !important;
-          width: 100px !important;
-          z-index: 10000 !important;
-      }
-
-      .st-key-top_docs {
-          display: flex !important;
-          position: absolute !important;
-          top: -100px !important;
-          right: 15px !important;
-          width: 155px !important;
-          z-index: 10000 !important;
+          align-items: center !important;
+          justify-content: stretch !important;
+          width: 100% !important;
+          min-width: 0 !important;
       }
 
       .st-key-top_home [data-testid="stButton"],
@@ -2626,20 +2301,18 @@ def _top_nav():
           max-width: 100% !important;
           min-width: 0 !important;
           box-sizing: border-box !important;
-          margin-top: -45px !important;
       }
 
       .st-key-top_home [data-testid="stButton"] > button,
       .st-key-top_docs [data-testid="stButton"] > button,
       .st-key-top_about [data-testid="stButton"] > button {
-          height: 56px !important;
-          min-height: 56px !important;
-          margin-top: -45px !important;
+          height: 61px !important;
+          min-height: 61px !important;
 
-          padding: 0 8px !important;
+          padding: 0 18px !important;
           margin: 0 !important;
 
-          border-radius: 9px !important;
+          border-radius: 13px !important;
 
           background: #ffffff !important;
           border: 1px solid #dfe4eb !important;
@@ -2647,7 +2320,7 @@ def _top_nav():
           color: #171717 !important;
 
           font-family: "Inter", "Segoe UI", Arial, sans-serif !important;
-          font-size: .86rem !important;
+          font-size: .96rem !important;
           font-weight: 800 !important;
           letter-spacing: 0 !important;
 
@@ -2773,25 +2446,6 @@ def _top_nav():
           outline: none !important;
       }
 
-      /* Manual top-right navigation sizing — UI-only, no behavior changes. */
-      .st-key-top_home [data-testid="stButton"],
-      .st-key-top_docs [data-testid="stButton"] {
-          width: 100% !important;
-          min-width: 0 !important;
-      }
-
-      .st-key-top_home [data-testid="stButton"] > button,
-      .st-key-top_docs [data-testid="stButton"] > button {
-          width: 100% !important;
-          min-width: 0 !important;
-          max-width: 100% !important;
-          height: 28px !important;
-          min-height: 28px !important;
-          padding: 0 7px !important;
-          font-size: .62rem !important;
-          box-sizing: border-box !important;
-      }
-
       /* Responsive fallback. */
       @media (max-width: 1250px) {
           .st-key-dly_main_header {
@@ -2801,10 +2455,10 @@ def _top_nav():
           .st-key-top_home [data-testid="stButton"] > button,
           .st-key-top_docs [data-testid="stButton"] > button,
           .st-key-top_about [data-testid="stButton"] > button {
-              height: 56px !important;
-              min-height: 56px !important;
-              padding: 0 9px !important;
-              font-size: .76rem !important;
+              height: 48px !important;
+              min-height: 48px !important;
+              padding: 0 10px !important;
+              font-size: .80rem !important;
               font-weight: 800 !important;
           }
 
@@ -2826,8 +2480,8 @@ def _top_nav():
           .st-key-top_home [data-testid="stButton"] > button,
           .st-key-top_docs [data-testid="stButton"] > button,
           .st-key-top_about [data-testid="stButton"] > button {
-              height: 52px !important;
-              min-height: 52px !important;
+              height: 44px !important;
+              min-height: 44px !important;
               padding: 0 8px !important;
               font-size: .72rem !important;
           }
@@ -2856,8 +2510,8 @@ def _top_nav():
           .st-key-top_home [data-testid="stButton"] > button,
           .st-key-top_docs [data-testid="stButton"] > button,
           .st-key-top_about [data-testid="stButton"] > button {
-              height: 52px !important;
-              min-height: 52px !important;
+              height: 48px !important;
+              min-height: 48px !important;
               padding: 0 10px !important;
               font-size: .80rem !important;
           font-weight: 800 !important;
@@ -2895,7 +2549,6 @@ def _top_nav():
 
           .st-key-dly_main_header > div > [data-testid="column"]:last-child [data-testid="stHorizontalBlock"] {
               width: 100% !important;
-              position: static !important;
               gap: 6px !important;
               flex-wrap: nowrap !important;
           }
@@ -2908,8 +2561,8 @@ def _top_nav():
           .st-key-top_home [data-testid="stButton"] > button,
           .st-key-top_docs [data-testid="stButton"] > button,
           .st-key-top_about [data-testid="stButton"] > button {
-              height: 52px !important;
-              min-height: 52px !important;
+              height: 44px !important;
+              min-height: 44px !important;
               border-radius: 9px !important;
               padding: 0 6px !important;
               font-size: .64rem !important;
@@ -2928,26 +2581,6 @@ def _top_nav():
     </style>
     """, unsafe_allow_html=True)
 
-    if is_chatbot_page:
-        st.markdown("""
-    <style>
-      /* Chatbot page only */
-      .st-key-dly_main_header {
-          margin-bottom: -38px !important;
-      }
-
-      .st-key-dly_main_header [data-testid="column"] {
-          min-height: 20px !important;
-      }
-
-      /* Increase Home + Document AI buttons only on Chatbot page */
-      .st-key-top_home [data-testid="stButton"] > button,
-      .st-key-top_docs [data-testid="stButton"] > button {
-          height: 50px !important;
-          min-height: 50px !important;
-      }
-    </style>
-    """, unsafe_allow_html=True)
     with st.container(key="dly_main_header"):
         # The right area is intentionally narrow enough that the buttons
         # stay together, just like the reference image.
@@ -2960,20 +2593,18 @@ def _top_nav():
             vertical_alignment="center",
         )
 
-        # Keep the logo on the left side of the same navigation row.
         with logo_col:
-            if not is_chatbot_page:
-                st.markdown(
-                    f'<div class="dly-nav-logo dly-nav-logo-left"><img class="dly-reference-logo" '
-                    f'src="{logo_uri}" alt="Dilytics" /></div>',
-                    unsafe_allow_html=True,
-                )
+            st.markdown(
+                f'<img class="dly-reference-logo" '
+                f'src="{logo_uri}" alt="Dilytics" />',
+                unsafe_allow_html=True,
+            )
 
         with nav_col:
-            # Keep the existing Home / Document AI navigation behavior and
-            # proportions, with the About Dilytics button removed.
-            n1, n2 = st.columns(
-                [0.78, 1.0],
+            # Fluid proportions: the three buttons always share the
+            # available navigation width and therefore cannot overlap.
+            n1, n2, n3 = st.columns(
+                [0.78, 1.0, 1.12],
                 gap="small",
                 vertical_alignment="center",
             )
@@ -2985,6 +2616,10 @@ def _top_nav():
             with n2:
                 if st.button("Document AI", use_container_width=True, key="top_docs"):
                     _open_document_ai()
+
+            with n3:
+                if st.button("About Dilytics", use_container_width=True, key="top_about"):
+                    _set_page("about")
 
 def _module_page(module: str):
     inventory = module == "inventory"
@@ -3141,57 +2776,6 @@ def _about_image_data(filename):
 def _about_page():
     st.markdown("""
     <style>
-
-      /* Navigation Group: Anchored to the far right directly below the Share area */
-      .st-key-dly_main_header > div > [data-testid="column"]:last-child [data-testid="stHorizontalBlock"] {
-          width: 210px !important;
-          max-width: 210px !important;
-          min-width: 210px !important;
-          margin-left: auto !important;
-          margin-right: 12px !important;
-          display: flex !important;
-          justify-content: flex-end !important;
-          align-items: center !important;
-          gap: 8px !important;
-          flex-wrap: nowrap !important;
-      }
-
-      .st-key-dly_main_header > div > [data-testid="column"]:last-child [data-testid="stHorizontalBlock"] > [data-testid="column"] {
-          flex: 0 0 98px !important;
-          width: 98px !important;
-          max-width: 98px !important;
-          min-width: 98px !important;
-      }
-
-      .st-key-top_home [data-testid="stButton"],
-      .st-key-top_docs [data-testid="stButton"],
-      .st-key-top_home [data-testid="stButton"] > button,
-      .st-key-top_docs [data-testid="stButton"] > button {
-          width: 98px !important;
-          max-width: 98px !important;
-          min-width: 98px !important;
-          height: 52px !important;
-          min-height: 52px !important;
-          padding: 0 4px !important;
-          font-size: .68rem !important;
-          border-radius: 7px !important;
-          background: #ffffff !important;
-          border: 1px solid #dfe4eb !important;
-          color: #171717 !important;
-          font-weight: 800 !important;
-          display: flex !important;
-          align-items: center !important;
-          justify-content: center !important;
-          box-sizing: border-box !important;
-      }
-
-      /* Icons for the smaller buttons */
-      .st-key-top_home [data-testid="stButton"] > button::before,
-      .st-key-top_docs [data-testid="stButton"] > button::before {
-          content: "";
-          display: none !important;
-      }
-
       /* ================================================================
          ABOUT DILYTICS — MISSION / VISION / SOLUTIONS / SERVICES
          Clean two-column card layout matching the requested design.
@@ -3493,8 +3077,7 @@ def _home_page():
           grid-template-columns:1fr 1fr;
           gap:35px;
           align-items:center;
-          padding:0 0 28px;
-          margin-top:-14px;
+          padding:35px 20px 28px;
       }
       .home-eyebrow{
           letter-spacing:4px;
@@ -3905,189 +3488,7 @@ def _home_page():
               min-width:420px !important;
           }
       }
-    
-      /* FINAL SMALL NAV OVERRIDE: Home + Document AI under Share, far right */
-      .st-key-dly_main_header > div > [data-testid="column"]:last-child {
-          display: flex !important;
-          flex-direction: column !important;
-          align-items: flex-end !important;
-          justify-content: flex-start !important;
-      }
-
-      .st-key-dly_main_header > div > [data-testid="column"]:last-child [data-testid="stHorizontalBlock"] {
-          width: 170px !important;
-          max-width: 170px !important;
-          min-width: 170px !important;
-          margin-left: auto !important;
-          margin-right: 8px !important;
-          padding: 0 !important;
-          gap: 5px !important;
-          display: flex !important;
-          justify-content: flex-end !important;
-          align-items: center !important;
-          flex-wrap: nowrap !important;
-      }
-
-      .st-key-dly_main_header > div > [data-testid="column"]:last-child [data-testid="stHorizontalBlock"] > [data-testid="column"] {
-          flex: 0 0 auto !important;
-          width: auto !important;
-          min-width: 0 !important;
-          max-width: none !important;
-      }
-
-      .st-key-top_home,
-      .st-key-top_docs {
-          width: auto !important;
-          min-width: 0 !important;
-          max-width: none !important;
-          margin: 0 !important;
-          padding: 0 !important;
-      }
-
-      .st-key-top_home [data-testid="stButton"],
-      .st-key-top_docs [data-testid="stButton"] {
-          width: auto !important;
-          min-width: 0 !important;
-          max-width: none !important;
-          margin: 0 !important;
-          padding: 0 !important;
-      }
-
-      .st-key-top_home [data-testid="stButton"] > button,
-      .st-key-top_docs [data-testid="stButton"] > button {
-          width: auto !important;
-          min-width: 58px !important;
-          max-width: 88px !important;
-          height: 52px !important;
-          min-height: 52px !important;
-          padding: 0 6px !important;
-          margin: 0 !important;
-          border-radius: 6px !important;
-          font-size: .60rem !important;
-          line-height: 1 !important;
-          font-weight: 700 !important;
-          white-space: nowrap !important;
-          display: flex !important;
-          align-items: center !important;
-          justify-content: center !important;
-          overflow: hidden !important;
-          box-sizing: border-box !important;
-      }
-
-      .st-key-top_home [data-testid="stButton"] > button::before,
-      .st-key-top_docs [data-testid="stButton"] > button::before {
-          display: none !important;
-          content: none !important;
-      }
-
-      /* FINAL NAV OVERRIDE — match the Home-page buttons on every page.
-         UI ONLY: use absolute positioning so the buttons move with the
-         header when the page scrolls; they are never viewport-fixed. */
-      .st-key-top_home,
-      .st-key-top_docs {
-          position: absolute !important;
-          top: 20px !important;
-          z-index: 10000 !important;
-          margin: 0 !important;
-          padding: 0 !important;
-      }
-
-      .st-key-top_home {
-          right: 195px !important;
-          width: 120px !important;
-      }
-
-      .st-key-top_docs {
-          right: 15px !important;
-          width: 170px !important;
-      }
-
-      .st-key-top_home [data-testid="stButton"],
-      .st-key-top_docs [data-testid="stButton"] {
-          width: 100% !important;
-          min-width: 0 !important;
-          max-width: none !important;
-          margin: 0 !important;
-          padding: 0 !important;
-      }
-
-      .st-key-top_home [data-testid="stButton"] > button,
-      .st-key-top_docs [data-testid="stButton"] > button {
-          width: 100% !important;
-          min-width: 0 !important;
-          max-width: none !important;
-          height: 52px !important;
-          min-height: 52px !important;
-          padding: 0 8px !important;
-          margin: 0 !important;
-          border-radius: 8px !important;
-          font-size: .76rem !important;
-          font-weight: 700 !important;
-          white-space: nowrap !important;
-          display: flex !important;
-          align-items: center !important;
-          justify-content: center !important;
-          box-sizing: border-box !important;
-      }
-
-      .st-key-top_home [data-testid="stButton"] > button::before,
-      .st-key-top_docs [data-testid="stButton"] > button::before {
-          display: inline-flex !important;
-          align-items: center !important;
-          justify-content: center !important;
-          width: 29px !important;
-          height: 29px !important;
-          flex: 0 0 29px !important;
-          margin-right: 7px !important;
-          border-radius: 6px !important;
-          background: #f5f7fa !important;
-          color: #111827 !important;
-          box-shadow: inset 0 0 0 1px #e5e9ee !important;
-      }
-
-      .st-key-top_home [data-testid="stButton"] > button::before {
-          content: "⌂" !important;
-          font-size: 19px !important;
-      }
-
-      .st-key-top_docs [data-testid="stButton"] > button::before {
-          content: "▣" !important;
-          font-size: 17px !important;
-      }
-
-      /* GLOBAL NAV SIZE — identical Home / Document AI button height on every page. */
-      .st-key-top_home [data-testid="stButton"] > button,
-      .st-key-top_docs [data-testid="stButton"] > button {
-          height: 52px !important;
-          min-height: 52px !important;
-      }
-
-      @media (max-width: 700px) {
-          /* Reset manually positioned navigation on small screens. */
-          .st-key-top_home,
-          .st-key-top_docs {
-              position: static !important;
-              width: 100% !important;
-              margin-top: 5px !important;
-          }
-
-          .st-key-dly_main_header > div > [data-testid="column"]:last-child [data-testid="stHorizontalBlock"] {
-              width: 100% !important;
-              position: static !important;
-              gap: 6px !important;
-              flex-wrap: nowrap !important;
-          }
-
-          .st-key-top_home [data-testid="stButton"] > button,
-          .st-key-top_docs [data-testid="stButton"] > button {
-              min-width: 52px !important;
-              max-width: 78px !important;
-              height: 52px !important;
-              min-height: 52px !important;
-              font-size: .56rem !important;
-          }
-      }
-</style>
+    </style>
         """, unsafe_allow_html=True)
 
     # ------------------------------------------------------------
@@ -4395,9 +3796,11 @@ def display_chart_tab(df: pd.DataFrame, key_prefix: str = ""):
 with st.sidebar:
     # ChatGPT-inspired top area: brand + native Streamlit open/close control.
     st.markdown(
-        f"""
+        """
         <div class="dly-sidebar-brand">
-            <img class="dly-sidebar-brand-logo" src="{DILYTICS_LOGO_URI}" alt="Dilytics" />
+            <div class="dly-sidebar-brand-name">
+                <span class="dly-sidebar-brand-icon">⚡</span>Dilytics AI
+            </div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -4594,9 +3997,6 @@ with st.sidebar:
             st.session_state.uploaded_document = None
             st.session_state.uploaded_document_table = None
             st.session_state.uploaded_document_semantic_model = None
-            st.session_state.uploaded_excel_bytes = None
-            st.session_state.uploaded_excel_sheets = []
-            st.session_state.uploaded_excel_selected_sheet = None
             st.rerun()
 
 
@@ -4831,10 +4231,6 @@ for idx, msg in enumerate(messages):
                     )
                     if len(current_text) > 5000:
                         st.caption("Preview shows the first 5,000 characters. The complete document remains available for questions.")
-
-            # ADDITIVE: the two document controls are intentionally placed
-            # immediately below the uploaded-file preview.
-            _render_uploaded_document_dropdowns(doc_type, key_suffix=f"{current_id}_{idx}")
 
         if msg.get("sql"):
             with st.expander("Generated SQL", expanded=False):
