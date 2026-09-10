@@ -2595,7 +2595,7 @@ def _top_nav():
       .st-key-top_home {
           display: flex !important;
           position: absolute !important;
-          top: -60px !important;
+          top: -100px !important;
           right: 185px !important;
           width: 100px !important;
           z-index: 10000 !important;
@@ -2604,7 +2604,7 @@ def _top_nav():
       .st-key-top_docs {
           display: flex !important;
           position: absolute !important;
-          top: -60px !important;
+          top: -100px !important;
           right: 15px !important;
           width: 155px !important;
           z-index: 10000 !important;
