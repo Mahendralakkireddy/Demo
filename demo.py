@@ -2461,206 +2461,64 @@ def _top_nav():
           gap: 10px !important;
       }
 
-      /* Final UI adjustment: keep the two navigation buttons compact and
-         push the complete group to the far right, directly under the
-         Streamlit Share area. The buttons remain separate and responsive. */
+      /* Navigation Group: Positioned directly under the Share area */
       .st-key-dly_main_header > div > [data-testid="column"]:last-child [data-testid="stHorizontalBlock"] {
-          width: min(300px, 100%) !important;
-          max-width: 300px !important;
+          width: 200px !important;
+          max-width: 200px !important;
+          min-width: 200px !important;
           margin-left: auto !important;
-          margin-right: 0 !important;
-      }
-
-      .st-key-dly_main_header > div > [data-testid="column"]:last-child [data-testid="column"] {
-          min-width: 0 !important;
-          flex: 1 1 0 !important;
-          width: 0 !important;
-      }
-
-      .st-key-top_home,
-      .st-key-top_docs,
-      .st-key-top_about {
+          margin-right: 18px !important;
           display: flex !important;
+          justify-content: flex-end !important;
           align-items: center !important;
-          justify-content: stretch !important;
-          width: 100% !important;
-          min-width: 0 !important;
+          gap: 8px !important;
+          flex-wrap: nowrap !important;
+      }
+
+      .st-key-dly_main_header > div > [data-testid="column"]:last-child [data-testid="stHorizontalBlock"] > [data-testid="column"] {
+          flex: 0 0 96px !important;
+          width: 96px !important;
+          max-width: 96px !important;
+          min-width: 96px !important;
       }
 
       .st-key-top_home [data-testid="stButton"],
       .st-key-top_docs [data-testid="stButton"],
-      .st-key-top_about [data-testid="stButton"] {
-          width: 100% !important;
-          min-width: 0 !important;
-      }
-
-      /* Fluid buttons: their width is determined by the available
-         navigation space, never by a fixed pixel value. */
       .st-key-top_home [data-testid="stButton"] > button,
-      .st-key-top_docs [data-testid="stButton"] > button,
-      .st-key-top_about [data-testid="stButton"] > button {
-          width: 100% !important;
-          max-width: 100% !important;
-          min-width: 0 !important;
-          box-sizing: border-box !important;
-      }
-
-      .st-key-top_home [data-testid="stButton"] > button,
-      .st-key-top_docs [data-testid="stButton"] > button,
-      .st-key-top_about [data-testid="stButton"] > button {
-          height: 42px !important;
-          min-height: 42px !important;
-
-          padding: 0 8px !important;
-          margin: 0 !important;
-
-          border-radius: 9px !important;
-
+      .st-key-top_docs [data-testid="stButton"] > button {
+          width: 96px !important;
+          max-width: 96px !important;
+          min-width: 96px !important;
+          height: 32px !important;
+          min-height: 32px !important;
+          padding: 0 4px !important;
+          font-size: .65rem !important;
+          border-radius: 7px !important;
           background: #ffffff !important;
           border: 1px solid #dfe4eb !important;
-
           color: #171717 !important;
-
-          font-family: "Inter", "Segoe UI", Arial, sans-serif !important;
-          font-size: .86rem !important;
           font-weight: 800 !important;
-          letter-spacing: 0 !important;
-
           display: flex !important;
           align-items: center !important;
           justify-content: center !important;
-
-          white-space: nowrap !important;
-
-          box-shadow:
-              0 2px 8px rgba(21,43,70,.055),
-              inset 0 1px 0 rgba(255,255,255,.98) !important;
-
-          transition:
-              transform .16s ease,
-              box-shadow .16s ease,
-              border-color .16s ease,
-              background .16s ease !important;
+          box-sizing: border-box !important;
       }
 
-      /* Tight spacing between buttons — matching the reference. */
-      .st-key-top_home {
-          margin-right: 10px !important;
-      }
-
-      .st-key-top_docs {
-          margin-right: 10px !important;
-      }
-
-      /* About Dilytics is the branded primary action. */
-      .st-key-top_about [data-testid="stButton"] > button {
-          background: linear-gradient(180deg, #e52c35 0%, #cf2029 100%) !important;
-          border-color: #cf2029 !important;
-          color: #ffffff !important;
-
-          box-shadow:
-              0 4px 12px rgba(207,32,41,.18),
-              inset 0 1px 0 rgba(255,255,255,.22) !important;
-      }
-
-      .st-key-top_home [data-testid="stButton"] > button:hover,
-      .st-key-top_docs [data-testid="stButton"] > button:hover {
-          background: #fbfcfe !important;
-          border-color: #cfd8e3 !important;
-
-          transform: translateY(-1px) !important;
-
-          box-shadow:
-              0 6px 14px rgba(21,43,70,.10),
-              inset 0 1px 0 rgba(255,255,255,.98) !important;
-      }
-
-      .st-key-top_about [data-testid="stButton"] > button:hover {
-          background: linear-gradient(180deg, #ef3a43 0%, #d9232d 100%) !important;
-          border-color: #d9232d !important;
-
-          transform: translateY(-1px) !important;
-
-          box-shadow:
-              0 7px 17px rgba(207,32,41,.25),
-              inset 0 1px 0 rgba(255,255,255,.25) !important;
-      }
-
-      /* Reference-style black/blue navigation icons. */
+      /* Scaled icons for the smaller buttons */
       .st-key-top_home [data-testid="stButton"] > button::before,
-      .st-key-top_docs [data-testid="stButton"] > button::before,
-      .st-key-top_about [data-testid="stButton"] > button::before {
-          width: 33px;
-          height: 33px;
-          flex: 0 0 33px;
-
-          margin-right: 12px;
-
+      .st-key-top_docs [data-testid="stButton"] > button::before {
+          width: 20px;
+          height: 20px;
+          flex: 0 0 20px;
+          margin-right: 4px;
           display: inline-flex;
           align-items: center;
           justify-content: center;
-
-          border-radius: 7px;
-
-          font-size: 18px;
-          font-weight: 900;
-          line-height: 1;
-      }
-
-      .st-key-top_home [data-testid="stButton"] > button::before {
-          content: "⌂";
-
+          border-radius: 4px;
           background: #f5f7fa;
           color: #111827;
-
-          font-size: 22px;
-
+          font-size: 12px;
           box-shadow: inset 0 0 0 1px #e5e9ee;
-      }
-
-      .st-key-top_docs [data-testid="stButton"] > button::before {
-          content: "▣";
-
-          background: #f5f7fa;
-          color: #111827;
-
-          font-size: 19px;
-
-          box-shadow: inset 0 0 0 1px #e5e9ee;
-      }
-
-      .st-key-top_about [data-testid="stButton"] > button::before {
-          content: "D";
-
-          background: #ffffff;
-          color: #d7202b;
-
-          font-size: 18px;
-
-          box-shadow:
-              0 1px 5px rgba(0,0,0,.15),
-              inset 0 0 0 1px rgba(255,255,255,.7);
-      }
-
-      .st-key-top_home [data-testid="stButton"] > button:focus,
-      .st-key-top_docs [data-testid="stButton"] > button:focus,
-      .st-key-top_about [data-testid="stButton"] > button:focus {
-          outline: none !important;
-      }
-
-      /* Final compact navigation sizing: UI-only, no behavior changes. */
-      .st-key-dly_main_header > div > [data-testid="column"]:last-child [data-testid="stHorizontalBlock"] {
-          width: min(300px, 100%) !important;
-          margin-left: auto !important;
-          margin-right: 0 !important;
-      }
-
-      .st-key-top_home [data-testid="stButton"] > button,
-      .st-key-top_docs [data-testid="stButton"] > button {
-          min-height: 36px !important;
-          height: 36px !important;
-          padding: 0 6px !important;
-          font-size: .70rem !important;
       }
 
       /* Responsive fallback. */
@@ -3703,7 +3561,67 @@ def _home_page():
               min-width:420px !important;
           }
       }
-    </style>
+    
+      /* Final navigation sizing override: requested compact layout */
+      .st-key-dly_main_header > div > [data-testid="column"]:last-child [data-testid="stHorizontalBlock"] {
+          width: 200px !important;
+          max-width: 200px !important;
+          min-width: 200px !important;
+          margin-left: auto !important;
+          margin-right: 18px !important;
+          display: flex !important;
+          justify-content: flex-end !important;
+          align-items: center !important;
+          gap: 8px !important;
+          flex-wrap: nowrap !important;
+      }
+
+      .st-key-dly_main_header > div > [data-testid="column"]:last-child [data-testid="stHorizontalBlock"] > [data-testid="column"] {
+          flex: 0 0 96px !important;
+          width: 96px !important;
+          max-width: 96px !important;
+          min-width: 96px !important;
+      }
+
+      .st-key-top_home [data-testid="stButton"],
+      .st-key-top_docs [data-testid="stButton"],
+      .st-key-top_home [data-testid="stButton"] > button,
+      .st-key-top_docs [data-testid="stButton"] > button {
+          width: 96px !important;
+          max-width: 96px !important;
+          min-width: 96px !important;
+          height: 32px !important;
+          min-height: 32px !important;
+          padding: 0 4px !important;
+          font-size: .65rem !important;
+          border-radius: 7px !important;
+          background: #ffffff !important;
+          border: 1px solid #dfe4eb !important;
+          color: #171717 !important;
+          font-weight: 800 !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          box-sizing: border-box !important;
+      }
+
+      .st-key-top_home [data-testid="stButton"] > button::before,
+      .st-key-top_docs [data-testid="stButton"] > button::before {
+          width: 20px;
+          height: 20px;
+          flex: 0 0 20px;
+          margin-right: 4px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 4px;
+          background: #f5f7fa;
+          color: #111827;
+          font-size: 12px;
+          box-shadow: inset 0 0 0 1px #e5e9ee;
+      }
+
+</style>
         """, unsafe_allow_html=True)
 
     # ------------------------------------------------------------
