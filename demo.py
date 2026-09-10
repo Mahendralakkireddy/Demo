@@ -2842,7 +2842,7 @@ def _top_nav():
           /* Chatbot landing page only: remove the empty header space left by
              the main-area logo and move Explore your data upward. */
           .st-key-dly_main_header {
-              margin-bottom: -100px !important;
+              margin-bottom: -10px !important;
           }
           .st-key-dly_main_header [data-testid="column"] {
               min-height: 24px !important;
