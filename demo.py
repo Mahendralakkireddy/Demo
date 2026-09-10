@@ -2409,6 +2409,15 @@ def _top_nav():
           box-shadow: none !important;
       }
 
+      /* DILYTICS logo moved to the top-right of the navigation area. */
+      .dly-nav-logo {
+          width: 100% !important;
+          display: flex !important;
+          justify-content: flex-end !important;
+          align-items: center !important;
+          margin: 0 0 8px 0 !important;
+      }
+
       /* ================================================================
          NAVIGATION
          The important change is that the three buttons are treated as
@@ -2483,10 +2492,10 @@ def _top_nav():
       .st-key-top_home [data-testid="stButton"] > button,
       .st-key-top_docs [data-testid="stButton"] > button,
       .st-key-top_about [data-testid="stButton"] > button {
-          height: 61px !important;
-          min-height: 61px !important;
+          height: 54px !important;
+          min-height: 54px !important;
 
-          padding: 0 18px !important;
+          padding: 0 14px !important;
           margin: 0 !important;
 
           border-radius: 13px !important;
@@ -2770,18 +2779,24 @@ def _top_nav():
             vertical_alignment="center",
         )
 
+        # Keep the left half of the header unchanged in width, but move the
+        # DILYTICS logo into the right navigation area as requested.
         with logo_col:
+            st.empty()
+
+        with nav_col:
+            # Logo sits at the top-right of the existing navigation area,
+            # directly above the navigation buttons.
             st.markdown(
-                f'<img class="dly-reference-logo" '
-                f'src="{logo_uri}" alt="Dilytics" />',
+                f'<div class="dly-nav-logo"><img class="dly-reference-logo" '
+                f'src="{logo_uri}" alt="Dilytics" /></div>',
                 unsafe_allow_html=True,
             )
 
-        with nav_col:
-            # Fluid proportions: the three buttons always share the
-            # available navigation width and therefore cannot overlap.
-            n1, n2, n3 = st.columns(
-                [0.78, 1.0, 1.12],
+            # Keep the existing Home / Document AI navigation behavior and
+            # proportions, with the About Dilytics button removed.
+            n1, n2 = st.columns(
+                [0.78, 1.0],
                 gap="small",
                 vertical_alignment="center",
             )
@@ -2793,10 +2808,6 @@ def _top_nav():
             with n2:
                 if st.button("Document AI", use_container_width=True, key="top_docs"):
                     _open_document_ai()
-
-            with n3:
-                if st.button("About Dilytics", use_container_width=True, key="top_about"):
-                    _set_page("about")
 
 def _module_page(module: str):
     inventory = module == "inventory"
