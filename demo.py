@@ -2946,11 +2946,13 @@ def _top_nav():
           transform: translateY(12px) !important;
       }
 
-      /* Keep existing button size */
+      /* Keep existing button size and prevent text overlap */
       .st-key-top_home [data-testid="stButton"] > button,
       .st-key-top_docs [data-testid="stButton"] > button {
           height: 50px !important;
           min-height: 50px !important;
+          white-space: normal !important;
+          line-height: 1.1 !important;
       }
 
       /* Move Explore your data upward — Chatbot page ONLY */
