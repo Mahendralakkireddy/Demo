@@ -4900,10 +4900,10 @@ for idx, msg in enumerate(messages):
             with st.expander("Generated SQL", expanded=False):
                 st.code(msg["sql"], language="sql")
 
-        if msg.get("verified_query"):
-            name = msg["verified_query"].get("name")
-            if name:
-                st.caption(f"Verified Query Used: `{name}`")
+        if msg.get("semantic_model"):
+            st.caption(
+                f"Semantic model selected: `{msg['semantic_model']}`"
+            )
 
         if msg.get("data") is not None:
             tab_data, tab_chart = st.tabs(["Data 📄", "Chart 📈"])
@@ -4987,6 +4987,11 @@ if user_prompt:
                             "dataset through Cortex Analyst. The SQL below was "
                             "generated dynamically from the uploaded document schema."
                         )
+                        if doc_analyst_result.get("semantic_model_selection"):
+                            st.caption(
+                                "Semantic model selected: "
+                                + str(doc_analyst_result["semantic_model_selection"])
+                            )
                     else:
                         doc_answer = answer_uploaded_text_question(
                             user_prompt,
@@ -5083,10 +5088,10 @@ if user_prompt:
 
                 st.markdown(explanation)
 
-                if verified_query:
-                    name = verified_query.get("name")
-                    if name:
-                        st.caption(f"Verified Query Used: `{name}`")
+                if semantic_model:
+                    st.caption(
+                        f"Semantic model selected: `{semantic_model}`"
+                    )
 
                 with st.expander("Generated SQL", expanded=False):
                     st.code(sql_query, language="sql")
