@@ -21,13 +21,6 @@ SCHEMA = "GOLD"
 WAREHOUSE = "COMPUTE_WH"
 ROLE = "ACCOUNTADMIN"
 
-# Global output instruction: keep Start Date/End Date out of user-facing results.
-HIDE_DATE_OUTPUT_INSTRUCTION = (
-    "Do not display, include, or return Start Date or End Date in the final result or output. "
-    "You may use these dates internally for filtering or calculations when required, but do not show "
-    "the Start Date or End Date values/columns to the user."
-)
-
 # FULL semantic-model YAML files on Snowflake stages.
 INVENTORY_YAML_STAGE_PATH = (
     '@"INVENTORY_DW_DEMO"."INVENTORY_SCHEMA"."YAML"/INV_ANALYST_DEMO_90_VERIFIED_FIXED_1.yaml'
@@ -1306,8 +1299,7 @@ def ai_complete_document_question(question: str) -> str:
         "If multiple passages support the answer, reconcile them and state the relevant section/page when available. "
         "For calculations, show the calculation briefly and use only document values. "
         "Never invent a missing value. Be concise but complete. "
-        + HIDE_DATE_OUTPUT_INSTRUCTION + " "
-        + "User question: " + question
+        "User question: " + question
     )
     # TO_FILE expects the stage reference as a string such as
     # '@"DATABASE"."SCHEMA"."STAGE"'.
@@ -1941,10 +1933,9 @@ def answer_uploaded_table_question(question: str, df: pd.DataFrame):
     last_error = None
     last_result = None
     for attempt in range(1, 3):
-        prompt = HIDE_DATE_OUTPUT_INSTRUCTION + "\n\nUser question: " + question
+        prompt = question
         if last_error:
             prompt = (
-                HIDE_DATE_OUTPUT_INSTRUCTION + "\n\n"
                 f"Original user question: {question}\n\n"
                 "The previous SQL attempt failed validation/execution. Correct it using only the uploaded semantic model.\n"
                 f"Previous SQL: {last_result.get('sql') if last_result else 'unavailable'}\n"
@@ -2243,17 +2234,12 @@ def answer_uploaded_text_question(question: str, document_text: str):
 
     try:
         # Preferred path when the Snowflake document-AI entitlement is available.
-        return ai_complete_document_question(
-            HIDE_DATE_OUTPUT_INSTRUCTION + "\n\nUser question: " + question
-        )
+        return ai_complete_document_question(question)
     except Exception:
         # IMPORTANT: Do not surface the Snowflake trial/model-access error to the
         # end user. The uploaded PDF/DOCX text is already extracted locally, so
         # answer from that grounded text instead.
-        fallback = _word_question_answer(
-            HIDE_DATE_OUTPUT_INSTRUCTION + "\n\nUser question: " + question,
-            document_text,
-        )
+        fallback = _word_question_answer(question, document_text)
         return fallback
 
 def _read_uploaded_excel_sheet(sheet_name: str) -> pd.DataFrame:
@@ -2942,34 +2928,37 @@ def _top_nav():
     </style>
     """, unsafe_allow_html=True)
 
-        if is_chatbot_page:
+    if is_chatbot_page:
         st.markdown("""
-        <style>
-          /* Chatbot page only */
-          .st-key-dly_main_header {
-              margin-bottom: -18px !important;
-          }
-    
-          .st-key-dly_main_header [data-testid="column"] {
-              min-height: 20px !important;
-          }
-    
-          /* Move Home + Document AI buttons downward
-             on Chatbot page ONLY */
-          .st-key-top_home,
-          .st-key-top_docs {
-              transform: translateY(12px) !important;
-          }
-    
-          /* Keep existing button size */
-          .st-key-top_home [data-testid="stButton"] > button,
-          .st-key-top_docs [data-testid="stButton"] > button {
-              height: 50px !important;
-              min-height: 50px !important;
-          }
-    
-        </style>
-        """, unsafe_allow_html=True)
+    <style>
+      /* Chatbot page only */
+      .st-key-dly_main_header {
+          margin-bottom: -18px !important;
+      }
+
+      .st-key-dly_main_header [data-testid="column"] {
+          min-height: 20px !important;
+      }
+
+      /* Move Home + Document AI buttons downward — Chatbot page ONLY */
+      .st-key-top_home,
+      .st-key-top_docs {
+          transform: translateY(12px) !important;
+      }
+
+      /* Keep existing button size */
+      .st-key-top_home [data-testid="stButton"] > button,
+      .st-key-top_docs [data-testid="stButton"] > button {
+          height: 50px !important;
+          min-height: 50px !important;
+      }
+
+      /* Move Explore your data upward — Chatbot page ONLY */
+      .chatbot-explore-title {
+          margin-top: -15px !important;
+      }
+    </style>
+    """, unsafe_allow_html=True)
     with st.container(key="dly_main_header"):
         # The right area is intentionally narrow enough that the buttons
         # stay together, just like the reference image.
@@ -4635,7 +4624,7 @@ _top_nav()
 quick_prompt = None
 
 st.markdown(
-    '<div class="chatbot-explore-title">Explore your data</div>',
+    '<div class="chatbot-explore-title"><h3>Explore your data</h3></div>',
     unsafe_allow_html=True,
 )
 st.caption("Choose a question below or type your own question in the chat.")
@@ -5025,9 +5014,7 @@ if user_prompt:
 
         try:
             with st.spinner("Cortex Analyst is interpreting your question..."):
-                analyst_json = call_cortex_analyst(
-                    HIDE_DATE_OUTPUT_INSTRUCTION + "\n\nUser question: " + user_prompt
-                )
+                analyst_json = call_cortex_analyst(user_prompt)
                 result = extract_analyst_response(analyst_json)
 
             explanation = result["text"]
