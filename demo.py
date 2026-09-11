@@ -2942,34 +2942,34 @@ def _top_nav():
     </style>
     """, unsafe_allow_html=True)
 
-    if is_chatbot_page:
-    st.markdown("""
-    <style>
-      /* Chatbot page only */
-      .st-key-dly_main_header {
-          margin-bottom: -18px !important;
-      }
-
-      .st-key-dly_main_header [data-testid="column"] {
-          min-height: 20px !important;
-      }
-
-      /* Move Home + Document AI buttons downward
-         on Chatbot page ONLY */
-      .st-key-top_home,
-      .st-key-top_docs {
-          transform: translateY(12px) !important;
-      }
-
-      /* Keep existing button size */
-      .st-key-top_home [data-testid="stButton"] > button,
-      .st-key-top_docs [data-testid="stButton"] > button {
-          height: 50px !important;
-          min-height: 50px !important;
-      }
-
-    </style>
-    """, unsafe_allow_html=True)
+        if is_chatbot_page:
+        st.markdown("""
+        <style>
+          /* Chatbot page only */
+          .st-key-dly_main_header {
+              margin-bottom: -18px !important;
+          }
+    
+          .st-key-dly_main_header [data-testid="column"] {
+              min-height: 20px !important;
+          }
+    
+          /* Move Home + Document AI buttons downward
+             on Chatbot page ONLY */
+          .st-key-top_home,
+          .st-key-top_docs {
+              transform: translateY(12px) !important;
+          }
+    
+          /* Keep existing button size */
+          .st-key-top_home [data-testid="stButton"] > button,
+          .st-key-top_docs [data-testid="stButton"] > button {
+              height: 50px !important;
+              min-height: 50px !important;
+          }
+    
+        </style>
+        """, unsafe_allow_html=True)
     with st.container(key="dly_main_header"):
         # The right area is intentionally narrow enough that the buttons
         # stay together, just like the reference image.
