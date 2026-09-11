@@ -2943,23 +2943,31 @@ def _top_nav():
     """, unsafe_allow_html=True)
 
     if is_chatbot_page:
-        st.markdown("""
+    st.markdown("""
     <style>
       /* Chatbot page only */
       .st-key-dly_main_header {
-          margin-bottom: -38px !important;
+          margin-bottom: -18px !important;
       }
 
       .st-key-dly_main_header [data-testid="column"] {
           min-height: 20px !important;
       }
 
-      /* Increase Home + Document AI buttons only on Chatbot page */
+      /* Move Home + Document AI buttons downward
+         on Chatbot page ONLY */
+      .st-key-top_home,
+      .st-key-top_docs {
+          transform: translateY(12px) !important;
+      }
+
+      /* Keep existing button size */
       .st-key-top_home [data-testid="stButton"] > button,
       .st-key-top_docs [data-testid="stButton"] > button {
           height: 50px !important;
           min-height: 50px !important;
       }
+
     </style>
     """, unsafe_allow_html=True)
     with st.container(key="dly_main_header"):
@@ -4626,7 +4634,10 @@ _top_nav()
 # ==================================================================
 quick_prompt = None
 
-st.markdown("### Explore your data")
+st.markdown(
+    '<div class="chatbot-explore-title">Explore your data</div>',
+    unsafe_allow_html=True,
+)
 st.caption("Choose a question below or type your own question in the chat.")
 
 tab_inv, tab_sales, tab_supply = st.tabs(
