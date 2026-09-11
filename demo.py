@@ -21,16 +21,6 @@ SCHEMA = "GOLD"
 WAREHOUSE = "COMPUTE_WH"
 ROLE = "ACCOUNTADMIN"
 
-
-# Custom output instruction: keep Start Date / End Date out of all user-facing results.
-# This instruction is added to the existing Snowflake/Cortex Analyst and Document AI prompts only.
-HIDE_DATE_OUTPUT_INSTRUCTION = (
-    "IMPORTANT OUTPUT RULE: Do not display, include, select, return, or mention Start Date or End Date "
-    "in the final user-facing answer, result table, chart, chart labels, summary, or displayed output. "
-    "These dates may still be used internally for filtering, calculations, or analysis when required, "
-    "but the Start Date and End Date fields/values must not be shown to the user. "
-)
-
 # FULL semantic-model YAML files on Snowflake stages.
 INVENTORY_YAML_STAGE_PATH = (
     '@"INVENTORY_DW_DEMO"."INVENTORY_SCHEMA"."YAML"/INV_ANALYST_DEMO_90_VERIFIED_FIXED_1.yaml'
@@ -1030,12 +1020,10 @@ def get_analyst_headers() -> Dict[str, str]:
 
 
 def call_cortex_analyst(prompt: str) -> Dict[str, Any]:
-    # Add the output rule to the existing Snowflake/Cortex Analyst prompt only.
-    prompt_with_output_rule = prompt + "\n\n" + HIDE_DATE_OUTPUT_INSTRUCTION
     request_body = {
         "messages": [{
             "role": "user",
-            "content": [{"type": "text", "text": prompt_with_output_rule}],
+            "content": [{"type": "text", "text": prompt}],
         }],
         "semantic_models": [
             {"semantic_model_file": INVENTORY_YAML_STAGE_PATH},
@@ -1069,12 +1057,10 @@ def call_cortex_analyst_with_semantic_model(
     semantic_model_yaml: str,
 ) -> Dict[str, Any]:
     """Call Cortex Analyst with an inline, dynamically generated YAML model."""
-    # Add the output rule to the existing uploaded-document/Cortex Analyst prompt only.
-    prompt_with_output_rule = prompt + "\n\n" + HIDE_DATE_OUTPUT_INSTRUCTION
     request_body = {
         "messages": [{
             "role": "user",
-            "content": [{"type": "text", "text": prompt_with_output_rule}],
+            "content": [{"type": "text", "text": prompt}],
         }],
         "semantic_model": semantic_model_yaml,
         "stream": False,
@@ -1313,8 +1299,7 @@ def ai_complete_document_question(question: str) -> str:
         "If multiple passages support the answer, reconcile them and state the relevant section/page when available. "
         "For calculations, show the calculation briefly and use only document values. "
         "Never invent a missing value. Be concise but complete. "
-        + HIDE_DATE_OUTPUT_INSTRUCTION
-        + "User question: " + question
+        "User question: " + question
     )
     # TO_FILE expects the stage reference as a string such as
     # '@"DATABASE"."SCHEMA"."STAGE"'.
@@ -2948,60 +2933,18 @@ def _top_nav():
     <style>
       /* Chatbot page only */
       .st-key-dly_main_header {
-          margin-bottom: -18px !important;
+          margin-bottom: -38px !important;
       }
 
       .st-key-dly_main_header [data-testid="column"] {
           min-height: 20px !important;
       }
 
-      /* ============================================================
-         CHATBOT PAGE ONLY — top navigation positioning
-         Do not change the Home/Login/Document AI page navigation.
-         ============================================================ */
-      .st-key-top_home,
-      .st-key-top_docs {
-          top: 22px !important;
-          transform: none !important;
-          z-index: 10000 !important;
-      }
-
-      /* Keep the buttons separated and prevent the labels from colliding. */
-      .st-key-top_home {
-          right: 195px !important;
-          width: 120px !important;
-      }
-
-      .st-key-top_docs {
-          right: 15px !important;
-          width: 170px !important;
-      }
-
-      .st-key-top_home [data-testid="stButton"],
-      .st-key-top_docs [data-testid="stButton"] {
-          width: 100% !important;
-          min-width: 0 !important;
-          max-width: none !important;
-          margin: 0 !important;
-          padding: 0 !important;
-      }
-
+      /* Increase Home + Document AI buttons only on Chatbot page */
       .st-key-top_home [data-testid="stButton"] > button,
       .st-key-top_docs [data-testid="stButton"] > button {
-          width: 100% !important;
-          min-width: 0 !important;
-          max-width: none !important;
-          height: 52px !important;
-          min-height: 52px !important;
-          padding: 0 8px !important;
-          margin: 0 !important;
-          box-sizing: border-box !important;
-          white-space: nowrap !important;
-      }
-
-      /* Move Explore your data upward — Chatbot page ONLY */
-      .chatbot-explore-title {
-          margin-top: -25px !important;
+          height: 50px !important;
+          min-height: 50px !important;
       }
     </style>
     """, unsafe_allow_html=True)
@@ -4669,10 +4612,7 @@ _top_nav()
 # ==================================================================
 quick_prompt = None
 
-st.markdown(
-    '<div class="chatbot-explore-title"><h3>Explore your data</h3></div>',
-    unsafe_allow_html=True,
-)
+st.markdown("### Explore your data")
 st.caption("Choose a question below or type your own question in the chat.")
 
 tab_inv, tab_sales, tab_supply = st.tabs(
@@ -4905,6 +4845,11 @@ for idx, msg in enumerate(messages):
                 f"Semantic model selected: `{msg['semantic_model']}`"
             )
 
+        if msg.get("verified_query"):
+            name = msg["verified_query"].get("name")
+            if name:
+                st.caption(f"Verified Query Used: `{name}`")
+
         if msg.get("data") is not None:
             tab_data, tab_chart = st.tabs(["Data 📄", "Chart 📈"])
             with tab_data:
@@ -5087,11 +5032,6 @@ if user_prompt:
                     )
 
                 st.markdown(explanation)
-
-                if semantic_model:
-                    st.caption(
-                        f"Semantic model selected: `{semantic_model}`"
-                    )
 
                 with st.expander("Generated SQL", expanded=False):
                     st.code(sql_query, language="sql")
