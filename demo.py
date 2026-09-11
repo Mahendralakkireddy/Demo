@@ -2946,7 +2946,7 @@ def _top_nav():
          ============================================================ */
       .st-key-top_home,
       .st-key-top_docs {
-          top: 32px !important;
+          top: 22px !important;
           transform: none !important;
           z-index: 10000 !important;
       }
@@ -2986,7 +2986,7 @@ def _top_nav():
 
       /* Move Explore your data upward — Chatbot page ONLY */
       .chatbot-explore-title {
-          margin-top: -15px !important;
+          margin-top: -25px !important;
       }
     </style>
     """, unsafe_allow_html=True)
