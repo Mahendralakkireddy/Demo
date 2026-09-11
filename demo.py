@@ -2940,19 +2940,48 @@ def _top_nav():
           min-height: 20px !important;
       }
 
-      /* Move Home + Document AI buttons downward — Chatbot page ONLY */
+      /* ============================================================
+         CHATBOT PAGE ONLY — top navigation positioning
+         Do not change the Home/Login/Document AI page navigation.
+         ============================================================ */
       .st-key-top_home,
       .st-key-top_docs {
-          transform: translateY(12px) !important;
+          top: 32px !important;
+          transform: none !important;
+          z-index: 10000 !important;
       }
 
-      /* Keep existing button size and prevent text overlap */
+      /* Keep the buttons separated and prevent the labels from colliding. */
+      .st-key-top_home {
+          right: 195px !important;
+          width: 120px !important;
+      }
+
+      .st-key-top_docs {
+          right: 15px !important;
+          width: 170px !important;
+      }
+
+      .st-key-top_home [data-testid="stButton"],
+      .st-key-top_docs [data-testid="stButton"] {
+          width: 100% !important;
+          min-width: 0 !important;
+          max-width: none !important;
+          margin: 0 !important;
+          padding: 0 !important;
+      }
+
       .st-key-top_home [data-testid="stButton"] > button,
       .st-key-top_docs [data-testid="stButton"] > button {
-          height: 50px !important;
-          min-height: 50px !important;
-          white-space: normal !important;
-          line-height: 1.1 !important;
+          width: 100% !important;
+          min-width: 0 !important;
+          max-width: none !important;
+          height: 52px !important;
+          min-height: 52px !important;
+          padding: 0 8px !important;
+          margin: 0 !important;
+          box-sizing: border-box !important;
+          white-space: nowrap !important;
       }
 
       /* Move Explore your data upward — Chatbot page ONLY */
