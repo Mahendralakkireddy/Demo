@@ -21,6 +21,16 @@ SCHEMA = "GOLD"
 WAREHOUSE = "COMPUTE_WH"
 ROLE = "ACCOUNTADMIN"
 
+
+# Custom output instruction: keep Start Date / End Date out of all user-facing results.
+# This instruction is added to the existing Snowflake/Cortex Analyst and Document AI prompts only.
+HIDE_DATE_OUTPUT_INSTRUCTION = (
+    "IMPORTANT OUTPUT RULE: Do not display, include, select, return, or mention Start Date or End Date "
+    "in the final user-facing answer, result table, chart, chart labels, summary, or displayed output. "
+    "These dates may still be used internally for filtering, calculations, or analysis when required, "
+    "but the Start Date and End Date fields/values must not be shown to the user. "
+)
+
 # FULL semantic-model YAML files on Snowflake stages.
 INVENTORY_YAML_STAGE_PATH = (
     '@"INVENTORY_DW_DEMO"."INVENTORY_SCHEMA"."YAML"/INV_ANALYST_DEMO_90_VERIFIED_FIXED_1.yaml'
@@ -1020,10 +1030,12 @@ def get_analyst_headers() -> Dict[str, str]:
 
 
 def call_cortex_analyst(prompt: str) -> Dict[str, Any]:
+    # Add the output rule to the existing Snowflake/Cortex Analyst prompt only.
+    prompt_with_output_rule = prompt + "\n\n" + HIDE_DATE_OUTPUT_INSTRUCTION
     request_body = {
         "messages": [{
             "role": "user",
-            "content": [{"type": "text", "text": prompt}],
+            "content": [{"type": "text", "text": prompt_with_output_rule}],
         }],
         "semantic_models": [
             {"semantic_model_file": INVENTORY_YAML_STAGE_PATH},
@@ -1057,10 +1069,12 @@ def call_cortex_analyst_with_semantic_model(
     semantic_model_yaml: str,
 ) -> Dict[str, Any]:
     """Call Cortex Analyst with an inline, dynamically generated YAML model."""
+    # Add the output rule to the existing uploaded-document/Cortex Analyst prompt only.
+    prompt_with_output_rule = prompt + "\n\n" + HIDE_DATE_OUTPUT_INSTRUCTION
     request_body = {
         "messages": [{
             "role": "user",
-            "content": [{"type": "text", "text": prompt}],
+            "content": [{"type": "text", "text": prompt_with_output_rule}],
         }],
         "semantic_model": semantic_model_yaml,
         "stream": False,
@@ -1299,7 +1313,8 @@ def ai_complete_document_question(question: str) -> str:
         "If multiple passages support the answer, reconcile them and state the relevant section/page when available. "
         "For calculations, show the calculation briefly and use only document values. "
         "Never invent a missing value. Be concise but complete. "
-        "User question: " + question
+        + HIDE_DATE_OUTPUT_INSTRUCTION
+        + "User question: " + question
     )
     # TO_FILE expects the stage reference as a string such as
     # '@"DATABASE"."SCHEMA"."STAGE"'.
