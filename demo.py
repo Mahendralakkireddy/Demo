@@ -1020,14 +1020,6 @@ def get_analyst_headers() -> Dict[str, str]:
 
 
 def call_cortex_analyst(prompt: str) -> Dict[str, Any]:
-    """
-    Call Cortex Analyst with ALL configured semantic models in one request.
-
-    IMPORTANT:
-    Do not fall back to testing Inventory, Sales, and Supply Chain one-by-one.
-    Cortex Analyst must be allowed to select the appropriate semantic model
-    from the complete semantic_models list based on the user's question.
-    """
     request_body = {
         "messages": [{
             "role": "user",
@@ -1041,64 +1033,23 @@ def call_cortex_analyst(prompt: str) -> Dict[str, Any]:
         "stream": False,
     }
 
-    last_error = None
+    response = requests.post(
+        ANALYST_ENDPOINT,
+        headers=get_analyst_headers(),
+        json=request_body,
+        timeout=120,
+    )
 
-    # Retry the SAME multi-model request once if Cortex Analyst returns a
-    # temporary/server-side error. This preserves semantic-model routing.
-    for attempt in range(2):
+    if response.status_code >= 400:
         try:
-            response = requests.post(
-                ANALYST_ENDPOINT,
-                headers=get_analyst_headers(),
-                json=request_body,
-                timeout=120,
-            )
+            details = response.json()
+        except Exception:
+            details = response.text
+        raise RuntimeError(
+            f"Cortex Analyst API error ({response.status_code}): {details}"
+        )
 
-            request_id = response.headers.get("X-Snowflake-Request-Id")
-
-            if response.status_code >= 400:
-                try:
-                    details = response.json()
-                except Exception:
-                    details = response.text
-
-                last_error = RuntimeError(
-                    f"Cortex Analyst API error ({response.status_code})"
-                    + (f" [Request ID: {request_id}]" if request_id else "")
-                    + f": {details}"
-                )
-
-                # Retry only server-side failures. Do not retry a bad request.
-                if response.status_code >= 500 and attempt == 0:
-                    continue
-                raise last_error
-
-            data = response.json()
-
-            # Some API failures can be returned inside a successful HTTP
-            # response. Treat those as failures rather than passing them on.
-            if isinstance(data, dict) and data.get("error_code"):
-                last_error = RuntimeError(
-                    f"Cortex Analyst returned error {data.get('error_code')}"
-                    + (f" [Request ID: {request_id}]" if request_id else "")
-                    + f": {data.get('message', data)}"
-                )
-                if attempt == 0:
-                    continue
-                raise last_error
-
-            if request_id and isinstance(data, dict) and not data.get("request_id"):
-                data["request_id"] = request_id
-
-            return data
-
-        except requests.RequestException as e:
-            last_error = RuntimeError(f"Cortex Analyst request failed: {e}")
-            if attempt == 0:
-                continue
-            raise last_error
-
-    raise last_error or RuntimeError("Cortex Analyst request failed.")
+    return response.json()
 
 
 def call_cortex_analyst_with_semantic_model(
