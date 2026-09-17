@@ -2933,18 +2933,60 @@ def _top_nav():
     <style>
       /* Chatbot page only */
       .st-key-dly_main_header {
-          margin-bottom: -38px !important;
+          margin-bottom: -18px !important;
       }
 
       .st-key-dly_main_header [data-testid="column"] {
           min-height: 20px !important;
       }
 
-      /* Increase Home + Document AI buttons only on Chatbot page */
+      /* ============================================================
+         CHATBOT PAGE ONLY — top navigation positioning
+         Do not change the Home/Login/Document AI page navigation.
+         ============================================================ */
+      .st-key-top_home,
+      .st-key-top_docs {
+          top: 22px !important;
+          transform: none !important;
+          z-index: 10000 !important;
+      }
+
+      /* Keep the buttons separated and prevent the labels from colliding. */
+      .st-key-top_home {
+          right: 195px !important;
+          width: 120px !important;
+      }
+
+      .st-key-top_docs {
+          right: 15px !important;
+          width: 170px !important;
+      }
+
+      .st-key-top_home [data-testid="stButton"],
+      .st-key-top_docs [data-testid="stButton"] {
+          width: 100% !important;
+          min-width: 0 !important;
+          max-width: none !important;
+          margin: 0 !important;
+          padding: 0 !important;
+      }
+
       .st-key-top_home [data-testid="stButton"] > button,
       .st-key-top_docs [data-testid="stButton"] > button {
-          height: 50px !important;
-          min-height: 50px !important;
+          width: 100% !important;
+          min-width: 0 !important;
+          max-width: none !important;
+          height: 52px !important;
+          min-height: 52px !important;
+          padding: 0 8px !important;
+          margin: 0 !important;
+          box-sizing: border-box !important;
+          white-space: nowrap !important;
+      }
+
+      /* Move Explore your data upward — Chatbot page ONLY */
+      .chatbot-explore-title {
+          margin-top: -25px !important;
       }
     </style>
     """, unsafe_allow_html=True)
@@ -4612,7 +4654,10 @@ _top_nav()
 # ==================================================================
 quick_prompt = None
 
-st.markdown("### Explore your data")
+st.markdown(
+    '<div class="chatbot-explore-title"><h3>Explore your data</h3></div>',
+    unsafe_allow_html=True,
+)
 st.caption("Choose a question below or type your own question in the chat.")
 
 tab_inv, tab_sales, tab_supply = st.tabs(
