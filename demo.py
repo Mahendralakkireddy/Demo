@@ -4914,13 +4914,7 @@ with tab_supply:
         ):
             quick_prompt = "What is the total number of purchase orders?"
 
-        if st.button(
-            "What is the total purchase order value?",
-            use_container_width=True,
-            key="sc2",
-        ):
-            quick_prompt = "What is the total purchase order value?"
-
+        
         if st.button(
             "How many shipments are there?",
             use_container_width=True,
