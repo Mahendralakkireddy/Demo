@@ -1105,15 +1105,18 @@ def _new_chat_session(module: str):
 
 
 def call_cortex_analyst(prompt: str, selected_module: str) -> Dict[str, Any]:
-    """Call Cortex Analyst using ONLY the YAML for the selected intelligence."""
+    """Call Cortex Analyst with ONLY the semantic model for the selected module.
+
+    Important: do not send Inventory + Sales + Supply Chain together.  The
+    selected module is the routing source of truth.
+    """
     if selected_module not in MODULE_CONFIG:
         raise RuntimeError("No valid intelligence module is selected.")
 
-    prompt_with_output_rule = prompt + "\n\n" + HIDE_DATE_OUTPUT_INSTRUCTION
     request_body = {
         "messages": [{
             "role": "user",
-            "content": [{"type": "text", "text": prompt_with_output_rule}],
+            "content": [{"type": "text", "text": str(prompt).strip()}],
         }],
         "semantic_models": [
             {"semantic_model_file": MODULE_CONFIG[selected_module]["yaml"]}
@@ -1137,7 +1140,26 @@ def call_cortex_analyst(prompt: str, selected_module: str) -> Dict[str, Any]:
             f"Cortex Analyst API error ({response.status_code}): {details}"
         )
 
-    return response.json()
+    try:
+        data = response.json()
+    except ValueError as exc:
+        raise RuntimeError(
+            f"Cortex Analyst returned a non-JSON response: {response.text[:500]}"
+        ) from exc
+
+    if not isinstance(data, dict):
+        raise RuntimeError(
+            f"Unexpected Cortex Analyst response type: {type(data).__name__}"
+        )
+
+    # Cortex can sometimes return an application-level error in a 200 response.
+    if data.get("error_code"):
+        raise RuntimeError(
+            f"Cortex Analyst returned error {data.get('error_code')}: "
+            f"{data.get('message') or data}"
+        )
+
+    return data
 
 
 def call_cortex_analyst_with_semantic_model(
@@ -1145,7 +1167,7 @@ def call_cortex_analyst_with_semantic_model(
     semantic_model_yaml: str,
 ) -> Dict[str, Any]:
     """Call Cortex Analyst with an inline, dynamically generated YAML model."""
-    # Add the output rule to the existing uploaded-document/Cortex Analyst prompt only.
+    # Preserve the existing uploaded-document output behavior.
     prompt_with_output_rule = prompt + "\n\n" + HIDE_DATE_OUTPUT_INSTRUCTION
     request_body = {
         "messages": [{
@@ -1182,6 +1204,14 @@ def call_cortex_analyst_with_semantic_model(
 
 
 def extract_analyst_response(data: Dict[str, Any]) -> Dict[str, Any]:
+    """Normalize the Cortex Analyst response without assuming metadata types.
+
+    In particular, verified_query_used can be a string in some responses and
+    a dictionary in others.  Never call .get() on it unless it is a dictionary.
+    """
+    if not isinstance(data, dict):
+        raise RuntimeError("Invalid Cortex Analyst response: expected an object.")
+
     result = {
         "text": "",
         "sql": None,
@@ -1191,19 +1221,28 @@ def extract_analyst_response(data: Dict[str, Any]) -> Dict[str, Any]:
         "request_id": data.get("request_id"),
     }
 
-    message = data.get("message", {})
-    content = message.get("content", [])
+    message = data.get("message") or {}
+    if not isinstance(message, dict):
+        message = {}
+
+    content = message.get("content", []) or []
     if isinstance(content, dict):
         content = [content]
+    if not isinstance(content, list):
+        content = []
 
     text_parts = []
 
     for block in content:
+        if not isinstance(block, dict):
+            continue
+
         block_type = block.get("type")
 
         if block_type == "text":
-            if block.get("text"):
-                text_parts.append(block["text"])
+            text = block.get("text")
+            if text:
+                text_parts.append(str(text).strip())
 
         elif block_type == "sql":
             result["sql"] = (
@@ -1211,14 +1250,15 @@ def extract_analyst_response(data: Dict[str, Any]) -> Dict[str, Any]:
                 or block.get("sql")
                 or block.get("query")
             )
-            confidence = block.get("confidence", {})
+
+            confidence = block.get("confidence")
             if isinstance(confidence, dict):
-                result["verified_query_used"] = confidence.get(
-                    "verified_query_used"
-                )
+                verified = confidence.get("verified_query_used")
+                if isinstance(verified, (dict, str)):
+                    result["verified_query_used"] = verified
 
         elif block_type == "suggestions":
-            suggestions = block.get("suggestions", [])
+            suggestions = block.get("suggestions", []) or []
             if isinstance(suggestions, list):
                 text_parts.append(
                     "I could not generate SQL for this question. "
@@ -1228,12 +1268,23 @@ def extract_analyst_response(data: Dict[str, Any]) -> Dict[str, Any]:
             elif suggestions:
                 text_parts.append(str(suggestions))
 
-    result["text"] = "\n\n".join(text_parts).strip()
+    result["text"] = "\n\n".join(x for x in text_parts if x).strip()
 
+    # Some response variants put the statement directly on message.
     if not result["sql"]:
-        result["sql"] = message.get("statement")
+        statement = message.get("statement")
+        if statement:
+            result["sql"] = statement
+
+    # We send exactly one semantic model, so if Cortex does not echo its
+    # selection metadata, keep the selected module as the displayed source.
+    if not result["semantic_model_selection"]:
+        result["semantic_model_selection"] = MODULE_CONFIG.get(
+            st.session_state.get("selected_module"), {}
+        ).get("name")
 
     return result
+
 
 # ===================================================================
 # 2A. UPLOADED DOCUMENT ANALYSIS (ADDED - ORIGINAL CORTEX ANALYST
@@ -4908,54 +4959,60 @@ with tab_sales:
 with tab_supply:
     with st.expander("What can I ask about Supply Chain?", expanded=False):
         if st.button(
-            "what is the total purchase order count?",
+            "What is the total number of purchase orders?",
             use_container_width=True,
             key="sc1",
         ):
-            quick_prompt = "what is the total purchase order count?"
+            quick_prompt = "What is the total number of purchase orders?"
 
-        
         if st.button(
-            "how many shipments are currently in transit?",
+            "What is the total purchase order value?",
+            use_container_width=True,
+            key="sc2",
+        ):
+            quick_prompt = "What is the total purchase order value?"
+
+        if st.button(
+            "How many shipments are there?",
             use_container_width=True,
             key="sc3",
         ):
-            quick_prompt = "how many shipments are currently in transit?"
+            quick_prompt = "How many shipments are there?"
 
         if st.button(
-            "which suppliers are high risk?",
+            "What is the average shipment lead time?",
             use_container_width=True,
             key="sc4",
         ):
-            quick_prompt = "which suppliers are high risk?"
+            quick_prompt = "What is the average shipment lead time?"
 
         if st.button(
-            "what are the top products by ordered value?",
+            "How many shipments are delayed?",
             use_container_width=True,
             key="sc5",
         ):
-            quick_prompt = "what are the top products by ordered value?"
+            quick_prompt = "How many shipments are delayed?"
 
         if st.button(
-            "what is the supplier on-time delivery percentage?",
+            "Which suppliers have the highest purchase order value?",
             use_container_width=True,
             key="sc6",
         ):
-            quick_prompt = "what is the supplier on-time delivery percentage?"
+            quick_prompt = "Which suppliers have the highest purchase order value?"
 
         if st.button(
-            "What is the average transit time by shipping mode?",
+            "What are shipments by month?",
             use_container_width=True,
             key="sc7",
         ):
-            quick_prompt = "What is the average transit time by shipping mode?"
+            quick_prompt = "What are shipments by month?"
 
         if st.button(
-            "What is total shipment freight cost by warehouse?",
+            "What is the on-time delivery performance?",
             use_container_width=True,
             key="sc8",
         ):
-            quick_prompt = "What is total shipment freight cost by warehouse?"
+            quick_prompt = "What is the on-time delivery performance?"
 
 
 st.markdown("---")
@@ -5226,7 +5283,10 @@ if user_prompt:
                     )
 
                 if verified_query:
-                    name = verified_query.get("name")
+                    if isinstance(verified_query, dict):
+                        name = verified_query.get("name") or verified_query.get("query_name")
+                    else:
+                        name = str(verified_query)
                     if name:
                         st.caption(f"Verified Query Used: `{name}`")
 
