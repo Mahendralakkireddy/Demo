@@ -1019,95 +1019,16 @@ def get_analyst_headers() -> Dict[str, str]:
     }
 
 
-def _post_cortex_analyst_request(request_body: Dict[str, Any]) -> Dict[str, Any]:
-    """Send a Cortex Analyst request and preserve useful error/request-id details."""
-    response = requests.post(
-        ANALYST_ENDPOINT,
-        headers=get_analyst_headers(),
-        json=request_body,
-        timeout=120,
-    )
-
-    request_id = (
-        response.headers.get("X-Snowflake-Request-Id")
-        or response.headers.get("x-snowflake-request-id")
-    )
-
-    try:
-        data = response.json()
-    except Exception:
-        data = None
-
-    if response.status_code >= 400:
-        details = data if data is not None else response.text
-        raise RuntimeError(
-            f"Cortex Analyst API error ({response.status_code})"
-            + (f" [Request ID: {request_id}]" if request_id else "")
-            + f": {details}"
-        )
-
-    if not isinstance(data, dict):
-        raise RuntimeError(
-            "Cortex Analyst returned an unexpected response format"
-            + (f" [Request ID: {request_id}]" if request_id else "")
-        )
-
-    # Cortex Analyst can return an error object even when the HTTP response
-    # itself is successful.
-    if data.get("error_code"):
-        raise RuntimeError(
-            f"Cortex Analyst returned error {data.get('error_code')}"
-            + (f" [Request ID: {request_id}]" if request_id else "")
-            + f": {data.get('message', data)}"
-        )
-
-    # Keep the HTTP request id available for diagnostics.
-    if request_id and not data.get("request_id"):
-        data["request_id"] = request_id
-
-    return data
-
-
-def _analyst_response_has_sql(data: Dict[str, Any]) -> bool:
-    """Return True when Cortex Analyst produced a SQL statement."""
-    message = data.get("message") or {}
-    content = message.get("content", [])
-
-    if isinstance(content, dict):
-        content = [content]
-
-    if not isinstance(content, list):
-        return False
-
-    for block in content:
-        if not isinstance(block, dict):
-            continue
-        if block.get("type") == "sql":
-            statement = (
-                block.get("statement")
-                or block.get("sql")
-                or block.get("query")
-            )
-            if statement:
-                return True
-
-    return bool(message.get("statement"))
-
-
 def call_cortex_analyst(prompt: str) -> Dict[str, Any]:
     """
-    Call Cortex Analyst using the original multi-model request.
+    Call Cortex Analyst with ALL configured semantic models in one request.
 
-    If the multi-model request fails with a server/API error, automatically
-    retry the same question against each semantic model separately. This
-    preserves the original working architecture while making the chatbot
-    resilient when multi-model selection temporarily fails.
+    IMPORTANT:
+    Do not fall back to testing Inventory, Sales, and Supply Chain one-by-one.
+    Cortex Analyst must be allowed to select the appropriate semantic model
+    from the complete semantic_models list based on the user's question.
     """
-
-    # ------------------------------------------------------------------
-    # 1. ORIGINAL WORKING REQUEST: all three semantic models.
-    # ------------------------------------------------------------------
-    multi_model_body = {
+    request_body = {
         "messages": [{
             "role": "user",
             "content": [{"type": "text", "text": prompt}],
@@ -1120,60 +1041,64 @@ def call_cortex_analyst(prompt: str) -> Dict[str, Any]:
         "stream": False,
     }
 
-    try:
-        return _post_cortex_analyst_request(multi_model_body)
+    last_error = None
 
-    except Exception as multi_error:
-        # ------------------------------------------------------------------
-        # 2. FALLBACK: try each known-good semantic model individually.
-        #    This is especially useful for HTTP 500 / 370001 responses.
-        # ------------------------------------------------------------------
-        individual_models = [
-            ("Inventory", INVENTORY_YAML_STAGE_PATH),
-            ("Sales", SALES_YAML_STAGE_PATH),
-            ("Supply Chain", SUPPLY_CHAIN_YAML_STAGE_PATH),
-        ]
+    # Retry the SAME multi-model request once if Cortex Analyst returns a
+    # temporary/server-side error. This preserves semantic-model routing.
+    for attempt in range(2):
+        try:
+            response = requests.post(
+                ANALYST_ENDPOINT,
+                headers=get_analyst_headers(),
+                json=request_body,
+                timeout=120,
+            )
 
-        successful_responses = []
-        fallback_errors = []
+            request_id = response.headers.get("X-Snowflake-Request-Id")
 
-        for model_name, model_path in individual_models:
-            single_model_body = {
-                "messages": [{
-                    "role": "user",
-                    "content": [{"type": "text", "text": prompt}],
-                }],
-                "semantic_models": [
-                    {"semantic_model_file": model_path}
-                ],
-                "stream": False,
-            }
+            if response.status_code >= 400:
+                try:
+                    details = response.json()
+                except Exception:
+                    details = response.text
 
-            try:
-                result = _post_cortex_analyst_request(single_model_body)
-
-                # Prefer a response that actually contains SQL.
-                if _analyst_response_has_sql(result):
-                    return result
-
-                successful_responses.append((model_name, result))
-
-            except Exception as model_error:
-                fallback_errors.append(
-                    f"{model_name}: {model_error}"
+                last_error = RuntimeError(
+                    f"Cortex Analyst API error ({response.status_code})"
+                    + (f" [Request ID: {request_id}]" if request_id else "")
+                    + f": {details}"
                 )
 
-        # If at least one individual call succeeded, return its response so
-        # the existing extract_analyst_response() logic can handle it.
-        if successful_responses:
-            return successful_responses[0][1]
+                # Retry only server-side failures. Do not retry a bad request.
+                if response.status_code >= 500 and attempt == 0:
+                    continue
+                raise last_error
 
-        # Nothing worked: expose the original failure plus fallback details.
-        fallback_detail = "; ".join(fallback_errors)
-        raise RuntimeError(
-            f"Original multi-model Cortex Analyst request failed: {multi_error}. "
-            f"Individual semantic-model retries also failed: {fallback_detail}"
-        )
+            data = response.json()
+
+            # Some API failures can be returned inside a successful HTTP
+            # response. Treat those as failures rather than passing them on.
+            if isinstance(data, dict) and data.get("error_code"):
+                last_error = RuntimeError(
+                    f"Cortex Analyst returned error {data.get('error_code')}"
+                    + (f" [Request ID: {request_id}]" if request_id else "")
+                    + f": {data.get('message', data)}"
+                )
+                if attempt == 0:
+                    continue
+                raise last_error
+
+            if request_id and isinstance(data, dict) and not data.get("request_id"):
+                data["request_id"] = request_id
+
+            return data
+
+        except requests.RequestException as e:
+            last_error = RuntimeError(f"Cortex Analyst request failed: {e}")
+            if attempt == 0:
+                continue
+            raise last_error
+
+    raise last_error or RuntimeError("Cortex Analyst request failed.")
 
 
 def call_cortex_analyst_with_semantic_model(
