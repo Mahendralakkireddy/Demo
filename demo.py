@@ -4908,54 +4908,54 @@ with tab_sales:
 with tab_supply:
     with st.expander("What can I ask about Supply Chain?", expanded=False):
         if st.button(
-            "What is the total number of purchase orders?",
+            "what is the total purchase order count?",
             use_container_width=True,
             key="sc1",
         ):
-            quick_prompt = "What is the total number of purchase orders?"
+            quick_prompt = "what is the total purchase order count?"
 
         
         if st.button(
-            "How many shipments are there?",
+            "how many shipments are currently in transit?",
             use_container_width=True,
             key="sc3",
         ):
-            quick_prompt = "How many shipments are there?"
+            quick_prompt = "how many shipments are currently in transit?"
 
         if st.button(
-            "What is the average shipment lead time?",
+            "which suppliers are high risk?",
             use_container_width=True,
             key="sc4",
         ):
-            quick_prompt = "What is the average shipment lead time?"
+            quick_prompt = "which suppliers are high risk?"
 
         if st.button(
-            "How many shipments are delayed?",
+            "what are the top products by ordered value?",
             use_container_width=True,
             key="sc5",
         ):
-            quick_prompt = "How many shipments are delayed?"
+            quick_prompt = "what are the top products by ordered value?"
 
         if st.button(
-            "Which suppliers have the highest purchase order value?",
+            "what is the supplier on-time delivery percentage?",
             use_container_width=True,
             key="sc6",
         ):
-            quick_prompt = "Which suppliers have the highest purchase order value?"
+            quick_prompt = "what is the supplier on-time delivery percentage?"
 
         if st.button(
-            "What are shipments by month?",
+            "What is the average transit time by shipping mode?",
             use_container_width=True,
             key="sc7",
         ):
-            quick_prompt = "What are shipments by month?"
+            quick_prompt = "What is the average transit time by shipping mode?"
 
         if st.button(
-            "What is the on-time delivery performance?",
+            "What is total shipment freight cost by warehouse?",
             use_container_width=True,
             key="sc8",
         ):
-            quick_prompt = "What is the on-time delivery performance?"
+            quick_prompt = "What is total shipment freight cost by warehouse?"
 
 
 st.markdown("---")
