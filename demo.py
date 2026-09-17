@@ -1027,7 +1027,7 @@ def call_cortex_analyst(prompt: str) -> Dict[str, Any]:
         }],
         "semantic_models": [
        
-            {"semantic_model_file": INVENTORY_YAML_STAGE_PATH}
+            {"semantic_model_file": SUPPLY_CHAIN_YAML_STAGE_PATH}
             
         ],
         "stream": False,
