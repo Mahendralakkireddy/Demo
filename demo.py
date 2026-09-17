@@ -25,8 +25,8 @@ from typing import Dict, Any, List
 # ---------------------------------------------------------------
 # Reuse your existing config. These must match your main app.
 # ---------------------------------------------------------------
-INVENTORY_YAML_STAGE_PATH = (
-    '@"INVENTORY_DW_DEMO"."INVENTORY_SCHEMA"."YAML"/INV_ANALYST_DEMO_90_VERIFIED_FIXED_1.yaml'
+INVENTORY_YAML_STAGE_PATH = ( '@"INVENTORY_DW_DEMO"."INVENTORY_SCHEMA"."YAML"/INV_ANALYST_DEMO_90_VERIFIED_FIXED_1.yaml'
+    
 )
 SALES_YAML_STAGE_PATH = (
     '@"CORTEX_DEMO"."CORTEX_SCHEMA"."YAML"/sales_intelligence_model_80_queries_fixed_FINAL.yaml'
