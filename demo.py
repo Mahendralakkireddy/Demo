@@ -5406,9 +5406,12 @@ if user_prompt:
         try:
             # IMPORTANT:
             # Always give the selected module's Cortex Analyst the user's original
-            # question FIRST. This is critical for Verified Query Repository (VQR)
-            # matching. A local keyword classifier must never block an exact/near
-            # verified query before Cortex Analyst gets a chance to use it.
+            # question unchanged.
+            #
+            # Cortex Analyst must perform the semantic interpretation against the
+            # selected YAML, including Verified Query Repository matching, tables,
+            # dimensions, metrics, relationships/joins, synonyms, and other
+            # semantic definitions. Python must NOT decide the module from keywords.
             #
             # Example:
             # "Which active products are below their reorder point, and which
@@ -5424,18 +5427,17 @@ if user_prompt:
             semantic_model = result["semantic_model_selection"]
             verified_query = result["verified_query_used"]
 
-            # Only use the local module classifier when Cortex Analyst could NOT
-            # generate SQL. This preserves the selected-module boundary without
-            # incorrectly blocking valid VQR questions.
-            other_module = None
-            if not sql_query:
-                other_module = _detect_other_module(user_prompt, selected_module)
-                if other_module:
-                    explanation = _module_mismatch_message(
-                        selected_module, other_module
-                    )
-                    st.info(explanation)
-
+            # DO NOT classify the user's question using Python keywords.
+            # Cortex Analyst is the authority for interpreting the question
+            # against the selected module's YAML. The selected module's YAML is
+            # the only semantic model sent to Cortex Analyst, so questions must
+            # be accepted/rejected based on what Cortex Analyst can answer from
+            # that YAML—not on words such as "supplier", "warehouse", "product",
+            # "order", etc.
+            #
+            # If Cortex Analyst generates SQL, execute it.
+            # If Cortex Analyst does not generate SQL, show its response/suggested
+            # questions. Do not guess another module in Python.
             for warning in result["warnings"]:
                 warning_text = (
                     warning.get("message", str(warning))
