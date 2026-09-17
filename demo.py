@@ -397,7 +397,7 @@ button[aria-label*="Expand sidebar"] {
 
 /* Dataframes */
 [data-testid="stDataFrame"] {
-    border-radius:12px; overflow:hidden;
+    border-radius:12px; overflow:visible;
 }
 
 /* Remove excess Streamlit decoration */
