@@ -248,6 +248,7 @@ section[data-testid="stSidebar"] [class*="st-key-pin_"] button p {
     align-items:center;
     justify-content:flex-start;
     padding:8px 8px 10px 8px;
+    margin-top:-55px !important;
     margin-bottom:2px;
 }
 .dly-sidebar-brand-logo {
@@ -578,7 +579,7 @@ def _login_page():
       }
 
       .login-logo{
-          display:inline-flex;
+          display:none !important;
           width:max-content;
           background:#e51f2b;
           color:#fff;
@@ -596,7 +597,7 @@ def _login_page():
           letter-spacing:2px;
           text-transform:uppercase;
           font-size:.78rem;
-          margin-top:38px;
+          margin-top:0;
       }
 
       .login-title{
@@ -752,6 +753,113 @@ def _login_page():
           margin-top:14px;
       }
 
+      /* Sign-in button — blue background */
+      .st-key-login_submit button {
+          background:#1769d2 !important;
+          background-color:#1769d2 !important;
+          border:1px solid #1769d2 !important;
+          color:#ffffff !important;
+          font-weight:700 !important;
+      }
+
+      .st-key-login_submit button:hover {
+          background:#0b3f8f !important;
+          background-color:#0b3f8f !important;
+          border-color:#0b3f8f !important;
+          color:#ffffff !important;
+      }
+
+      /* ================================================================
+         GLOBAL TOP NAV FOR LOGIN PAGE
+         Match the Home-page Home / Document AI buttons exactly.
+         Width, height, spacing, icons and visual treatment are kept
+         identical to the final Home-page navigation.
+         ================================================================ */
+      .st-key-top_home,
+      .st-key-top_docs {
+          position:absolute !important;
+          top:48px !important;
+          z-index:10000 !important;
+          margin:0 !important;
+          padding:0 !important;
+          margin-top: -45px !important;
+      }
+
+      .st-key-top_home {
+          right:195px !important;
+          width:120px !important;
+      }
+
+      .st-key-top_docs {
+          right:15px !important;
+          width:170px !important;
+      }
+
+      .st-key-top_home [data-testid="stButton"],
+      .st-key-top_docs [data-testid="stButton"] {
+          width:100% !important;
+          min-width:0 !important;
+          max-width:none !important;
+          margin:0 !important;
+          padding:0 !important;
+      }
+
+      .st-key-top_home [data-testid="stButton"] > button,
+      .st-key-top_docs [data-testid="stButton"] > button {
+          width:100% !important;
+          min-width:0 !important;
+          max-width:none !important;
+          height:52px !important;
+          min-height:52px !important;
+          padding:0 8px !important;
+          margin:0 !important;
+          border-radius:8px !important;
+          font-size:.76rem !important;
+          font-weight:700 !important;
+          white-space:nowrap !important;
+          display:flex !important;
+          align-items:center !important;
+          justify-content:center !important;
+          box-sizing:border-box !important;
+          background:#ffffff !important;
+          border:1px solid #dfe4eb !important;
+          color:#171717 !important;
+          box-shadow:0 2px 8px rgba(21,43,70,.055), inset 0 1px 0 rgba(255,255,255,.98) !important;
+      }
+
+      .st-key-top_home [data-testid="stButton"] > button:hover,
+      .st-key-top_docs [data-testid="stButton"] > button:hover {
+          background:#fbfcfe !important;
+          border-color:#cfd8e3 !important;
+          transform:translateY(-1px) !important;
+          box-shadow:0 6px 14px rgba(21,43,70,.10), inset 0 1px 0 rgba(255,255,255,.98) !important;
+      }
+
+      .st-key-top_home [data-testid="stButton"] > button::before,
+      .st-key-top_docs [data-testid="stButton"] > button::before {
+          display:inline-flex !important;
+          align-items:center !important;
+          justify-content:center !important;
+          width:29px !important;
+          height:29px !important;
+          flex:0 0 29px !important;
+          margin-right:7px !important;
+          border-radius:6px !important;
+          background:#f5f7fa !important;
+          color:#111827 !important;
+          box-shadow:inset 0 0 0 1px #e5e9ee !important;
+      }
+
+      .st-key-top_home [data-testid="stButton"] > button::before {
+          content:"⌂" !important;
+          font-size:19px !important;
+      }
+
+      .st-key-top_docs [data-testid="stButton"] > button::before {
+          content:"▣" !important;
+          font-size:17px !important;
+      }
+
       @keyframes robotFloat{50%{transform:translateY(-10px)}}
       @keyframes orbitPulse{50%{transform:scale(1.025)}}
       @keyframes floatCard{50%{transform:translateY(-10px)}}
@@ -826,7 +934,7 @@ def _login_page():
                 <div class="login-form-badge">
                   🟢 Secure workspace access
                 </div>
-                <div class="login-form-title">Sign in to Dilytics</div>
+                <div class="login-form-title">Sign in to AI analytics</div>
                 <div class="login-form-sub">
                   Connect securely to your enterprise intelligence workspace.
                 </div>
@@ -848,7 +956,7 @@ def _login_page():
             )
 
             login_clicked = st.button(
-                "Sign in to Dilytics",
+                "Sign in to AI analytics",
                 use_container_width=True,
                 type="primary",
                 key="login_submit",
@@ -911,8 +1019,95 @@ def get_analyst_headers() -> Dict[str, str]:
     }
 
 
+def _post_cortex_analyst_request(request_body: Dict[str, Any]) -> Dict[str, Any]:
+    """Send a Cortex Analyst request and preserve useful error/request-id details."""
+    response = requests.post(
+        ANALYST_ENDPOINT,
+        headers=get_analyst_headers(),
+        json=request_body,
+        timeout=120,
+    )
+
+    request_id = (
+        response.headers.get("X-Snowflake-Request-Id")
+        or response.headers.get("x-snowflake-request-id")
+    )
+
+    try:
+        data = response.json()
+    except Exception:
+        data = None
+
+    if response.status_code >= 400:
+        details = data if data is not None else response.text
+        raise RuntimeError(
+            f"Cortex Analyst API error ({response.status_code})"
+            + (f" [Request ID: {request_id}]" if request_id else "")
+            + f": {details}"
+        )
+
+    if not isinstance(data, dict):
+        raise RuntimeError(
+            "Cortex Analyst returned an unexpected response format"
+            + (f" [Request ID: {request_id}]" if request_id else "")
+        )
+
+    # Cortex Analyst can return an error object even when the HTTP response
+    # itself is successful.
+    if data.get("error_code"):
+        raise RuntimeError(
+            f"Cortex Analyst returned error {data.get('error_code')}"
+            + (f" [Request ID: {request_id}]" if request_id else "")
+            + f": {data.get('message', data)}"
+        )
+
+    # Keep the HTTP request id available for diagnostics.
+    if request_id and not data.get("request_id"):
+        data["request_id"] = request_id
+
+    return data
+
+
+def _analyst_response_has_sql(data: Dict[str, Any]) -> bool:
+    """Return True when Cortex Analyst produced a SQL statement."""
+    message = data.get("message") or {}
+    content = message.get("content", [])
+
+    if isinstance(content, dict):
+        content = [content]
+
+    if not isinstance(content, list):
+        return False
+
+    for block in content:
+        if not isinstance(block, dict):
+            continue
+        if block.get("type") == "sql":
+            statement = (
+                block.get("statement")
+                or block.get("sql")
+                or block.get("query")
+            )
+            if statement:
+                return True
+
+    return bool(message.get("statement"))
+
+
 def call_cortex_analyst(prompt: str) -> Dict[str, Any]:
-    request_body = {
+    """
+    Call Cortex Analyst using the original multi-model request.
+
+    If the multi-model request fails with a server/API error, automatically
+    retry the same question against each semantic model separately. This
+    preserves the original working architecture while making the chatbot
+    resilient when multi-model selection temporarily fails.
+    """
+
+    # ------------------------------------------------------------------
+    # 1. ORIGINAL WORKING REQUEST: all three semantic models.
+    # ------------------------------------------------------------------
+    multi_model_body = {
         "messages": [{
             "role": "user",
             "content": [{"type": "text", "text": prompt}],
@@ -925,23 +1120,60 @@ def call_cortex_analyst(prompt: str) -> Dict[str, Any]:
         "stream": False,
     }
 
-    response = requests.post(
-        ANALYST_ENDPOINT,
-        headers=get_analyst_headers(),
-        json=request_body,
-        timeout=120,
-    )
+    try:
+        return _post_cortex_analyst_request(multi_model_body)
 
-    if response.status_code >= 400:
-        try:
-            details = response.json()
-        except Exception:
-            details = response.text
+    except Exception as multi_error:
+        # ------------------------------------------------------------------
+        # 2. FALLBACK: try each known-good semantic model individually.
+        #    This is especially useful for HTTP 500 / 370001 responses.
+        # ------------------------------------------------------------------
+        individual_models = [
+            ("Inventory", INVENTORY_YAML_STAGE_PATH),
+            ("Sales", SALES_YAML_STAGE_PATH),
+            ("Supply Chain", SUPPLY_CHAIN_YAML_STAGE_PATH),
+        ]
+
+        successful_responses = []
+        fallback_errors = []
+
+        for model_name, model_path in individual_models:
+            single_model_body = {
+                "messages": [{
+                    "role": "user",
+                    "content": [{"type": "text", "text": prompt}],
+                }],
+                "semantic_model": {
+                    "semantic_model_file": model_path
+                },
+                "stream": False,
+            }
+
+            try:
+                result = _post_cortex_analyst_request(single_model_body)
+
+                # Prefer a response that actually contains SQL.
+                if _analyst_response_has_sql(result):
+                    return result
+
+                successful_responses.append((model_name, result))
+
+            except Exception as model_error:
+                fallback_errors.append(
+                    f"{model_name}: {model_error}"
+                )
+
+        # If at least one individual call succeeded, return its response so
+        # the existing extract_analyst_response() logic can handle it.
+        if successful_responses:
+            return successful_responses[0][1]
+
+        # Nothing worked: expose the original failure plus fallback details.
+        fallback_detail = "; ".join(fallback_errors)
         raise RuntimeError(
-            f"Cortex Analyst API error ({response.status_code}): {details}"
+            f"Original multi-model Cortex Analyst request failed: {multi_error}. "
+            f"Individual semantic-model retries also failed: {fallback_detail}"
         )
-
-    return response.json()
 
 
 def call_cortex_analyst_with_semantic_model(
@@ -2487,7 +2719,7 @@ def _top_nav():
       .st-key-top_home {
           display: flex !important;
           position: absolute !important;
-          top: -40px !important;
+          top: -100px !important;
           right: 185px !important;
           width: 100px !important;
           z-index: 10000 !important;
@@ -2496,7 +2728,7 @@ def _top_nav():
       .st-key-top_docs {
           display: flex !important;
           position: absolute !important;
-          top: -40px !important;
+          top: -100px !important;
           right: 15px !important;
           width: 155px !important;
           z-index: 10000 !important;
@@ -2518,6 +2750,7 @@ def _top_nav():
           max-width: 100% !important;
           min-width: 0 !important;
           box-sizing: border-box !important;
+          margin-top: -45px !important;
       }
 
       .st-key-top_home [data-testid="stButton"] > button,
@@ -2525,6 +2758,7 @@ def _top_nav():
       .st-key-top_about [data-testid="stButton"] > button {
           height: 56px !important;
           min-height: 56px !important;
+          margin-top: -45px !important;
 
           padding: 0 8px !important;
           margin: 0 !important;
@@ -2716,8 +2950,8 @@ def _top_nav():
           .st-key-top_home [data-testid="stButton"] > button,
           .st-key-top_docs [data-testid="stButton"] > button,
           .st-key-top_about [data-testid="stButton"] > button {
-              height: 44px !important;
-              min-height: 44px !important;
+              height: 52px !important;
+              min-height: 52px !important;
               padding: 0 8px !important;
               font-size: .72rem !important;
           }
@@ -2746,8 +2980,8 @@ def _top_nav():
           .st-key-top_home [data-testid="stButton"] > button,
           .st-key-top_docs [data-testid="stButton"] > button,
           .st-key-top_about [data-testid="stButton"] > button {
-              height: 48px !important;
-              min-height: 48px !important;
+              height: 52px !important;
+              min-height: 52px !important;
               padding: 0 10px !important;
               font-size: .80rem !important;
           font-weight: 800 !important;
@@ -2798,8 +3032,8 @@ def _top_nav():
           .st-key-top_home [data-testid="stButton"] > button,
           .st-key-top_docs [data-testid="stButton"] > button,
           .st-key-top_about [data-testid="stButton"] > button {
-              height: 44px !important;
-              min-height: 44px !important;
+              height: 52px !important;
+              min-height: 52px !important;
               border-radius: 9px !important;
               padding: 0 6px !important;
               font-size: .64rem !important;
@@ -2820,18 +3054,66 @@ def _top_nav():
 
     if is_chatbot_page:
         st.markdown("""
-        <style>
-          /* Chatbot landing page only: remove the empty header space left by
-             the main-area logo and move Explore your data upward. */
-          .st-key-dly_main_header {
-              margin-bottom: -38px !important;
-          }
-          .st-key-dly_main_header [data-testid="column"] {
-              min-height: 24px !important;
-          }
-        </style>
-        """, unsafe_allow_html=True)
+    <style>
+      /* Chatbot page only */
+      .st-key-dly_main_header {
+          margin-bottom: -18px !important;
+      }
 
+      .st-key-dly_main_header [data-testid="column"] {
+          min-height: 20px !important;
+      }
+
+      /* ============================================================
+         CHATBOT PAGE ONLY — top navigation positioning
+         Do not change the Home/Login/Document AI page navigation.
+         ============================================================ */
+      .st-key-top_home,
+      .st-key-top_docs {
+          top: 22px !important;
+          transform: none !important;
+          z-index: 10000 !important;
+      }
+
+      /* Keep the buttons separated and prevent the labels from colliding. */
+      .st-key-top_home {
+          right: 195px !important;
+          width: 120px !important;
+      }
+
+      .st-key-top_docs {
+          right: 15px !important;
+          width: 170px !important;
+      }
+
+      .st-key-top_home [data-testid="stButton"],
+      .st-key-top_docs [data-testid="stButton"] {
+          width: 100% !important;
+          min-width: 0 !important;
+          max-width: none !important;
+          margin: 0 !important;
+          padding: 0 !important;
+      }
+
+      .st-key-top_home [data-testid="stButton"] > button,
+      .st-key-top_docs [data-testid="stButton"] > button {
+          width: 100% !important;
+          min-width: 0 !important;
+          max-width: none !important;
+          height: 52px !important;
+          min-height: 52px !important;
+          padding: 0 8px !important;
+          margin: 0 !important;
+          box-sizing: border-box !important;
+          white-space: nowrap !important;
+      }
+
+      /* Move Explore your data upward — Chatbot page ONLY */
+      .chatbot-explore-title {
+          margin-top: -25px !important;
+      }
+    </style>
+    """, unsafe_allow_html=True)
     with st.container(key="dly_main_header"):
         # The right area is intentionally narrow enough that the buttons
         # stay together, just like the reference image.
@@ -3054,8 +3336,8 @@ def _about_page():
           width: 98px !important;
           max-width: 98px !important;
           min-width: 98px !important;
-          height: 34px !important;
-          min-height: 34px !important;
+          height: 52px !important;
+          min-height: 52px !important;
           padding: 0 4px !important;
           font-size: .68rem !important;
           border-radius: 7px !important;
@@ -3842,8 +4124,8 @@ def _home_page():
           width: auto !important;
           min-width: 58px !important;
           max-width: 88px !important;
-          height: 27px !important;
-          min-height: 27px !important;
+          height: 52px !important;
+          min-height: 52px !important;
           padding: 0 6px !important;
           margin: 0 !important;
           border-radius: 6px !important;
@@ -3870,14 +4152,14 @@ def _home_page():
       .st-key-top_home,
       .st-key-top_docs {
           position: absolute !important;
-          top: 48px !important;
+          top: 20px !important;
           z-index: 10000 !important;
           margin: 0 !important;
           padding: 0 !important;
       }
 
       .st-key-top_home {
-          right: 185px !important;
+          right: 195px !important;
           width: 120px !important;
       }
 
@@ -3900,8 +4182,8 @@ def _home_page():
           width: 100% !important;
           min-width: 0 !important;
           max-width: none !important;
-          height: 38px !important;
-          min-height: 38px !important;
+          height: 52px !important;
+          min-height: 52px !important;
           padding: 0 8px !important;
           margin: 0 !important;
           border-radius: 8px !important;
@@ -3939,6 +4221,13 @@ def _home_page():
           font-size: 17px !important;
       }
 
+      /* GLOBAL NAV SIZE — identical Home / Document AI button height on every page. */
+      .st-key-top_home [data-testid="stButton"] > button,
+      .st-key-top_docs [data-testid="stButton"] > button {
+          height: 52px !important;
+          min-height: 52px !important;
+      }
+
       @media (max-width: 700px) {
           /* Reset manually positioned navigation on small screens. */
           .st-key-top_home,
@@ -3959,8 +4248,8 @@ def _home_page():
           .st-key-top_docs [data-testid="stButton"] > button {
               min-width: 52px !important;
               max-width: 78px !important;
-              height: 25px !important;
-              min-height: 25px !important;
+              height: 52px !important;
+              min-height: 52px !important;
               font-size: .56rem !important;
           }
       }
@@ -4489,7 +4778,10 @@ _top_nav()
 # ==================================================================
 quick_prompt = None
 
-st.markdown("### Explore your data")
+st.markdown(
+    '<div class="chatbot-explore-title"><h3>Explore your data</h3></div>',
+    unsafe_allow_html=True,
+)
 st.caption("Choose a question below or type your own question in the chat.")
 
 tab_inv, tab_sales, tab_supply = st.tabs(
