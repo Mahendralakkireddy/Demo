@@ -1094,10 +1094,11 @@ def _module_mismatch_message(selected_module: str, asked_module: str) -> str:
 
 
 def _detect_other_module(prompt: str, selected_module: str) -> Optional[str]:
-    """Detect a clearly different intelligence without blocking on generic words.
+    """Detect a clearly different intelligence only after Cortex Analyst fails.
 
-    The selected module remains authoritative. This check only rejects a question
-    when there is meaningful evidence that it belongs to another module.
+    The selected module remains authoritative. Cortex Analyst must get the first
+    chance to match the selected YAML's verified queries and semantic model.
+    This fallback check is used only when no SQL was generated.
     """
     text = re.sub(r"\s+", " ", str(prompt or "").lower()).strip()
     if not text or selected_module not in MODULE_CONFIG:
@@ -5403,23 +5404,38 @@ if user_prompt:
         verified_query = None
 
         try:
-            other_module = _detect_other_module(user_prompt, selected_module)
-            if other_module:
-                explanation = _module_mismatch_message(selected_module, other_module)
-                st.info(explanation)
-                sql_query = None
-            else:
-                with st.spinner("Cortex Analyst is interpreting your question..."):
-                    analyst_json = call_cortex_analyst(user_prompt, selected_module)
-                    result = extract_analyst_response(analyst_json)
+            # IMPORTANT:
+            # Always give the selected module's Cortex Analyst the user's original
+            # question FIRST. This is critical for Verified Query Repository (VQR)
+            # matching. A local keyword classifier must never block an exact/near
+            # verified query before Cortex Analyst gets a chance to use it.
+            #
+            # Example:
+            # "Which active products are below their reorder point, and which
+            # suppliers are responsible for supplying those products?"
+            # contains "suppliers", but it is also a verified Inventory question.
+            # The selected Inventory YAML must therefore be allowed to answer it.
+            with st.spinner("Cortex Analyst is interpreting your question..."):
+                analyst_json = call_cortex_analyst(user_prompt, selected_module)
+                result = extract_analyst_response(analyst_json)
 
-                explanation = result["text"]
-                sql_query = result["sql"]
-                semantic_model = result["semantic_model_selection"]
-                verified_query = result["verified_query_used"]
+            explanation = result["text"]
+            sql_query = result["sql"]
+            semantic_model = result["semantic_model_selection"]
+            verified_query = result["verified_query_used"]
 
-            if other_module:
-                result = {"warnings": []}
+            # Only use the local module classifier when Cortex Analyst could NOT
+            # generate SQL. This preserves the selected-module boundary without
+            # incorrectly blocking valid VQR questions.
+            other_module = None
+            if not sql_query:
+                other_module = _detect_other_module(user_prompt, selected_module)
+                if other_module:
+                    explanation = _module_mismatch_message(
+                        selected_module, other_module
+                    )
+                    st.info(explanation)
+
             for warning in result["warnings"]:
                 warning_text = (
                     warning.get("message", str(warning))
