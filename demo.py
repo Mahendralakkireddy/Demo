@@ -3,6 +3,7 @@ import os
 import base64
 import streamlit as st
 import pandas as pd
+import matplotlib.pyplot as plt
 from datetime import datetime
 import snowflake.connector
 from snowflake.snowpark import Session
@@ -4659,7 +4660,7 @@ def display_chart_tab(df: pd.DataFrame, key_prefix: str = ""):
 
     chart_type = col3.selectbox(
         "Chart Type",
-        ["Bar Chart", "Line Chart", "Area Chart", "Scatter Plot"],
+        ["Bar Chart", "Line Chart", "Area Chart", "Scatter Plot", "Pie Chart"],
         key=f"{key_prefix}_type",
     )
 
@@ -4682,6 +4683,31 @@ def display_chart_tab(df: pd.DataFrame, key_prefix: str = ""):
             st.line_chart(chart_df.set_index(x_col)[y_col])
         elif chart_type == "Area Chart":
             st.area_chart(chart_df.set_index(x_col)[y_col])
+        elif chart_type == "Pie Chart":
+            pie_df = chart_df[[x_col, y_col]].copy()
+            pie_df[y_col] = pd.to_numeric(pie_df[y_col], errors="coerce")
+            pie_df = pie_df.dropna(subset=[x_col, y_col])
+            pie_df = pie_df[pie_df[y_col] >= 0]
+
+            if pie_df.empty:
+                st.info("Pie Chart requires a categorical dimension and non-negative numeric values.")
+            else:
+                # Combine duplicate categories so each category is represented by one slice.
+                pie_df = pie_df.groupby(x_col, as_index=False)[y_col].sum()
+
+                if pie_df[y_col].sum() <= 0:
+                    st.info("Pie Chart requires the selected metric to have a positive total.")
+                else:
+                    fig, ax = plt.subplots()
+                    ax.pie(
+                        pie_df[y_col],
+                        labels=pie_df[x_col].astype(str),
+                        autopct="%1.1f%%",
+                        startangle=90,
+                    )
+                    ax.axis("equal")
+                    st.pyplot(fig, use_container_width=True)
+                    plt.close(fig)
         else:
             st.scatter_chart(chart_df, x=x_col, y=y_col)
     except Exception as e:
