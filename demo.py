@@ -5033,6 +5033,16 @@ if user_prompt:
 
                 st.markdown(explanation)
 
+                if semantic_model:
+                    st.caption(
+                        f"Semantic model selected: `{semantic_model}`"
+                    )
+
+                if verified_query:
+                    name = verified_query.get("name")
+                    if name:
+                        st.caption(f"Verified Query Used: `{name}`")
+
                 with st.expander("Generated SQL", expanded=False):
                     st.code(sql_query, language="sql")
 
