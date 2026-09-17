@@ -248,7 +248,6 @@ section[data-testid="stSidebar"] [class*="st-key-pin_"] button p {
     align-items:center;
     justify-content:flex-start;
     padding:8px 8px 10px 8px;
-    margin-top:-55px !important;
     margin-bottom:2px;
 }
 .dly-sidebar-brand-logo {
@@ -579,7 +578,7 @@ def _login_page():
       }
 
       .login-logo{
-          display:none !important;
+          display:inline-flex;
           width:max-content;
           background:#e51f2b;
           color:#fff;
@@ -597,7 +596,7 @@ def _login_page():
           letter-spacing:2px;
           text-transform:uppercase;
           font-size:.78rem;
-          margin-top:0;
+          margin-top:38px;
       }
 
       .login-title{
@@ -753,113 +752,6 @@ def _login_page():
           margin-top:14px;
       }
 
-      /* Sign-in button — blue background */
-      .st-key-login_submit button {
-          background:#1769d2 !important;
-          background-color:#1769d2 !important;
-          border:1px solid #1769d2 !important;
-          color:#ffffff !important;
-          font-weight:700 !important;
-      }
-
-      .st-key-login_submit button:hover {
-          background:#0b3f8f !important;
-          background-color:#0b3f8f !important;
-          border-color:#0b3f8f !important;
-          color:#ffffff !important;
-      }
-
-      /* ================================================================
-         GLOBAL TOP NAV FOR LOGIN PAGE
-         Match the Home-page Home / Document AI buttons exactly.
-         Width, height, spacing, icons and visual treatment are kept
-         identical to the final Home-page navigation.
-         ================================================================ */
-      .st-key-top_home,
-      .st-key-top_docs {
-          position:absolute !important;
-          top:48px !important;
-          z-index:10000 !important;
-          margin:0 !important;
-          padding:0 !important;
-          margin-top: -45px !important;
-      }
-
-      .st-key-top_home {
-          right:195px !important;
-          width:120px !important;
-      }
-
-      .st-key-top_docs {
-          right:15px !important;
-          width:170px !important;
-      }
-
-      .st-key-top_home [data-testid="stButton"],
-      .st-key-top_docs [data-testid="stButton"] {
-          width:100% !important;
-          min-width:0 !important;
-          max-width:none !important;
-          margin:0 !important;
-          padding:0 !important;
-      }
-
-      .st-key-top_home [data-testid="stButton"] > button,
-      .st-key-top_docs [data-testid="stButton"] > button {
-          width:100% !important;
-          min-width:0 !important;
-          max-width:none !important;
-          height:52px !important;
-          min-height:52px !important;
-          padding:0 8px !important;
-          margin:0 !important;
-          border-radius:8px !important;
-          font-size:.76rem !important;
-          font-weight:700 !important;
-          white-space:nowrap !important;
-          display:flex !important;
-          align-items:center !important;
-          justify-content:center !important;
-          box-sizing:border-box !important;
-          background:#ffffff !important;
-          border:1px solid #dfe4eb !important;
-          color:#171717 !important;
-          box-shadow:0 2px 8px rgba(21,43,70,.055), inset 0 1px 0 rgba(255,255,255,.98) !important;
-      }
-
-      .st-key-top_home [data-testid="stButton"] > button:hover,
-      .st-key-top_docs [data-testid="stButton"] > button:hover {
-          background:#fbfcfe !important;
-          border-color:#cfd8e3 !important;
-          transform:translateY(-1px) !important;
-          box-shadow:0 6px 14px rgba(21,43,70,.10), inset 0 1px 0 rgba(255,255,255,.98) !important;
-      }
-
-      .st-key-top_home [data-testid="stButton"] > button::before,
-      .st-key-top_docs [data-testid="stButton"] > button::before {
-          display:inline-flex !important;
-          align-items:center !important;
-          justify-content:center !important;
-          width:29px !important;
-          height:29px !important;
-          flex:0 0 29px !important;
-          margin-right:7px !important;
-          border-radius:6px !important;
-          background:#f5f7fa !important;
-          color:#111827 !important;
-          box-shadow:inset 0 0 0 1px #e5e9ee !important;
-      }
-
-      .st-key-top_home [data-testid="stButton"] > button::before {
-          content:"⌂" !important;
-          font-size:19px !important;
-      }
-
-      .st-key-top_docs [data-testid="stButton"] > button::before {
-          content:"▣" !important;
-          font-size:17px !important;
-      }
-
       @keyframes robotFloat{50%{transform:translateY(-10px)}}
       @keyframes orbitPulse{50%{transform:scale(1.025)}}
       @keyframes floatCard{50%{transform:translateY(-10px)}}
@@ -934,7 +826,7 @@ def _login_page():
                 <div class="login-form-badge">
                   🟢 Secure workspace access
                 </div>
-                <div class="login-form-title">Sign in to AI analytics</div>
+                <div class="login-form-title">Sign in to Dilytics</div>
                 <div class="login-form-sub">
                   Connect securely to your enterprise intelligence workspace.
                 </div>
@@ -956,7 +848,7 @@ def _login_page():
             )
 
             login_clicked = st.button(
-                "Sign in to AI analytics",
+                "Sign in to Dilytics",
                 use_container_width=True,
                 type="primary",
                 key="login_submit",
@@ -2595,7 +2487,7 @@ def _top_nav():
       .st-key-top_home {
           display: flex !important;
           position: absolute !important;
-          top: -100px !important;
+          top: -40px !important;
           right: 185px !important;
           width: 100px !important;
           z-index: 10000 !important;
@@ -2604,7 +2496,7 @@ def _top_nav():
       .st-key-top_docs {
           display: flex !important;
           position: absolute !important;
-          top: -100px !important;
+          top: -40px !important;
           right: 15px !important;
           width: 155px !important;
           z-index: 10000 !important;
@@ -2626,7 +2518,6 @@ def _top_nav():
           max-width: 100% !important;
           min-width: 0 !important;
           box-sizing: border-box !important;
-          margin-top: -45px !important;
       }
 
       .st-key-top_home [data-testid="stButton"] > button,
@@ -2634,7 +2525,6 @@ def _top_nav():
       .st-key-top_about [data-testid="stButton"] > button {
           height: 56px !important;
           min-height: 56px !important;
-          margin-top: -45px !important;
 
           padding: 0 8px !important;
           margin: 0 !important;
@@ -2826,8 +2716,8 @@ def _top_nav():
           .st-key-top_home [data-testid="stButton"] > button,
           .st-key-top_docs [data-testid="stButton"] > button,
           .st-key-top_about [data-testid="stButton"] > button {
-              height: 52px !important;
-              min-height: 52px !important;
+              height: 44px !important;
+              min-height: 44px !important;
               padding: 0 8px !important;
               font-size: .72rem !important;
           }
@@ -2856,8 +2746,8 @@ def _top_nav():
           .st-key-top_home [data-testid="stButton"] > button,
           .st-key-top_docs [data-testid="stButton"] > button,
           .st-key-top_about [data-testid="stButton"] > button {
-              height: 52px !important;
-              min-height: 52px !important;
+              height: 48px !important;
+              min-height: 48px !important;
               padding: 0 10px !important;
               font-size: .80rem !important;
           font-weight: 800 !important;
@@ -2908,8 +2798,8 @@ def _top_nav():
           .st-key-top_home [data-testid="stButton"] > button,
           .st-key-top_docs [data-testid="stButton"] > button,
           .st-key-top_about [data-testid="stButton"] > button {
-              height: 52px !important;
-              min-height: 52px !important;
+              height: 44px !important;
+              min-height: 44px !important;
               border-radius: 9px !important;
               padding: 0 6px !important;
               font-size: .64rem !important;
@@ -2930,66 +2820,18 @@ def _top_nav():
 
     if is_chatbot_page:
         st.markdown("""
-    <style>
-      /* Chatbot page only */
-      .st-key-dly_main_header {
-          margin-bottom: -18px !important;
-      }
+        <style>
+          /* Chatbot landing page only: remove the empty header space left by
+             the main-area logo and move Explore your data upward. */
+          .st-key-dly_main_header {
+              margin-bottom: -38px !important;
+          }
+          .st-key-dly_main_header [data-testid="column"] {
+              min-height: 24px !important;
+          }
+        </style>
+        """, unsafe_allow_html=True)
 
-      .st-key-dly_main_header [data-testid="column"] {
-          min-height: 20px !important;
-      }
-
-      /* ============================================================
-         CHATBOT PAGE ONLY — top navigation positioning
-         Do not change the Home/Login/Document AI page navigation.
-         ============================================================ */
-      .st-key-top_home,
-      .st-key-top_docs {
-          top: 32px !important;
-          transform: none !important;
-          z-index: 10000 !important;
-      }
-
-      /* Keep the buttons separated and prevent the labels from colliding. */
-      .st-key-top_home {
-          right: 195px !important;
-          width: 120px !important;
-      }
-
-      .st-key-top_docs {
-          right: 15px !important;
-          width: 170px !important;
-      }
-
-      .st-key-top_home [data-testid="stButton"],
-      .st-key-top_docs [data-testid="stButton"] {
-          width: 100% !important;
-          min-width: 0 !important;
-          max-width: none !important;
-          margin: 0 !important;
-          padding: 0 !important;
-      }
-
-      .st-key-top_home [data-testid="stButton"] > button,
-      .st-key-top_docs [data-testid="stButton"] > button {
-          width: 100% !important;
-          min-width: 0 !important;
-          max-width: none !important;
-          height: 52px !important;
-          min-height: 52px !important;
-          padding: 0 8px !important;
-          margin: 0 !important;
-          box-sizing: border-box !important;
-          white-space: nowrap !important;
-      }
-
-      /* Move Explore your data upward — Chatbot page ONLY */
-      .chatbot-explore-title {
-          margin-top: -15px !important;
-      }
-    </style>
-    """, unsafe_allow_html=True)
     with st.container(key="dly_main_header"):
         # The right area is intentionally narrow enough that the buttons
         # stay together, just like the reference image.
@@ -3212,8 +3054,8 @@ def _about_page():
           width: 98px !important;
           max-width: 98px !important;
           min-width: 98px !important;
-          height: 52px !important;
-          min-height: 52px !important;
+          height: 34px !important;
+          min-height: 34px !important;
           padding: 0 4px !important;
           font-size: .68rem !important;
           border-radius: 7px !important;
@@ -4000,8 +3842,8 @@ def _home_page():
           width: auto !important;
           min-width: 58px !important;
           max-width: 88px !important;
-          height: 52px !important;
-          min-height: 52px !important;
+          height: 27px !important;
+          min-height: 27px !important;
           padding: 0 6px !important;
           margin: 0 !important;
           border-radius: 6px !important;
@@ -4028,14 +3870,14 @@ def _home_page():
       .st-key-top_home,
       .st-key-top_docs {
           position: absolute !important;
-          top: 20px !important;
+          top: 48px !important;
           z-index: 10000 !important;
           margin: 0 !important;
           padding: 0 !important;
       }
 
       .st-key-top_home {
-          right: 195px !important;
+          right: 185px !important;
           width: 120px !important;
       }
 
@@ -4058,8 +3900,8 @@ def _home_page():
           width: 100% !important;
           min-width: 0 !important;
           max-width: none !important;
-          height: 52px !important;
-          min-height: 52px !important;
+          height: 38px !important;
+          min-height: 38px !important;
           padding: 0 8px !important;
           margin: 0 !important;
           border-radius: 8px !important;
@@ -4097,13 +3939,6 @@ def _home_page():
           font-size: 17px !important;
       }
 
-      /* GLOBAL NAV SIZE — identical Home / Document AI button height on every page. */
-      .st-key-top_home [data-testid="stButton"] > button,
-      .st-key-top_docs [data-testid="stButton"] > button {
-          height: 52px !important;
-          min-height: 52px !important;
-      }
-
       @media (max-width: 700px) {
           /* Reset manually positioned navigation on small screens. */
           .st-key-top_home,
@@ -4124,8 +3959,8 @@ def _home_page():
           .st-key-top_docs [data-testid="stButton"] > button {
               min-width: 52px !important;
               max-width: 78px !important;
-              height: 52px !important;
-              min-height: 52px !important;
+              height: 25px !important;
+              min-height: 25px !important;
               font-size: .56rem !important;
           }
       }
@@ -4654,10 +4489,7 @@ _top_nav()
 # ==================================================================
 quick_prompt = None
 
-st.markdown(
-    '<div class="chatbot-explore-title"><h3>Explore your data</h3></div>',
-    unsafe_allow_html=True,
-)
+st.markdown("### Explore your data")
 st.caption("Choose a question below or type your own question in the chat.")
 
 tab_inv, tab_sales, tab_supply = st.tabs(
