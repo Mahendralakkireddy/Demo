@@ -4724,6 +4724,42 @@ with st.sidebar:
         st.session_state.pinned_sessions.discard(new_id)
         st.rerun()
 
+    # Module selector. This only changes where the existing module selector is displayed.
+    # All chatbot/semantic-model routing logic remains unchanged.
+    module_labels = {
+        "inventory": "Inventory Intelligence",
+        "sales": "Sales Intelligence",
+        "supply_chain": "Supply Chain Intelligence",
+    }
+    selected_module = st.session_state.get("selected_module") or "inventory"
+    st.session_state.selected_module = selected_module
+
+    if "show_sidebar_module_selector" not in st.session_state:
+        st.session_state.show_sidebar_module_selector = True
+
+    if st.button(
+        "🧩  MODULE ✅" if st.session_state.show_sidebar_module_selector else "🧩  MODULE",
+        use_container_width=True,
+        type="primary",
+        key="sidebar_module_button",
+    ):
+        st.session_state.show_sidebar_module_selector = not st.session_state.show_sidebar_module_selector
+        st.rerun()
+
+    if st.session_state.show_sidebar_module_selector:
+        selected_label = st.selectbox(
+            "Module",
+            list(module_labels.values()),
+            index=list(module_labels.keys()).index(selected_module),
+            key="sidebar_module_selector",
+            label_visibility="collapsed",
+        )
+        new_selected_module = next(k for k, v in module_labels.items() if v == selected_label)
+        if new_selected_module != selected_module:
+            st.session_state.selected_module = new_selected_module
+            _new_chat_session(new_selected_module)
+            st.rerun()
+
     st.markdown('<div class="dly-sidebar-divider"></div>', unsafe_allow_html=True)
 
     # Pinned conversations.
@@ -4908,32 +4944,8 @@ with st.sidebar:
 # the right with the same spacing, sizing and zoom-responsive behavior.
 _top_nav()
 
-# ===================================================================
-# 6A. SELECTED INTELLIGENCE
-# ===================================================================
+# Selected module backend state (UI moved to sidebar above).
 selected_module = st.session_state.get("selected_module") or "inventory"
-module_labels = {
-    "inventory": "Inventory Intelligence",
-    "sales": "Sales Intelligence",
-    "supply_chain": "Supply Chain Intelligence",
-}
-selected_label = st.selectbox(
-    "Current Intelligence",
-    list(module_labels.values()),
-    index=list(module_labels.keys()).index(selected_module),
-    key="current_intelligence_selector",
-)
-new_selected_module = next(k for k, v in module_labels.items() if v == selected_label)
-if new_selected_module != selected_module:
-    st.session_state.selected_module = new_selected_module
-    _new_chat_session(new_selected_module)
-    st.rerun()
-selected_module = st.session_state.selected_module
-
-st.info(
-    f"You are currently using **{module_labels[selected_module]}**. "
-    "Questions outside this intelligence will be rejected until you change the selection above."
-)
 
 # 7. EXAMPLE QUESTIONS
 # These buttons are only examples. They do NOT contain SQL.
