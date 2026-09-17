@@ -1167,23 +1167,29 @@ def _new_chat_session(module: str):
 def call_cortex_analyst(prompt: str, selected_module: str) -> Dict[str, Any]:
     """Call Cortex Analyst with ONLY the selected stage semantic model.
 
-    Important: this intentionally uses semantic_models + semantic_model_file.
+    Important: this sends only the selected staged YAML file.
     No semantic view is used, and the other two module models are not sent.
     """
     if selected_module not in MODULE_CONFIG:
         raise RuntimeError("No valid intelligence module is selected.")
 
-    prompt_with_output_rule = str(prompt).strip() + "\n\n" + HIDE_DATE_OUTPUT_INSTRUCTION
+    # IMPORTANT: send the user's question to Cortex Analyst unchanged.
+    # Verified Query Repository matching is performed by Cortex Analyst based
+    # on the natural-language question. Appending our own instruction to the
+    # same user message can change the question/context and prevent a verified
+    # query from being selected even when the exact question exists in the YAML.
+    # The selected module remains the only semantic model supplied.
     selected_yaml = MODULE_CONFIG[selected_module]["yaml"]
 
     request_body = {
         "messages": [{
             "role": "user",
-            "content": [{"type": "text", "text": prompt_with_output_rule}],
+            "content": [{"type": "text", "text": str(prompt).strip()}],
         }],
-        "semantic_models": [
-            {"semantic_model_file": selected_yaml}
-        ],
+        # For one selected YAML file, use the documented single-model field.
+        # This is functionally equivalent to a one-item semantic_models list,
+        # but makes the request identical to Snowflake's single-file example.
+        "semantic_model_file": selected_yaml,
         "stream": False,
     }
 
