@@ -21,16 +21,6 @@ SCHEMA = "GOLD"
 WAREHOUSE = "COMPUTE_WH"
 ROLE = "ACCOUNTADMIN"
 
-
-# Custom output instruction: keep Start Date / End Date out of all user-facing results.
-# This instruction is added to the existing Snowflake/Cortex Analyst and Document AI prompts only.
-HIDE_DATE_OUTPUT_INSTRUCTION = (
-    "IMPORTANT OUTPUT RULE: Do not display, include, select, return, or mention Start Date or End Date "
-    "in the final user-facing answer, result table, chart, chart labels, summary, or displayed output. "
-    "These dates may still be used internally for filtering, calculations, or analysis when required, "
-    "but the Start Date and End Date fields/values must not be shown to the user. "
-)
-
 # FULL semantic-model YAML files on Snowflake stages.
 INVENTORY_YAML_STAGE_PATH = (
     '@"INVENTORY_DW_DEMO"."INVENTORY_SCHEMA"."YAML"/INV_ANALYST_DEMO_90_VERIFIED_FIXED_1.yaml'
@@ -1011,9 +1001,6 @@ def _login_page():
             # needs the authenticated Snowpark session before write_pandas()
             # can create the transient table used by the chatbot.
             next_page = st.session_state.pop("post_login_page", "chatbot")
-            pending_module = st.session_state.pop("post_login_module", None)
-            if pending_module in MODULE_CONFIG:
-                st.session_state.selected_module = pending_module
             st.session_state.app_page = next_page
             st.rerun()
 
@@ -1032,94 +1019,16 @@ def get_analyst_headers() -> Dict[str, str]:
     }
 
 
-MODULE_CONFIG = {
-    "inventory": {
-        "name": "Inventory Intelligence",
-        "yaml": INVENTORY_YAML_STAGE_PATH,
-    },
-    "sales": {
-        "name": "Sales Intelligence",
-        "yaml": SALES_YAML_STAGE_PATH,
-    },
-    "supply_chain": {
-        "name": "Supply Chain Intelligence",
-        "yaml": SUPPLY_CHAIN_YAML_STAGE_PATH,
-    },
-}
-
-# These are intentionally conservative: they are only used to catch an
-# explicitly different intelligence area before Cortex Analyst is called.
-# The selected module remains the source of truth; we never auto-switch it.
-MODULE_KEYWORDS = {
-    "inventory": [
-        "inventory", "stock", "warehouse", "warehouses", "reorder",
-        "replenish", "out of stock", "excess stock", "excess inventory",
-        "inventory value", "inventory quantity", "days of supply",
-        "stock level", "stock levels", "overstock", "quarantined",
-    ],
-    "sales": [
-        "sales", "sale", "revenue", "discount", "order value",
-        "average order value", "sales amount", "sales transaction",
-        "customer region", "order channel", "sales by month", "sales trend",
-    ],
-    "supply_chain": [
-        "supply chain", "shipment", "shipments", "purchase order",
-        "purchase orders", "supplier", "suppliers", "delivery",
-        "lead time", "on-time delivery", "fulfillment", "logistics",
-        "delay", "delayed", "bottleneck", "carrier",
-    ],
-}
-
-
-def _module_mismatch_message(selected_module: str, asked_module: str) -> str:
-    selected_name = MODULE_CONFIG[selected_module]["name"]
-    asked_name = MODULE_CONFIG[asked_module]["name"]
-    return (
-        f"This question appears to be related to **{asked_name}**, but you are "
-        f"currently in **{selected_name}**. Please select or change the "
-        f"intelligence above to **{asked_name}** to get the response."
-    )
-
-
-def _detect_other_module(prompt: str, selected_module: str) -> Optional[str]:
-    text = str(prompt or "").lower()
-    scores = {}
-    for module, keywords in MODULE_KEYWORDS.items():
-        if module == selected_module:
-            continue
-        scores[module] = sum(1 for keyword in keywords if keyword in text)
-    if not scores:
-        return None
-    best_module = max(scores, key=scores.get)
-    return best_module if scores[best_module] > 0 else None
-
-
-def _new_chat_session(module: str):
-    new_id = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
-    st.session_state.current_session_id = new_id
-    st.session_state.chat_sessions[new_id] = {
-        "title": "New Conversation",
-        "messages": [],
-        "module": module,
-    }
-
-
-def call_cortex_analyst(prompt: str, selected_module: str) -> Dict[str, Any]:
-    """Call Cortex Analyst with ONLY the semantic model for the selected module.
-
-    Important: do not send Inventory + Sales + Supply Chain together.  The
-    selected module is the routing source of truth.
-    """
-    if selected_module not in MODULE_CONFIG:
-        raise RuntimeError("No valid intelligence module is selected.")
-
+def call_cortex_analyst(prompt: str) -> Dict[str, Any]:
     request_body = {
         "messages": [{
             "role": "user",
-            "content": [{"type": "text", "text": str(prompt).strip()}],
+            "content": [{"type": "text", "text": prompt}],
         }],
         "semantic_models": [
-            {"semantic_model_file": MODULE_CONFIG[selected_module]["yaml"]}
+            {"semantic_model_file": INVENTORY_YAML_STAGE_PATH},
+            {"semantic_model_file": SALES_YAML_STAGE_PATH},
+            {"semantic_model_file": SUPPLY_CHAIN_YAML_STAGE_PATH},
         ],
         "stream": False,
     }
@@ -1140,26 +1049,7 @@ def call_cortex_analyst(prompt: str, selected_module: str) -> Dict[str, Any]:
             f"Cortex Analyst API error ({response.status_code}): {details}"
         )
 
-    try:
-        data = response.json()
-    except ValueError as exc:
-        raise RuntimeError(
-            f"Cortex Analyst returned a non-JSON response: {response.text[:500]}"
-        ) from exc
-
-    if not isinstance(data, dict):
-        raise RuntimeError(
-            f"Unexpected Cortex Analyst response type: {type(data).__name__}"
-        )
-
-    # Cortex can sometimes return an application-level error in a 200 response.
-    if data.get("error_code"):
-        raise RuntimeError(
-            f"Cortex Analyst returned error {data.get('error_code')}: "
-            f"{data.get('message') or data}"
-        )
-
-    return data
+    return response.json()
 
 
 def call_cortex_analyst_with_semantic_model(
@@ -1167,12 +1057,10 @@ def call_cortex_analyst_with_semantic_model(
     semantic_model_yaml: str,
 ) -> Dict[str, Any]:
     """Call Cortex Analyst with an inline, dynamically generated YAML model."""
-    # Preserve the existing uploaded-document output behavior.
-    prompt_with_output_rule = prompt + "\n\n" + HIDE_DATE_OUTPUT_INSTRUCTION
     request_body = {
         "messages": [{
             "role": "user",
-            "content": [{"type": "text", "text": prompt_with_output_rule}],
+            "content": [{"type": "text", "text": prompt}],
         }],
         "semantic_model": semantic_model_yaml,
         "stream": False,
@@ -1204,14 +1092,6 @@ def call_cortex_analyst_with_semantic_model(
 
 
 def extract_analyst_response(data: Dict[str, Any]) -> Dict[str, Any]:
-    """Normalize the Cortex Analyst response without assuming metadata types.
-
-    In particular, verified_query_used can be a string in some responses and
-    a dictionary in others.  Never call .get() on it unless it is a dictionary.
-    """
-    if not isinstance(data, dict):
-        raise RuntimeError("Invalid Cortex Analyst response: expected an object.")
-
     result = {
         "text": "",
         "sql": None,
@@ -1221,28 +1101,19 @@ def extract_analyst_response(data: Dict[str, Any]) -> Dict[str, Any]:
         "request_id": data.get("request_id"),
     }
 
-    message = data.get("message") or {}
-    if not isinstance(message, dict):
-        message = {}
-
-    content = message.get("content", []) or []
+    message = data.get("message", {})
+    content = message.get("content", [])
     if isinstance(content, dict):
         content = [content]
-    if not isinstance(content, list):
-        content = []
 
     text_parts = []
 
     for block in content:
-        if not isinstance(block, dict):
-            continue
-
         block_type = block.get("type")
 
         if block_type == "text":
-            text = block.get("text")
-            if text:
-                text_parts.append(str(text).strip())
+            if block.get("text"):
+                text_parts.append(block["text"])
 
         elif block_type == "sql":
             result["sql"] = (
@@ -1250,15 +1121,14 @@ def extract_analyst_response(data: Dict[str, Any]) -> Dict[str, Any]:
                 or block.get("sql")
                 or block.get("query")
             )
-
-            confidence = block.get("confidence")
+            confidence = block.get("confidence", {})
             if isinstance(confidence, dict):
-                verified = confidence.get("verified_query_used")
-                if isinstance(verified, (dict, str)):
-                    result["verified_query_used"] = verified
+                result["verified_query_used"] = confidence.get(
+                    "verified_query_used"
+                )
 
         elif block_type == "suggestions":
-            suggestions = block.get("suggestions", []) or []
+            suggestions = block.get("suggestions", [])
             if isinstance(suggestions, list):
                 text_parts.append(
                     "I could not generate SQL for this question. "
@@ -1268,23 +1138,12 @@ def extract_analyst_response(data: Dict[str, Any]) -> Dict[str, Any]:
             elif suggestions:
                 text_parts.append(str(suggestions))
 
-    result["text"] = "\n\n".join(x for x in text_parts if x).strip()
+    result["text"] = "\n\n".join(text_parts).strip()
 
-    # Some response variants put the statement directly on message.
     if not result["sql"]:
-        statement = message.get("statement")
-        if statement:
-            result["sql"] = statement
-
-    # We send exactly one semantic model, so if Cortex does not echo its
-    # selection metadata, keep the selected module as the displayed source.
-    if not result["semantic_model_selection"]:
-        result["semantic_model_selection"] = MODULE_CONFIG.get(
-            st.session_state.get("selected_module"), {}
-        ).get("name")
+        result["sql"] = message.get("statement")
 
     return result
-
 
 # ===================================================================
 # 2A. UPLOADED DOCUMENT ANALYSIS (ADDED - ORIGINAL CORTEX ANALYST
@@ -1440,8 +1299,7 @@ def ai_complete_document_question(question: str) -> str:
         "If multiple passages support the answer, reconcile them and state the relevant section/page when available. "
         "For calculations, show the calculation briefly and use only document values. "
         "Never invent a missing value. Be concise but complete. "
-        + HIDE_DATE_OUTPUT_INSTRUCTION
-        + "User question: " + question
+        "User question: " + question
     )
     # TO_FILE expects the stage reference as a string such as
     # '@"DATABASE"."SCHEMA"."STAGE"'.
@@ -3075,60 +2933,18 @@ def _top_nav():
     <style>
       /* Chatbot page only */
       .st-key-dly_main_header {
-          margin-bottom: -18px !important;
+          margin-bottom: -38px !important;
       }
 
       .st-key-dly_main_header [data-testid="column"] {
           min-height: 20px !important;
       }
 
-      /* ============================================================
-         CHATBOT PAGE ONLY — top navigation positioning
-         Do not change the Home/Login/Document AI page navigation.
-         ============================================================ */
-      .st-key-top_home,
-      .st-key-top_docs {
-          top: 22px !important;
-          transform: none !important;
-          z-index: 10000 !important;
-      }
-
-      /* Keep the buttons separated and prevent the labels from colliding. */
-      .st-key-top_home {
-          right: 195px !important;
-          width: 120px !important;
-      }
-
-      .st-key-top_docs {
-          right: 15px !important;
-          width: 170px !important;
-      }
-
-      .st-key-top_home [data-testid="stButton"],
-      .st-key-top_docs [data-testid="stButton"] {
-          width: 100% !important;
-          min-width: 0 !important;
-          max-width: none !important;
-          margin: 0 !important;
-          padding: 0 !important;
-      }
-
+      /* Increase Home + Document AI buttons only on Chatbot page */
       .st-key-top_home [data-testid="stButton"] > button,
       .st-key-top_docs [data-testid="stButton"] > button {
-          width: 100% !important;
-          min-width: 0 !important;
-          max-width: none !important;
-          height: 52px !important;
-          min-height: 52px !important;
-          padding: 0 8px !important;
-          margin: 0 !important;
-          box-sizing: border-box !important;
-          white-space: nowrap !important;
-      }
-
-      /* Move Explore your data upward — Chatbot page ONLY */
-      .chatbot-explore-title {
-          margin-top: -25px !important;
+          height: 50px !important;
+          min-height: 50px !important;
       }
     </style>
     """, unsafe_allow_html=True)
@@ -3222,7 +3038,10 @@ def _module_page(module: str):
     a,b=st.columns(2)
     with a:
         if st.button(f"💬 Chat with {title}",use_container_width=True,type="primary"):
-            _open_chat(module)
+            # Use the same authentication gate as the Home-page "Chat with AI"
+            # buttons.  Directly routing to the chatbot bypassed the login
+            # page, which left the chatbot without a Snowpark/Snowflake session.
+            _open_chat()
     with b:
         if st.button("⌂  Back to Home",use_container_width=True): _set_page("home")
 
@@ -3643,25 +3462,19 @@ def _open_document_ai():
     st.rerun()
 
 
-def _open_chat(module: Optional[str] = None):
-    """Open a module-specific AI chat, preserving the selected intelligence."""
-    if module in MODULE_CONFIG:
-        st.session_state.selected_module = module
-        st.session_state.post_login_module = module
-        # Force the visible selector to reflect the module chosen on Home/module page.
-        st.session_state.pop("current_intelligence_selector", None)
-
+def _open_chat():
+    """Open AI chat only when a valid authenticated Snowflake session exists."""
     authenticated = st.session_state.get("authenticated", False)
     snowflake_session = st.session_state.get("snowpark_session")
     snowflake_conn = st.session_state.get("snowflake_conn")
 
+    # Module pages can be opened without signing in.  Never send an
+    # unauthenticated user directly to the chatbot because the chatbot
+    # requires the Snowpark/Snowflake session created by the login flow.
+    # Also handle a stale authenticated flag with a missing session safely.
     if not authenticated or snowflake_session is None or snowflake_conn is None:
-        st.session_state.post_login_page = "chatbot"
         st.session_state.app_page = "login"
     else:
-        if st.session_state.get("selected_module") not in MODULE_CONFIG:
-            st.session_state.selected_module = "inventory"
-        st.session_state.post_login_module = None
         st.session_state.app_page = "chatbot"
     st.rerun()
 
@@ -4386,11 +4199,10 @@ def _home_page():
             a,b=st.columns(2, gap="small")
             with a:
                 if st.button("Explore Inventory", use_container_width=True, key="home_inv_explore"):
-                    st.session_state.selected_module = "inventory"
                     _set_page("inventory")
             with b:
                 if st.button("Chat with AI", use_container_width=True, key="home_inv_chat"):
-                    _open_chat("inventory")
+                    _open_chat()
             st.markdown('</div>', unsafe_allow_html=True)
 
         with st.container(key="sales_card", width="stretch"):
@@ -4410,11 +4222,10 @@ def _home_page():
             a,b=st.columns(2, gap="small")
             with a:
                 if st.button("Explore Sales", use_container_width=True, key="home_sales_explore"):
-                    st.session_state.selected_module = "sales"
                     _set_page("sales")
             with b:
                 if st.button("Chat with AI", use_container_width=True, key="home_sales_chat"):
-                    _open_chat("sales")
+                    _open_chat()
             st.markdown('</div>', unsafe_allow_html=True)
 
         with st.container(key="supply_chain_card", width="stretch"):
@@ -4434,11 +4245,10 @@ def _home_page():
             a,b=st.columns(2, gap="small")
             with a:
                 if st.button("Explore Supply Chain", use_container_width=True, key="home_supply_explore"):
-                    st.session_state.selected_module = "supply_chain"
                     _set_page("supply_chain")
             with b:
                 if st.button("Chat with AI", use_container_width=True, key="home_supply_chat"):
-                    _open_chat("supply_chain")
+                    _open_chat()
             st.markdown('</div>', unsafe_allow_html=True)
 
     st.markdown(
@@ -4452,11 +4262,6 @@ def _home_page():
 # Initialize route state and render non-chat pages.
 if "app_page" not in st.session_state:
     st.session_state.app_page = "home"
-
-if "selected_module" not in st.session_state:
-    st.session_state.selected_module = None
-if "post_login_module" not in st.session_state:
-    st.session_state.post_login_module = None
 
 # The Document AI page can be opened directly from the top-right navigation.
 # Define the authenticated Snowpark session BEFORE non-chat pages are rendered;
@@ -4507,19 +4312,10 @@ if "current_session_id" not in st.session_state:
     st.session_state.chat_sessions[init_id] = {
         "title": "New Conversation",
         "messages": [],
-        "module": st.session_state.get("selected_module") or "inventory",
     }
 
 current_id = st.session_state.current_session_id
-current_chat = st.session_state.chat_sessions[current_id]
-if current_chat.get("module") in MODULE_CONFIG:
-    st.session_state.selected_module = current_chat["module"]
-elif st.session_state.get("selected_module") in MODULE_CONFIG:
-    current_chat["module"] = st.session_state.selected_module
-else:
-    st.session_state.selected_module = "inventory"
-    current_chat["module"] = "inventory"
-messages = current_chat["messages"]
+messages = st.session_state.chat_sessions[current_id]["messages"]
 
 # A top-right Document AI upload reaches the chatbot through a rerun.
 # Consume its pending event here, after `messages` definitely exists.
@@ -4624,7 +4420,6 @@ with st.sidebar:
         st.session_state.chat_sessions[new_id] = {
             "title": "New Conversation",
             "messages": [],
-            "module": st.session_state.get("selected_module") or "inventory",
         }
         st.session_state.pinned_sessions.discard(new_id)
         st.rerun()
@@ -4727,7 +4522,6 @@ with st.sidebar:
         st.session_state.chat_sessions[init_id] = {
             "title": "New Conversation",
             "messages": [],
-            "module": st.session_state.get("selected_module") or "inventory",
         }
         st.rerun()
 
@@ -4813,42 +4607,12 @@ with st.sidebar:
 # the right with the same spacing, sizing and zoom-responsive behavior.
 _top_nav()
 
-# ===================================================================
-# 6A. SELECTED INTELLIGENCE
-# ===================================================================
-selected_module = st.session_state.get("selected_module") or "inventory"
-module_labels = {
-    "inventory": "Inventory Intelligence",
-    "sales": "Sales Intelligence",
-    "supply_chain": "Supply Chain Intelligence",
-}
-selected_label = st.selectbox(
-    "Current Intelligence",
-    list(module_labels.values()),
-    index=list(module_labels.keys()).index(selected_module),
-    key="current_intelligence_selector",
-)
-new_selected_module = next(k for k, v in module_labels.items() if v == selected_label)
-if new_selected_module != selected_module:
-    st.session_state.selected_module = new_selected_module
-    _new_chat_session(new_selected_module)
-    st.rerun()
-selected_module = st.session_state.selected_module
-
-st.info(
-    f"You are currently using **{module_labels[selected_module]}**. "
-    "Questions outside this intelligence will be rejected until you change the selection above."
-)
-
 # 7. EXAMPLE QUESTIONS
 # These buttons are only examples. They do NOT contain SQL.
 # ==================================================================
 quick_prompt = None
 
-st.markdown(
-    '<div class="chatbot-explore-title"><h3>Explore your data</h3></div>',
-    unsafe_allow_html=True,
-)
+st.markdown("### Explore your data")
 st.caption("Choose a question below or type your own question in the chat.")
 
 tab_inv, tab_sales, tab_supply = st.tabs(
@@ -5235,23 +4999,15 @@ if user_prompt:
         verified_query = None
 
         try:
-            other_module = _detect_other_module(user_prompt, selected_module)
-            if other_module:
-                explanation = _module_mismatch_message(selected_module, other_module)
-                st.info(explanation)
-                sql_query = None
-            else:
-                with st.spinner("Cortex Analyst is interpreting your question..."):
-                    analyst_json = call_cortex_analyst(user_prompt, selected_module)
-                    result = extract_analyst_response(analyst_json)
+            with st.spinner("Cortex Analyst is interpreting your question..."):
+                analyst_json = call_cortex_analyst(user_prompt)
+                result = extract_analyst_response(analyst_json)
 
-                explanation = result["text"]
-                sql_query = result["sql"]
-                semantic_model = result["semantic_model_selection"]
-                verified_query = result["verified_query_used"]
+            explanation = result["text"]
+            sql_query = result["sql"]
+            semantic_model = result["semantic_model_selection"]
+            verified_query = result["verified_query_used"]
 
-            if other_module:
-                result = {"warnings": []}
             for warning in result["warnings"]:
                 warning_text = (
                     warning.get("message", str(warning))
@@ -5283,10 +5039,7 @@ if user_prompt:
                     )
 
                 if verified_query:
-                    if isinstance(verified_query, dict):
-                        name = verified_query.get("name") or verified_query.get("query_name")
-                    else:
-                        name = str(verified_query)
+                    name = verified_query.get("name")
                     if name:
                         st.caption(f"Verified Query Used: `{name}`")
 
@@ -5328,7 +5081,6 @@ if user_prompt:
             "data": df,
             "semantic_model": semantic_model,
             "verified_query": verified_query,
-            "module": selected_module,
         })
 
     st.rerun()
