@@ -33,13 +33,13 @@ HIDE_DATE_OUTPUT_INSTRUCTION = (
 
 # FULL semantic-model YAML files on Snowflake stages.
 INVENTORY_YAML_STAGE_PATH = (
-    '@"INVENTORY_DW_DEMO"."INVENTORY_SCHEMA"."YAML"/INV_ANALYST_DEMO_90_VERIFIED_FIXED_2.yaml'
+    '@"INVENTORY_DW_DEMO"."INVENTORY_SCHEMA"."YAML"/INV_ANALYST_DEMO_90_VERIFIED_FIXED_1.yaml'
 )
 SALES_YAML_STAGE_PATH = (
-   '@"CORTEX_DEMO"."CORTEX_SCHEMA"."YAML"/sales_intelligence_model_FIXED_V2.yaml'
+    '@"CORTEX_DEMO"."CORTEX_SCHEMA"."YAML"/sales_intelligence_model_80_queries_fixed_FINAL.yaml'
 )
 SUPPLY_CHAIN_YAML_STAGE_PATH = (
-    '@"SUPPLY_CHAIN_DW_DEMO"."GOLD"."YAML"/SUPPLY_CHAIN_FIXED_V2.yml'
+    '@"SUPPLY_CHAIN_DW_DEMO"."GOLD"."YAML"/SUPPLY_CHAIN.yml'
 )
 
 ANALYST_ENDPOINT = f"https://{HOST}/api/v2/cortex/analyst/message"
@@ -1011,6 +1011,9 @@ def _login_page():
             # needs the authenticated Snowpark session before write_pandas()
             # can create the transient table used by the chatbot.
             next_page = st.session_state.pop("post_login_page", "chatbot")
+            pending_module = st.session_state.pop("post_login_module", None)
+            if pending_module in MODULE_CONFIG:
+                st.session_state.selected_module = pending_module
             st.session_state.app_page = next_page
             st.rerun()
 
@@ -1029,8 +1032,83 @@ def get_analyst_headers() -> Dict[str, str]:
     }
 
 
-def call_cortex_analyst(prompt: str) -> Dict[str, Any]:
-    # Add the output rule to the existing Snowflake/Cortex Analyst prompt only.
+MODULE_CONFIG = {
+    "inventory": {
+        "name": "Inventory Intelligence",
+        "yaml": INVENTORY_YAML_STAGE_PATH,
+    },
+    "sales": {
+        "name": "Sales Intelligence",
+        "yaml": SALES_YAML_STAGE_PATH,
+    },
+    "supply_chain": {
+        "name": "Supply Chain Intelligence",
+        "yaml": SUPPLY_CHAIN_YAML_STAGE_PATH,
+    },
+}
+
+# These are intentionally conservative: they are only used to catch an
+# explicitly different intelligence area before Cortex Analyst is called.
+# The selected module remains the source of truth; we never auto-switch it.
+MODULE_KEYWORDS = {
+    "inventory": [
+        "inventory", "stock", "warehouse", "warehouses", "reorder",
+        "replenish", "out of stock", "excess stock", "excess inventory",
+        "inventory value", "inventory quantity", "days of supply",
+        "stock level", "stock levels", "overstock", "quarantined",
+    ],
+    "sales": [
+        "sales", "sale", "revenue", "discount", "order value",
+        "average order value", "sales amount", "sales transaction",
+        "customer region", "order channel", "sales by month", "sales trend",
+    ],
+    "supply_chain": [
+        "supply chain", "shipment", "shipments", "purchase order",
+        "purchase orders", "supplier", "suppliers", "delivery",
+        "lead time", "on-time delivery", "fulfillment", "logistics",
+        "delay", "delayed", "bottleneck", "carrier",
+    ],
+}
+
+
+def _module_mismatch_message(selected_module: str, asked_module: str) -> str:
+    selected_name = MODULE_CONFIG[selected_module]["name"]
+    asked_name = MODULE_CONFIG[asked_module]["name"]
+    return (
+        f"This question appears to be related to **{asked_name}**, but you are "
+        f"currently in **{selected_name}**. Please select or change the "
+        f"intelligence above to **{asked_name}** to get the response."
+    )
+
+
+def _detect_other_module(prompt: str, selected_module: str) -> Optional[str]:
+    text = str(prompt or "").lower()
+    scores = {}
+    for module, keywords in MODULE_KEYWORDS.items():
+        if module == selected_module:
+            continue
+        scores[module] = sum(1 for keyword in keywords if keyword in text)
+    if not scores:
+        return None
+    best_module = max(scores, key=scores.get)
+    return best_module if scores[best_module] > 0 else None
+
+
+def _new_chat_session(module: str):
+    new_id = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+    st.session_state.current_session_id = new_id
+    st.session_state.chat_sessions[new_id] = {
+        "title": "New Conversation",
+        "messages": [],
+        "module": module,
+    }
+
+
+def call_cortex_analyst(prompt: str, selected_module: str) -> Dict[str, Any]:
+    """Call Cortex Analyst using ONLY the YAML for the selected intelligence."""
+    if selected_module not in MODULE_CONFIG:
+        raise RuntimeError("No valid intelligence module is selected.")
+
     prompt_with_output_rule = prompt + "\n\n" + HIDE_DATE_OUTPUT_INSTRUCTION
     request_body = {
         "messages": [{
@@ -1038,9 +1116,7 @@ def call_cortex_analyst(prompt: str) -> Dict[str, Any]:
             "content": [{"type": "text", "text": prompt_with_output_rule}],
         }],
         "semantic_models": [
-            {"semantic_model_file": INVENTORY_YAML_STAGE_PATH},
-            {"semantic_model_file": SALES_YAML_STAGE_PATH},
-            {"semantic_model_file": SUPPLY_CHAIN_YAML_STAGE_PATH},
+            {"semantic_model_file": MODULE_CONFIG[selected_module]["yaml"]}
         ],
         "stream": False,
     }
@@ -3095,10 +3171,7 @@ def _module_page(module: str):
     a,b=st.columns(2)
     with a:
         if st.button(f"💬 Chat with {title}",use_container_width=True,type="primary"):
-            # Use the same authentication gate as the Home-page "Chat with AI"
-            # buttons.  Directly routing to the chatbot bypassed the login
-            # page, which left the chatbot without a Snowpark/Snowflake session.
-            _open_chat()
+            _open_chat(module)
     with b:
         if st.button("⌂  Back to Home",use_container_width=True): _set_page("home")
 
@@ -3519,19 +3592,25 @@ def _open_document_ai():
     st.rerun()
 
 
-def _open_chat():
-    """Open AI chat only when a valid authenticated Snowflake session exists."""
+def _open_chat(module: Optional[str] = None):
+    """Open a module-specific AI chat, preserving the selected intelligence."""
+    if module in MODULE_CONFIG:
+        st.session_state.selected_module = module
+        st.session_state.post_login_module = module
+        # Force the visible selector to reflect the module chosen on Home/module page.
+        st.session_state.pop("current_intelligence_selector", None)
+
     authenticated = st.session_state.get("authenticated", False)
     snowflake_session = st.session_state.get("snowpark_session")
     snowflake_conn = st.session_state.get("snowflake_conn")
 
-    # Module pages can be opened without signing in.  Never send an
-    # unauthenticated user directly to the chatbot because the chatbot
-    # requires the Snowpark/Snowflake session created by the login flow.
-    # Also handle a stale authenticated flag with a missing session safely.
     if not authenticated or snowflake_session is None or snowflake_conn is None:
+        st.session_state.post_login_page = "chatbot"
         st.session_state.app_page = "login"
     else:
+        if st.session_state.get("selected_module") not in MODULE_CONFIG:
+            st.session_state.selected_module = "inventory"
+        st.session_state.post_login_module = None
         st.session_state.app_page = "chatbot"
     st.rerun()
 
@@ -4256,10 +4335,11 @@ def _home_page():
             a,b=st.columns(2, gap="small")
             with a:
                 if st.button("Explore Inventory", use_container_width=True, key="home_inv_explore"):
+                    st.session_state.selected_module = "inventory"
                     _set_page("inventory")
             with b:
                 if st.button("Chat with AI", use_container_width=True, key="home_inv_chat"):
-                    _open_chat()
+                    _open_chat("inventory")
             st.markdown('</div>', unsafe_allow_html=True)
 
         with st.container(key="sales_card", width="stretch"):
@@ -4279,10 +4359,11 @@ def _home_page():
             a,b=st.columns(2, gap="small")
             with a:
                 if st.button("Explore Sales", use_container_width=True, key="home_sales_explore"):
+                    st.session_state.selected_module = "sales"
                     _set_page("sales")
             with b:
                 if st.button("Chat with AI", use_container_width=True, key="home_sales_chat"):
-                    _open_chat()
+                    _open_chat("sales")
             st.markdown('</div>', unsafe_allow_html=True)
 
         with st.container(key="supply_chain_card", width="stretch"):
@@ -4302,10 +4383,11 @@ def _home_page():
             a,b=st.columns(2, gap="small")
             with a:
                 if st.button("Explore Supply Chain", use_container_width=True, key="home_supply_explore"):
+                    st.session_state.selected_module = "supply_chain"
                     _set_page("supply_chain")
             with b:
                 if st.button("Chat with AI", use_container_width=True, key="home_supply_chat"):
-                    _open_chat()
+                    _open_chat("supply_chain")
             st.markdown('</div>', unsafe_allow_html=True)
 
     st.markdown(
@@ -4319,6 +4401,11 @@ def _home_page():
 # Initialize route state and render non-chat pages.
 if "app_page" not in st.session_state:
     st.session_state.app_page = "home"
+
+if "selected_module" not in st.session_state:
+    st.session_state.selected_module = None
+if "post_login_module" not in st.session_state:
+    st.session_state.post_login_module = None
 
 # The Document AI page can be opened directly from the top-right navigation.
 # Define the authenticated Snowpark session BEFORE non-chat pages are rendered;
@@ -4369,10 +4456,19 @@ if "current_session_id" not in st.session_state:
     st.session_state.chat_sessions[init_id] = {
         "title": "New Conversation",
         "messages": [],
+        "module": st.session_state.get("selected_module") or "inventory",
     }
 
 current_id = st.session_state.current_session_id
-messages = st.session_state.chat_sessions[current_id]["messages"]
+current_chat = st.session_state.chat_sessions[current_id]
+if current_chat.get("module") in MODULE_CONFIG:
+    st.session_state.selected_module = current_chat["module"]
+elif st.session_state.get("selected_module") in MODULE_CONFIG:
+    current_chat["module"] = st.session_state.selected_module
+else:
+    st.session_state.selected_module = "inventory"
+    current_chat["module"] = "inventory"
+messages = current_chat["messages"]
 
 # A top-right Document AI upload reaches the chatbot through a rerun.
 # Consume its pending event here, after `messages` definitely exists.
@@ -4477,6 +4573,7 @@ with st.sidebar:
         st.session_state.chat_sessions[new_id] = {
             "title": "New Conversation",
             "messages": [],
+            "module": st.session_state.get("selected_module") or "inventory",
         }
         st.session_state.pinned_sessions.discard(new_id)
         st.rerun()
@@ -4579,6 +4676,7 @@ with st.sidebar:
         st.session_state.chat_sessions[init_id] = {
             "title": "New Conversation",
             "messages": [],
+            "module": st.session_state.get("selected_module") or "inventory",
         }
         st.rerun()
 
@@ -4663,6 +4761,33 @@ with st.sidebar:
 # This keeps the logo on the left and the navigation buttons grouped on
 # the right with the same spacing, sizing and zoom-responsive behavior.
 _top_nav()
+
+# ===================================================================
+# 6A. SELECTED INTELLIGENCE
+# ===================================================================
+selected_module = st.session_state.get("selected_module") or "inventory"
+module_labels = {
+    "inventory": "Inventory Intelligence",
+    "sales": "Sales Intelligence",
+    "supply_chain": "Supply Chain Intelligence",
+}
+selected_label = st.selectbox(
+    "Current Intelligence",
+    list(module_labels.values()),
+    index=list(module_labels.keys()).index(selected_module),
+    key="current_intelligence_selector",
+)
+new_selected_module = next(k for k, v in module_labels.items() if v == selected_label)
+if new_selected_module != selected_module:
+    st.session_state.selected_module = new_selected_module
+    _new_chat_session(new_selected_module)
+    st.rerun()
+selected_module = st.session_state.selected_module
+
+st.info(
+    f"You are currently using **{module_labels[selected_module]}**. "
+    "Questions outside this intelligence will be rejected until you change the selection above."
+)
 
 # 7. EXAMPLE QUESTIONS
 # These buttons are only examples. They do NOT contain SQL.
@@ -5059,15 +5184,23 @@ if user_prompt:
         verified_query = None
 
         try:
-            with st.spinner("Cortex Analyst is interpreting your question..."):
-                analyst_json = call_cortex_analyst(user_prompt)
-                result = extract_analyst_response(analyst_json)
+            other_module = _detect_other_module(user_prompt, selected_module)
+            if other_module:
+                explanation = _module_mismatch_message(selected_module, other_module)
+                st.info(explanation)
+                sql_query = None
+            else:
+                with st.spinner("Cortex Analyst is interpreting your question..."):
+                    analyst_json = call_cortex_analyst(user_prompt, selected_module)
+                    result = extract_analyst_response(analyst_json)
 
-            explanation = result["text"]
-            sql_query = result["sql"]
-            semantic_model = result["semantic_model_selection"]
-            verified_query = result["verified_query_used"]
+                explanation = result["text"]
+                sql_query = result["sql"]
+                semantic_model = result["semantic_model_selection"]
+                verified_query = result["verified_query_used"]
 
+            if other_module:
+                result = {"warnings": []}
             for warning in result["warnings"]:
                 warning_text = (
                     warning.get("message", str(warning))
@@ -5141,6 +5274,7 @@ if user_prompt:
             "data": df,
             "semantic_model": semantic_model,
             "verified_query": verified_query,
+            "module": selected_module,
         })
 
     st.rerun()
