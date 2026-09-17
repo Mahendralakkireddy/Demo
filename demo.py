@@ -3,7 +3,6 @@ import os
 import base64
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
 from datetime import datetime
 import snowflake.connector
 from snowflake.snowpark import Session
@@ -4692,22 +4691,52 @@ def display_chart_tab(df: pd.DataFrame, key_prefix: str = ""):
             if pie_df.empty:
                 st.info("Pie Chart requires a categorical dimension and non-negative numeric values.")
             else:
-                # Combine duplicate categories so each category is represented by one slice.
+                # Combine duplicate categories into one slice.
                 pie_df = pie_df.groupby(x_col, as_index=False)[y_col].sum()
 
                 if pie_df[y_col].sum() <= 0:
                     st.info("Pie Chart requires the selected metric to have a positive total.")
                 else:
-                    fig, ax = plt.subplots()
-                    ax.pie(
-                        pie_df[y_col],
-                        labels=pie_df[x_col].astype(str),
-                        autopct="%1.1f%%",
-                        startangle=90,
+                    # Streamlit's built-in Vega-Lite renderer requires no
+                    # additional plotting package.
+                    pie_data = pie_df.rename(
+                        columns={x_col: "_pie_category", y_col: "_pie_value"}
                     )
-                    ax.axis("equal")
-                    st.pyplot(fig, use_container_width=True)
-                    plt.close(fig)
+
+                    pie_spec = {
+                        "mark": {"type": "arc"},
+                        "encoding": {
+                            "theta": {
+                                "field": "_pie_value",
+                                "type": "quantitative",
+                                "stack": True,
+                            },
+                            "color": {
+                                "field": "_pie_category",
+                                "type": "nominal",
+                                "title": x_col,
+                            },
+                            "tooltip": [
+                                {
+                                    "field": "_pie_category",
+                                    "type": "nominal",
+                                    "title": x_col,
+                                },
+                                {
+                                    "field": "_pie_value",
+                                    "type": "quantitative",
+                                    "title": y_col,
+                                },
+                            ],
+                        },
+                        "view": {"stroke": None},
+                    }
+
+                    st.vega_lite_chart(
+                        pie_data,
+                        pie_spec,
+                        use_container_width=True,
+                    )
         else:
             st.scatter_chart(chart_df, x=x_col, y=y_col)
     except Exception as e:
