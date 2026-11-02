@@ -1,6 +1,6 @@
 streamlit>=1.51.0
 pandas
-snowflake-connector-python[pandas] 
+snowflake-connector-python[pandas]>=3.17,<5
 snowflake-snowpark-python 
 openpyxl 
 PyPDF2
