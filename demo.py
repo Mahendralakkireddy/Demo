@@ -5018,15 +5018,15 @@ for idx, msg in enumerate(messages):
             with st.expander("Generated SQL", expanded=False):
                 st.code(msg["sql"], language="sql")
 
-        if msg.get("semantic_model"):
-            st.caption(
-                f"Semantic model selected: `{msg['semantic_model']}`"
-            )
+        # if msg.get("semantic_model"):
+        #     st.caption(
+        #         f"Semantic model selected: `{msg['semantic_model']}`"
+        #     )
 
-        if msg.get("verified_query"):
-            name = msg["verified_query"].get("name")
-            if name:
-                st.caption(f"Verified Query Used: `{name}`")
+        # if msg.get("verified_query"):
+        #     name = msg["verified_query"].get("name")
+        #     if name:
+        #         st.caption(f"Verified Query Used: `{name}`")
 
         if msg.get("data") is not None:
             tab_data, tab_chart = st.tabs(["Data 📄", "Chart 📈"])
@@ -5217,15 +5217,15 @@ if user_prompt:
 
                 st.markdown(explanation)
 
-                if semantic_model:
-                    st.caption(
-                        f"Semantic model selected: `{semantic_model}`"
-                    )
+                # if semantic_model:
+                #     st.caption(
+                #         f"Semantic model selected: `{semantic_model}`"
+                #     )
 
-                if verified_query:
-                    name = verified_query.get("name")
-                    if name:
-                        st.caption(f"Verified Query Used: `{name}`")
+                # if verified_query:
+                #     name = verified_query.get("name")
+                #     if name:
+                #         st.caption(f"Verified Query Used: `{name}`")
 
                 with st.expander("Generated SQL", expanded=False):
                     st.code(sql_query, language="sql")
