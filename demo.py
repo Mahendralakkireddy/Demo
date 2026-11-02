@@ -1968,8 +1968,8 @@ def answer_uploaded_table_question(question: str, df: pd.DataFrame):
                 str(w.get("message", w)) if isinstance(w, dict) else str(w)
                 for w in result["warnings"]
             )
-            if warning_text:
-                st.warning(warning_text)
+            # if warning_text:
+            #     st.warning(warning_text)
 
         if not result.get("sql"):
             last_error = result.get("text") or "Cortex Analyst did not generate SQL."
@@ -5192,13 +5192,13 @@ if user_prompt:
             semantic_model = result["semantic_model_selection"]
             verified_query = result["verified_query_used"]
 
-            for warning in result["warnings"]:
-                warning_text = (
-                    warning.get("message", str(warning))
-                    if isinstance(warning, dict)
-                    else str(warning)
-                )
-                st.warning(warning_text)
+            # for warning in result["warnings"]:
+            #     warning_text = (
+            #         warning.get("message", str(warning))
+            #         if isinstance(warning, dict)
+            #         else str(warning)
+            #     )
+            #     st.warning(warning_text)
 
             if not sql_query:
                 if not explanation:
