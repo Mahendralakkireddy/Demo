@@ -14,9 +14,9 @@ import yaml
 # ===================================================================
 # Configuration
 # ===================================================================
-HOST = "WDSDGTL-XCC29288.snowflakecomputing.com"
-ACCOUNT = "WDSDGTL-XCC29288"
-DATABASE = "INVENTORY_DW_DEMO"
+HOST = "PANNVCG-HOB35010.snowflakecomputing.com"
+ACCOUNT = "PANNVCG-HOB35010"
+DATABASE = "INVENTORY_DEV"
 SCHEMA = "GOLD"
 WAREHOUSE = "COMPUTE_WH"
 ROLE = "ACCOUNTADMIN"
@@ -33,13 +33,13 @@ HIDE_DATE_OUTPUT_INSTRUCTION = (
 
 # FULL semantic-model YAML files on Snowflake stages.
 INVENTORY_YAML_STAGE_PATH = (
-    '@"INVENTORY_DW_DEMO"."INVENTORY_SCHEMA"."YAML"/INV_ANALYST_DEMO_90_VERIFIED_FIXED_1.yaml'
+    '@"INVENTORY_DEV"."GOLD"."SCHEMANTIC_MODEL"/INV_ANALYST_DEMO_90_VERIFIED_FIXED_1.yaml'
 )
 SALES_YAML_STAGE_PATH = (
-    '@"CORTEX_DEMO"."CORTEX_SCHEMA"."YAML"/sales_intelligence_model_80_queries_fixed_FINAL.yaml'
+    '@"SALES_DEV"."MART"."SALES_SCHEMANTIC_MODEL"/sales_intelligence_model_80_queries_fixed_FINAL (1).yaml'
 )
 SUPPLY_CHAIN_YAML_STAGE_PATH = (
-    '@"SUPPLY_CHAIN_DW_DEMO"."GOLD"."YAML"/SUPPLY_CHAIN.yml'
+    '@"SUPPLY_CHAIN_DEV"."GOLD"."SUPPLYCHAIN_SCHEMANTIC_MODEL"/SUPPLY_CHAIN.yml'
 )
 
 ANALYST_ENDPOINT = f"https://{HOST}/api/v2/cortex/analyst/message"
